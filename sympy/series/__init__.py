@@ -6,6 +6,8 @@ from gruntz import gruntz
 from series import series
 from residues import residue
 
+from sequences import Sequence, TaylorSeries
+
 O = Order
 
-__all__ = ['gruntz', 'limit', 'series', 'O', 'Order', 'Limit', "residue"]
+__all__ = ['gruntz', 'limit', 'series', 'O', 'Order', 'Limit', "residue", "Sequence", "TaylorSeries"]
