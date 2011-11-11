@@ -93,8 +93,8 @@ class BaseLPoly(object):
     (0, 0)
     >>> x, y = lp.gens()
     >>> p = (x + y)**2
-    >>> str(p)
-     ' +x^2 +2*x*y +y^2'
+    >>> p   #doctest: -NORMALIZE_WHITESPACE
+     +x^2 +2*x*y +y^2
     """
 
     def __init__(self, pol_gens, ring, O, **kwds):
@@ -123,15 +123,6 @@ class BaseLPoly(object):
                 self.SR = True
                 self.parens = True
         self.zero_mon = monomial_zero(self.ngens)
-
-    def __str__(self):
-        try:
-            ring_name = self.ring.__name__
-        except:
-            ring_name = str(self.ring)
-        s = 'LPoly with ngens=%d ring=%s' % (self.ngens, ring_name)
-
-        return s
 
     def gens(self):
         """return the list of the variables

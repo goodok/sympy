@@ -283,63 +283,77 @@ class StrPrinter(Printer):
         return 'pi'
 
     def _print_Poly(self, expr):
-        terms, gens = [], [ self._print(s) for s in expr.gens ]
+        from sympy.polys.polytools import Poly
+        if  isinstance(expr, Poly):
+            terms, gens = [], [ self._print(s) for s in expr.gens ]
 
-        for monom, coeff in expr.terms():
-            s_monom = []
+            for monom, coeff in expr.terms():
+                s_monom = []
 
-            for i, exp in enumerate(monom):
-                if exp > 0:
-                    if exp == 1:
-                        s_monom.append(gens[i])
+                for i, exp in enumerate(monom):
+                    if exp > 0:
+                        if exp == 1:
+                            s_monom.append(gens[i])
+                        else:
+                            s_monom.append(gens[i] + "**%d" % exp)
+
+                s_monom = "*".join(s_monom)
+
+                if coeff.is_Add:
+                    if s_monom:
+                        s_coeff = "(" + self._print(coeff) + ")"
                     else:
-                        s_monom.append(gens[i] + "**%d" % exp)
-
-            s_monom = "*".join(s_monom)
-
-            if coeff.is_Add:
-                if s_monom:
-                    s_coeff = "(" + self._print(coeff) + ")"
+                        s_coeff = self._print(coeff)
                 else:
+                    if s_monom:
+                        if coeff is S.One:
+                            terms.extend(['+', s_monom])
+                            continue
+
+                        if coeff is S.NegativeOne:
+                            terms.extend(['-', s_monom])
+                            continue
+
                     s_coeff = self._print(coeff)
-            else:
-                if s_monom:
-                    if coeff is S.One:
-                        terms.extend(['+', s_monom])
-                        continue
 
-                    if coeff is S.NegativeOne:
-                        terms.extend(['-', s_monom])
-                        continue
+                if not s_monom:
+                    s_term = s_coeff
+                else:
+                    s_term = s_coeff + "*" + s_monom
 
-                s_coeff = self._print(coeff)
+                if s_term.startswith('-'):
+                    terms.extend(['-', s_term[1:]])
+                else:
+                    terms.extend(['+', s_term])
 
-            if not s_monom:
-                s_term = s_coeff
-            else:
-                s_term = s_coeff + "*" + s_monom
+            if terms[0] in ['-', '+']:
+                modifier = terms.pop(0)
 
-            if s_term.startswith('-'):
-                terms.extend(['-', s_term[1:]])
-            else:
-                terms.extend(['+', s_term])
+                if modifier == '-':
+                    terms[0] = '-' + terms[0]
 
-        if terms[0] in ['-', '+']:
-            modifier = terms.pop(0)
+            format = expr.__class__.__name__ + "(%s, %s"
 
-            if modifier == '-':
-                terms[0] = '-' + terms[0]
+            try:
+                format += ", modulus=%s" % expr.get_modulus()
+            except PolynomialError:
+                format += ", domain='%s'" % expr.get_domain()
 
-        format = expr.__class__.__name__ + "(%s, %s"
+            format += ")"
 
+            return format % (' '.join(terms), ', '.join(gens))
+        else:
+            # case of sympy.polys.lpoly.Poly
+            return str(expr)
+
+    def _print_LPoly(self, expr):
         try:
-            format += ", modulus=%s" % expr.get_modulus()
-        except PolynomialError:
-            format += ", domain='%s'" % expr.get_domain()
+            ring_name = expr.ring.__name__
+        except:
+            ring_name = str(expr.ring)
+        s = 'LPoly with ngens=%d ring=%s' % (expr.ngens, ring_name)
+        return s
 
-        format += ")"
-
-        return format % (' '.join(terms), ', '.join(gens))
 
     def _print_ProductSet(self, p):
         return ' x '.join(self._print(set) for set in p.sets)
