@@ -104,21 +104,12 @@ class BaseLPoly(object):
         self.ngens = len(pol_gens)
         self.ring = ring
         self.order = O
-        if 'base_ring' in kwds:
-            self.base_ring = kwds['base_ring']
-        else:
-            self.base_ring = None
+        self.base_ring = kwds.get('base_ring', None)
         self.gens_dict = {}
         for i in range(self.ngens):
             self.gens_dict[self.pol_gens[i]] = i
-        if 'parens' in kwds:
-            self.parens = kwds['parens']
-        else:
-            self.parens = False
-        if 'commuting' in kwds:
-            self.commuting = kwds['commuting']
-        else:
-            self.commuting = True
+        self.parens = kwds.get('parens', False)
+        self.commuting = kwds.get('commuting', True)
         if isinstance(ring, BaseLPoly):
             self.parens = True
             if not ring.commuting:
