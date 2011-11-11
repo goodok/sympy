@@ -82,7 +82,6 @@ class BaseLPoly(object):
     K(1)  unit element in K
     O order object
     The string representation of polynomials is in decreasing order;
-    in it ^ instead of ** is used as exponent symbol.
 
     >>> from sympy.core.numbers import Rational as QQ
     >>> from sympy.polys.monomialtools import lex
@@ -94,7 +93,7 @@ class BaseLPoly(object):
     >>> x, y = lp.gens()
     >>> p = (x + y)**2
     >>> p   #doctest: -NORMALIZE_WHITESPACE
-     +x^2 +2*x*y +y^2
+     +x**2 +2*x*y +y**2
     """
 
     def __init__(self, pol_gens, ring, O, **kwds):
@@ -138,7 +137,7 @@ class BaseLPoly(object):
         return a
 
     def read_monom(self, s):
-        """compute expv for the string 'x_0^e_0*...'
+        """compute expv for the string 'x_0**e_0*...'
         where expv is (e_0, ..)
         """
         gens_dict = self.gens_dict
@@ -148,7 +147,7 @@ class BaseLPoly(object):
         a = s.split('*')
         expv = [0]*ngens
         for x in a:
-            t = x.split('^')
+            t = x.split('**')
             ind = gens_dict[t[0]]
             if len(t) == 2:
                 pw = int(t[1])
@@ -158,13 +157,14 @@ class BaseLPoly(object):
         return monomial_from_sequence(expv)
 
     def mon_eval(self, s):
-        """compute the tuple (expv, c) for a string 'c*x_0^e_0*...'
+        """compute the tuple (expv, c) for a string 'c*x_0**e_0*...'
         where expv = (e0, ..)
         """
         gens_dict = self.gens_dict
         ngens = self.ngens
         ring = self.ring
         s = s.strip()
+        s = s.replace('**', '^')
         if s[0].isdigit() and '*' not in s:
             return (self.zero_mon, ring(s))
         if s[0].isdigit():
@@ -175,7 +175,7 @@ class BaseLPoly(object):
             a = s.split('*')
             coeff = ring(1)
         expv = [0]*ngens
-        # e.g. a = ['x0^6', 'x1^6', 'x10^2']
+        # e.g. a = ['x0**6', 'x1**6', 'x10**2']
         # split each element in ind, pw
         for x in a:
             t = x.split('^')
@@ -279,9 +279,9 @@ class BaseLPoly(object):
         >>> from sympy.polys.monomialtools import lex
         >>> from sympy.polys.lpoly import lgens
         >>> lp, x, y = lgens('x, y', QQ, lex)
-        >>> p = lp('1/2 + 2/3*x^4 + 1/5*x*y^2')
+        >>> p = lp('1/2 + 2/3*x**4 + 1/5*x*y**2')
         >>> str(p)
-        ' +2/3*x^4 +1/5*x*y^2 +1/2'
+        ' +2/3*x**4 +1/5*x*y**2 +1/2'
         """
         if isinstance(s, Poly):
             if s.lp == self:
@@ -332,7 +332,7 @@ class BaseLPoly(object):
         return p
 
     def from_mon(self, a):
-        """polynomial from the monomial coeff*x_i^j
+        """polynomial from the monomial coeff*x_i**j
            a = (i, j, coeff)
         """
         p = Poly(self)
@@ -403,7 +403,7 @@ def lgens(pol_gens, ring, order, **kwds):
     >>> lp, x, y = lgens('x, y', QQ, lex)
     >>> p = (x + y)**2
     >>> str(p)
-    ' +x^2 +2*x*y +y^2'
+    ' +x**2 +2*x*y +y**2'
     """
     lp = BaseLPoly(pol_gens, ring, order, **kwds)
     if lp.parens:
@@ -460,7 +460,7 @@ class Poly(dict):
         >>> lp, x, y = lgens('x, y', QQ, lex)
         >>> p = x**2/3 + 2*x*y**2/5
         >>> str(p)
-        ' +1/3*x^2 +2/5*x*y^2'
+        ' +1/3*x**2 +2/5*x*y**2'
         """
         if not self:
             return '0'
@@ -490,7 +490,7 @@ class Poly(dict):
             for i in range(ngens):
                 exp = expv[i]
                 if exp > 1:
-                    sa.append('%s^%d' % (pol_gens[i], exp))
+                    sa.append('%s**%d' % (pol_gens[i], exp))
                 if exp == 1:
                     sa.append('%s' % pol_gens[i])
             if cnt1:
@@ -519,7 +519,7 @@ class Poly(dict):
             for i in range(ngens):
                 exp = expv[i]
                 if exp > 1:
-                    sa.append('%s^%d' % (pol_gens[i], exp))
+                    sa.append('%s**%d' % (pol_gens[i], exp))
                 if exp == 1:
                     sa.append('%s' % pol_gens[i])
             s += '*'.join(sa)
@@ -595,7 +595,7 @@ class Poly(dict):
         >>> lp, x, y = lgens('x, y', QQ, lex)
         >>> p = (x+y)**2 + (x-y)**2
         >>> str(p)
-        ' +2*x^2 +2*y^2'
+        ' +2*x**2 +2*y**2'
         """
         if not p2:
             return p1.copy()
@@ -660,11 +660,11 @@ class Poly(dict):
         >>> p2 = p
         >>> p[lp.zero_mon] = 3
         >>> str(p)
-        ' +x^2 +2*x*y +y^2 +3'
+        ' +x**2 +2*x*y +y**2 +3'
         >>> str(p1)
-        ' +x^2 +2*x*y +y^2'
+        ' +x**2 +2*x*y +y**2'
         >>> str(p2)
-        ' +x^2 +2*x*y +y^2 +3'
+        ' +x**2 +2*x*y +y**2 +3'
         """
         return copy(self)
 
@@ -731,7 +731,7 @@ class Poly(dict):
         >>> p = x**2 + y**2
         >>> p1 = p.subs(x=x+y, y=x-y)
         >>> str(p1)
-        ' +2*x^2 +2*y^2'
+        ' +2*x**2 +2*y**2'
         """
         lp = p.lp
         sb = LPolySubs(lp, lp, rules)
@@ -748,7 +748,7 @@ class Poly(dict):
         >>> p = x**2 + y**2
         >>> p2 = p.subs_trunc('x', 3, y=(x+y)**2)
         >>> str(p2)
-        ' +6*x^2*y^2 +x^2 +4*x*y^3 +y^4'
+        ' +6*x**2*y**2 +x**2 +4*x*y**3 +y**4'
         """
         lp = p.lp
         sb = LPolySubs(lp, lp, rules)
@@ -789,7 +789,7 @@ class Poly(dict):
         >>> p3 = p1
         >>> p1 += p2
         >>> str(p1)
-        ' +x^2 +x +y^2'
+        ' +x**2 +x +y**2'
         >>> p1 == p3
         True
         """
@@ -943,7 +943,7 @@ class Poly(dict):
         >>> p2 = x - y
         >>> p3 = p1*p2
         >>> str(p3)
-        ' +x^2 -y^2'
+        ' +x**2 -y**2'
         """
         lp1 = p1.lp
         p = Poly(lp1)
@@ -1010,7 +1010,7 @@ class Poly(dict):
         >>> p2 = x - y
         >>> p.mul_iadd(p1, p2)
         >>> str(p)
-        ' +2*x^2 -y^2'
+        ' +2*x**2 -y**2'
         """
         if isinstance(p1, Poly) and isinstance(p2, Poly):
             if p1.lp != p2.lp:
@@ -1035,7 +1035,7 @@ class Poly(dict):
         >>> p = x + y**2
         >>> p.imul_num(3)
         >>> str(p)
-        ' +3*x +3*y^2'
+        ' +3*x +3*y**2'
         """
         if not c:
             p.clear()
@@ -1054,7 +1054,7 @@ class Poly(dict):
         >>> p = x + y**2
         >>> p1 = p.mul_num(3)
         >>> str(p1)
-        ' +3*x +3*y^2'
+        ' +3*x +3*y**2'
         """
         if not c:
             return p.lp(0)
@@ -1114,7 +1114,7 @@ class Poly(dict):
     __div__ = __truediv__
 
     def iadd_mon(self, a):
-        """add inplace the monomial coeff*x0^i0*x1^i1*...
+        """add inplace the monomial coeff*x0**i0*x1**i1*...
         a = ((i0, i1, ...), coeff)
 
         >>> from sympy.core.numbers import Rational as QQ
@@ -1126,7 +1126,7 @@ class Poly(dict):
         >>> m = monomial_from_sequence((1, 2))
         >>> p.iadd_mon((m, 5))
         >>> str(p)
-        ' +x^4 +5*x*y^2 +2*y'
+        ' +x**4 +5*x*y**2 +2*y'
         """
         coeff = a[1]
         expv = a[0]
@@ -1152,7 +1152,7 @@ class Poly(dict):
         >>> m = monomial_from_sequence((1, 2, 3))
         >>> p3 = p1.iadd_m_mul_q(p2, (m, 3))
         >>> str(p1)
-        ' +x^4 +3*x*y^3*z^3 +3*x*y^2*z^4 +2*y'
+        ' +x**4 +3*x*y**3*z**3 +3*x*y**2*z**4 +2*y'
         >>> p1 == p3
         True
         """
@@ -1192,7 +1192,7 @@ class Poly(dict):
        >>> p = (x+y)**4
        >>> p1 = p.leading_term()
        >>> str(p1)
-       ' +x^4'
+       ' +x**4'
        """
         p = Poly(self.lp)
         expv = self.leading_expv()
@@ -1210,7 +1210,7 @@ class Poly(dict):
         >>> p = x + y**2
         >>> p1 = p.square()
         >>> str(p1)
-        ' +x^2 +2*x*y^2 +y^4'
+        ' +x**2 +2*x*y**2 +y**4'
         """
         lp = p1.lp
         if not lp.commuting:
@@ -1235,11 +1235,11 @@ class Poly(dict):
     def pow_miller(p, m):
         """power of an univariate polynomial
 
-        p = sum_i=0^L p_i*x**i
-        p**m = sum_k=0^(m*L) a(m,k)*x**k
+        p = sum_i=0**L p_i*x**i
+        p**m = sum_k=0**(m*L) a(m,k)*x**k
         Miller pure recurrence formula (see article by
         D. Zeilberger)
-        a(m,k) = 1/(k*p_0)*sum_i=1^L p_i*((m+1)*i-k)*a(m,k-i)
+        a(m,k) = 1/(k*p_0)*sum_i=1**L p_i*((m+1)*i-k)*a(m,k-i)
 
         Reference: D. Zeilberger 'The Miller Recurrence for
         Exponentatiating a Polynomial, and its q-Analog'
@@ -1338,7 +1338,7 @@ class Poly(dict):
         >>> p = x + y**2
         >>> p1 = p**3
         >>> str(p1)
-        ' +x^3 +3*x^2*y^2 +3*x*y^4 +y^6'
+        ' +x**3 +3*x**2*y**2 +3*x*y**4 +y**6'
         """
         lp = self.lp
         # test if n is an integer
@@ -1403,11 +1403,11 @@ class Poly(dict):
         >>> f1 = x-y
         >>> qv, r = f.division((f0, f1))
         >>> str(qv[0])
-        ' +x^2 +x*y^2 +y^4'
+        ' +x**2 +x*y**2 +y**4'
         >>> str(qv[1])
         '0'
         >>> str(r)
-        ' +y^6'
+        ' +y**6'
         """
         lp = self.lp
         if not self:
@@ -1476,7 +1476,7 @@ class Poly(dict):
         return r
 
     def trunc(p1, i, h):
-        """monomials containing x^k, k >= h neglected
+        """monomials containing x**k, k >= h neglected
         i is the name of the variable x, or its index
 
         >>> from sympy.core.numbers import Rational as QQ
@@ -1486,7 +1486,7 @@ class Poly(dict):
         >>> p = (x+y)**4
         >>> p1 = p.trunc('x', 3)
         >>> str(p1)
-        ' +6*x^2*y^2 +4*x*y^3 +y^4'
+        ' +6*x**2*y**2 +4*x*y**3 +y**4'
         """
         lp = p1.lp
         if isinstance(h,int):
@@ -1508,11 +1508,11 @@ class Poly(dict):
         p1 and p2 polynomials
         If h is an integer,
         let i is the name of the variable x, or its index;
-        neglect in p1*p2 the monomials containing x^k, k >= h
+        neglect in p1*p2 the monomials containing x**k, k >= h
         If h is a tuple or list of integers,
         i_j is the name of the variable x_j, or its index, for each
         i_j in i; h_j is the corresponding power in h
-        neglect in p1*p2 the monomials containing x_j^k, k >= i_j
+        neglect in p1*p2 the monomials containing x_j**k, k >= i_j
 
         >>> from sympy.core.numbers import Rational as QQ
         >>> from sympy.polys.monomialtools import lex
@@ -1521,7 +1521,7 @@ class Poly(dict):
         >>> p1 = (x + y)**2
         >>> p2 = p1.mul_trunc(x**2, 'x', 3)
         >>> str(p2)
-        ' +x^2*y^2'
+        ' +x**2*y**2'
         """
         lp = p1.lp
         if p1.lp != p2.lp:
@@ -1551,11 +1551,11 @@ class Poly(dict):
     def square_trunc(p1, i, h):
         """truncation of p1*p1
         If h is an integer, let i is the name of the variable x, or its index;
-        neglect in p1*p1 the monomials containing x^k, k >= h
+        neglect in p1*p1 the monomials containing x**k, k >= h
         If h is a tuple or list of integers,
         i_j is the name of the variable x_j, or its index, for each
         i_j in i; h_j is the corresponding power in h
-        neglect in p1*p2 the monomials containing x_j^k, k >= i_j
+        neglect in p1*p2 the monomials containing x_j**k, k >= i_j
 
         >>> from sympy.core.numbers import Rational as QQ
         >>> from sympy.polys.monomialtools import lex
@@ -1564,7 +1564,7 @@ class Poly(dict):
         >>> p1 = (x + y)**2
         >>> p2 = p1.square_trunc('x', 3)
         >>> str(p2)
-        ' +6*x^2*y^2 +4*x*y^3 +y^4'
+        ' +6*x**2*y**2 +4*x*y**3 +y**4'
         """
         lp = p1.lp
         if not lp.commuting:
@@ -1608,7 +1608,7 @@ class Poly(dict):
         >>> p1 = 1 + x + y
         >>> p2 = p1.pow_trunc(3, 'y', 2)
         >>> str(p2)
-        ' +x^3 +3*x^2*y +3*x^2 +6*x*y +3*x +3*y +1'
+        ' +x**3 +3*x**2*y +3*x**2 +6*x*y +3*x +3*y +1'
         """
         lp = self.lp
         if n != int(n):
@@ -1696,7 +1696,7 @@ class Poly(dict):
         In the case of one variable it can also be:
           iv variable name or variable index (0)
           nv truncation integer for the variable
-        p is a series with O(x_1^n_1*..x_m^n_m) in
+        p is a series with O(x_1**n_1*..x_m**n_m) in
         variables x_k with index or name iv[k-1]
         p has constant term different from zero
 
@@ -1708,12 +1708,12 @@ class Poly(dict):
         >>> lp, x, y = lgens('x, y', QQ, lex)
         >>> p = (1 + y*x).series_inversion('x', 6)
         >>> str(p)
-        ' -x^5*y^5 +x^4*y^4 -x^3*y^3 +x^2*y^2 -x*y +1'
+        ' -x**5*y**5 +x**4*y**4 -x**3*y**3 +x**2*y**2 -x*y +1'
         >>> a = Symbol('a')
         >>> lp, x = lgens('x', sympify, lex)
         >>> p1 = (1 + a + x).series_inversion('x', 3)
         >>> str(p1)
-        ' +((a + 1)**(-3))*x^2 +(-1/(a + 1)**2)*x +(1/(a + 1))'
+        ' +((a + 1)**(-3))*x**2 +(-1/(a + 1)**2)*x +(1/(a + 1))'
         """
         lp = p.lp
         zm = lp.zero_mon
@@ -1739,7 +1739,7 @@ class Poly(dict):
         >>> p = x + x**2*y**3
         >>> p1 = p.derivative('x')
         >>> str(p1)
-        ' +2*x*y^3 +1'
+        ' +2*x*y**3 +1'
         """
         lp = self.lp
         pol_gens = lp.pol_gens
@@ -1770,7 +1770,7 @@ class Poly(dict):
         >>> p = x + x**2*y**3
         >>> p1 = p.integrate('x')
         >>> str(p1)
-        ' +1/3*x^3*y^3 +1/2*x^2'
+        ' +1/3*x**3*y**3 +1/2*x**2'
         """
         lp = self.lp
         pol_gens = lp.pol_gens
@@ -1786,13 +1786,13 @@ class Poly(dict):
 ############## elementary functions ####################
 
     def series_from_list(p, c, iv, nv, concur=1):
-        """series sum c[n]*p^n
+        """series sum c[n]*p**n
         reduce the number of multiplication summing concurrently
-        ax = [1, p, p^2, .., p^(J-1)]
+        ax = [1, p, p**2, .., p**(J-1)]
         s = sum(c[i]*ax[i] for i in range(0, J)) +
-            sum(c[i]*ax[i] for i in range(J, 2*J))*p^J +
-            sum(c[i]*ax[i] for i in range(2*J, 3*J))*p^(2*J) + ...+
-            sum(c[i]*ax[i] for i in range((K-1)*J, K*J))*p^((K-1)*J)
+            sum(c[i]*ax[i] for i in range(J, 2*J))*p**J +
+            sum(c[i]*ax[i] for i in range(2*J, 3*J))*p**(2*J) + ...+
+            sum(c[i]*ax[i] for i in range((K-1)*J, K*J))*p**((K-1)*J)
         with K >= (n+1)/J
 
         >>> from sympy.core.numbers import Rational as QQ
@@ -1913,7 +1913,7 @@ class Poly(dict):
 
     def _nth_root1(p, n, iv, nv):
         """univariate series nth root of p on commuting ring
-        n  integer; compute p^(1/n)
+        n  integer; compute p**(1/n)
         iv name of the series variable
         nv precision of the series
 
@@ -1936,7 +1936,7 @@ class Poly(dict):
             if p != 0:
                 return lp(1)
             else:
-                raise ValueError('0^0 expression')
+                raise ValueError('0**0 expression')
         if n == 1:
             return p
         if n < 0:
@@ -1961,7 +1961,7 @@ class Poly(dict):
         In the case of one variable it can also be:
           iv variable name or variable index (0)
           nv truncation integer for the variable
-        p is a series with O(x_1^n_1*..x_m^n_m) in
+        p is a series with O(x_1**n_1*..x_m**n_m) in
         variables x_k with index or name iv[k-1]
         p has constant term equal to 1
 
@@ -1971,7 +1971,7 @@ class Poly(dict):
         >>> lp, x, y = lgens('x, y', QQ, lex)
         >>> p = (1 + x + x*y).sqrt('x', 3)
         >>> str(p)
-        ' -1/8*x^2*y^2 -1/4*x^2*y -1/8*x^2 +1/2*x*y +1/2*x +1'
+        ' -1/8*x**2*y**2 -1/4*x**2*y -1/8*x**2 +1/2*x*y +1/2*x +1'
         """
         p1 = p.nth_root(-2, iv, nv)
         return p.mul_trunc(p1, iv, nv)
@@ -1979,13 +1979,13 @@ class Poly(dict):
 
     def nth_root(p, n, iv, nv):
         """multivariate series nth root of p
-        n  integer; compute p^(1/n)
+        n  integer; compute p**(1/n)
         iv list of variable names or variable indices
         nv list of truncations for these variables
         In the case of one variable it can also be:
           iv variable name or variable index (0)
           nv truncation integer for the variable
-        p is a series with O(x_1^n_1*..x_m^n_m) in
+        p is a series with O(x_1**n_1*..x_m**n_m) in
         variables x_k with index or name iv[k-1]
         p has constant term equal to 1
         TODO: case of constant term different from 1
@@ -1996,7 +1996,7 @@ class Poly(dict):
         >>> lp, x, y = lgens('x, y', QQ, lex)
         >>> p = (1 + x + x*y).nth_root(-3, 'x', 3)
         >>> str(p)
-        ' +2/9*x^2*y^2 +4/9*x^2*y +2/9*x^2 -1/3*x*y -1/3*x +1'
+        ' +2/9*x**2*y**2 +4/9*x**2*y +2/9*x**2 -1/3*x*y -1/3*x +1'
         """
         lp = p.lp
         if (p-1).has_constant_term(iv):
@@ -2037,7 +2037,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.re_acoth('x', 8)
         >>> str(p)
-        ' +1/7*x^7 +1/5*x^5 +1/3*x^3 +x'
+        ' +1/7*x**7 +1/5*x**5 +1/3*x**3 +x'
         """
         if p.has_constant_term(iv):
             raise NotImplementedError('p must not have a constant term in the series variables')
@@ -2057,7 +2057,7 @@ class Poly(dict):
         return s
 
     def acot1(p, iv, nv):
-        """acot1(p) = acot(p) - constant part = -p +p^3/3 -p^5/5 + ...
+        """acot1(p) = acot(p) - constant part = -p +p**3/3 -p**5/5 + ...
         """
         if p.has_constant_term(iv):
             raise NotImplementedError('p must not have a constant term in the series variables')
@@ -2103,7 +2103,7 @@ class Poly(dict):
         p polynomial starting with 1
 
         For univariate series or with the total degree
-        truncation integral dx p^-1*d p/dx is used.
+        truncation integral dx p**-1*d p/dx is used.
 
         >>> from sympy.core.numbers import Rational as QQ
         >>> from sympy.polys.monomialtools import lex
@@ -2111,7 +2111,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = (1+x).log('x', 8)
         >>> str(p)
-        ' +1/7*x^7 -1/6*x^6 +1/5*x^5 -1/4*x^4 +1/3*x^3 -1/2*x^2 +x'
+        ' +1/7*x**7 -1/6*x**6 +1/5*x**5 -1/4*x**4 +1/3*x**3 -1/2*x**2 +x'
         """
         lp = p.lp
         if (p-1).has_constant_term(iv):
@@ -2175,7 +2175,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.atan('x', 8)
         >>> str(p)
-        ' -1/7*x^7 +1/5*x^5 -1/3*x^3 +x'
+        ' -1/7*x**7 +1/5*x**5 -1/3*x**3 +x'
         """
         if p.has_constant_term(iv):
             raise NotImplementedError('polynomial must not have constant term in the series variables')
@@ -2199,7 +2199,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.lambert('x', 8)
         >>> str(p)
-        ' +16807/720*x^7 -54/5*x^6 +125/24*x^5 -8/3*x^4 +3/2*x^3 -x^2 +x'
+        ' +16807/720*x**7 -54/5*x**6 +125/24*x**5 -8/3*x**4 +3/2*x**3 -x**2 +x'
         """
         lp = p.lp
         p1 = lp(0)
@@ -2227,7 +2227,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.asin('x', 8)
         >>> str(p)
-        ' +5/112*x^7 +3/40*x^5 +1/6*x^3 +x'
+        ' +5/112*x**7 +3/40*x**5 +1/6*x**3 +x'
         """
         if p.has_constant_term(iv):
             raise NotImplementedError('polynomial must not have constant term in the series variables')
@@ -2269,7 +2269,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.asinh('x', 8)
         >>> str(p)
-        ' -5/112*x^7 +3/40*x^5 -1/6*x^3 +x'
+        ' -5/112*x**7 +3/40*x**5 -1/6*x**3 +x'
         """
         if p.has_constant_term(iv):
             raise NotImplementedError('polynomial must not have constant term in the series variables')
@@ -2324,7 +2324,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.atanh('x', 8)
         >>> str(p)
-        ' +1/7*x^7 +1/5*x^5 +1/3*x^3 +x'
+        ' +1/7*x**7 +1/5*x**5 +1/3*x**3 +x'
         """
         if p.has_constant_term(iv):
             raise NotImplementedError('polynomial must not have constant term in the series variables')
@@ -2356,7 +2356,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.tanh('x', 8)
         >>> str(p)
-        ' -17/315*x^7 +2/15*x^5 -1/3*x^3 +x'
+        ' -17/315*x**7 +2/15*x**5 -1/3*x**3 +x'
         """
         lp = p.lp
         if p.has_constant_term(iv):
@@ -2387,7 +2387,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.tan('x', 8)
         >>> str(p)
-        ' +17/315*x^7 +2/15*x^5 +1/3*x^3 +x'
+        ' +17/315*x**7 +2/15*x**5 +1/3*x**3 +x'
         """
         lp = p.lp
         if p.has_constant_term(iv):
@@ -2464,7 +2464,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.exp('x', 6)
         >>> str(p)
-        ' +1/120*x^5 +1/24*x^4 +1/6*x^3 +1/2*x^2 +x +1'
+        ' +1/120*x**5 +1/24*x**4 +1/6*x**3 +1/2*x**2 +x +1'
         """
         lp = p.lp
         if p.has_constant_term(iv):
@@ -2502,7 +2502,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.sin('x', 6)
         >>> str(p)
-        ' +1/120*x^5 -1/6*x^3 +x'
+        ' +1/120*x**5 -1/6*x**3 +x'
         """
         lp = p.lp
         if p.has_constant_term(iv):
@@ -2545,7 +2545,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.cos('x', 6)
         >>> str(p)
-        ' +1/24*x^4 -1/2*x^2 +1'
+        ' +1/24*x**4 -1/2*x**2 +1'
         """
         lp = p.lp
         if p.has_constant_term(iv):
@@ -2598,7 +2598,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.sinh('x', 8)
         >>> str(p)
-        ' +1/5040*x^7 +1/120*x^5 +1/6*x^3 +x'
+        ' +1/5040*x**7 +1/120*x**5 +1/6*x**3 +x'
         """
         t = p.exp(iv, nv)
         t1 = t.series_inversion(iv, nv)
@@ -2613,7 +2613,7 @@ class Poly(dict):
         >>> lp, x = lgens('x', QQ, lex)
         >>> p = x.cosh('x', 8)
         >>> str(p)
-        ' +1/720*x^6 +1/24*x^4 +1/2*x^2 +1'
+        ' +1/720*x**6 +1/24*x**4 +1/2*x**2 +1'
         """
         t = p.exp(iv, nv)
         t1 = t.series_inversion(iv, nv)
@@ -2649,7 +2649,7 @@ class Poly(dict):
         >>> x = Symbol('x')
         >>> p = (1 + X)**3
         >>> str(p)
-        ' +X^3 +3*X^2 +3*X +1'
+        ' +X**3 +3*X**2 +3*X +1'
         >>> p1 = p.tobasic(x)
         >>> p1
         x**3 + 3*x**2 + 3*x + 1
@@ -2682,10 +2682,10 @@ class LPolySubs(object):
     >>> sb = LPolySubs(lp, lp, {'y':y+1})
     >>> p1 = sb.subs((x + y)**2)
     >>> str(p1)
-    ' +x^2 +2*x*y +2*x +y^2 +2*y +1'
+    ' +x**2 +2*x*y +2*x +y**2 +2*y +1'
     >>> p1 = sb.subs_trunc((x + y)**4, 'x', 2)
     >>> str(p1)
-    ' +4*x*y^3 +12*x*y^2 +12*x*y +4*x +y^4 +4*y^3 +6*y^2 +4*y +1'
+    ' +4*x*y**3 +12*x*y**2 +12*x*y +4*x +y**4 +4*y**3 +6*y**2 +4*y +1'
     """
     def __init__(self, lp1, lp2, rules):
         self.lp1 = lp1
