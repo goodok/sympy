@@ -1,6 +1,8 @@
 """Tests for distributed polynomials and series using lpoly"""
 
-from sympy import Symbol, Rational, sympify, QQ, sqrt
+from sympy import Symbol, Rational, sympify, sqrt
+#from sympy.polys.domains import QQ
+from sympy.core.numbers import Rational as QQ
 from sympy.series import series
 from sympy.core.function import expand
 from sympy.polys.lpoly import LPoly, lgens, LPolySubs
@@ -18,9 +20,9 @@ def test_str():
     lp = LPoly(list('xyz'), QQ, lex)
     x, y, z = lp.gens()
     p = lp('  +z**4 +1/2*z**2 -1/4')
-    assert str(p) == ' +z**4 +1/2*z**2 -1/4'
+    assert str(p) == 'z**4 + 1/2*z**2 - 1/4'
     p = lp('z**4 -1/2')
-    assert str(p) == ' +z**4 -1/2'
+    assert str(p) == 'z**4 - 1/2'
 
 def test_read_monom():
     lp = LPoly(list('xyz'), QQ, lex)
@@ -47,6 +49,7 @@ def test_zero():
 def test_from_mon():
     lp = LPoly('x, y', QQ, lex)
     p = lp.from_mon((1, 4, QQ(7, 3)))
+    assert lp('7/3*y**4') == p
     assert p == lp('7/3*y**4')
 
 def test_variables():
@@ -507,7 +510,7 @@ def test_subs():
     lp, x, y = lgens('x, y', QQ, lex)
     p = (1+x)**4
     p1 = p.subs(x=(1+y)**5)
-    assert p1.coefficient(y**20) == lp('1')
+    assert p1.coefficient(y**20) == lp(1)
 
     p = 1 + x**2 + 2*y**2
     p1 = p.subs(x=1+y**2, y=1+x)

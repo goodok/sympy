@@ -25,8 +25,13 @@ class PythonRationalType(object):
 
     def __init__(self, p, q=None):
         if q is None:
-            self.p = p
-            self.q = 1
+            if isinstance(p, self.__class__):
+                # TODO: somewhere incorrect constructor is used
+                self.p = p.p
+                self.q = p.q
+            else:
+                self.p = p
+                self.q = 1
         else:
             if not q:
                 raise ZeroDivisionError('rational number')
@@ -41,8 +46,13 @@ class PythonRationalType(object):
     @classmethod
     def new(cls, p, q):
         obj = object.__new__(cls)
-        obj.p = p
-        obj.q = q
+        if isinstance(p, cls):
+            # TODO: somewhere incorrect constructor is used
+            obj.p = p.p
+            obj.q = p.q
+        else:
+            obj.p = p
+            obj.q = q
         return obj
 
     def __hash__(self):
