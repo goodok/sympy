@@ -250,7 +250,7 @@ def taylor(p, var=None, start=0, prec=6, dir="+", pol_pars=[]):
     x**2 + x**4/3 - x**6/30 - 71*x**8/630 + O(x**10)
 
     >>> p = x*exp(x)/(sin(x)*tan(2*x))
-    >>> taylor(p, x, 0, 5)  #doctest: +SKIP
+    >>> taylor(p, x, 0, 5)
     1/(2*x) + 1/2 - x/3 - x**2/2 - 11*x**3/20 - 67*x**4/180 + O(x**5)
 
     >>> taylor(sqrt(1 + x*sin(pi*x)), x, 0, 6)
@@ -883,9 +883,9 @@ def expand_pol(p, gens):
     >>> from sympy import symbols
     >>> from sympy.polys.ltaylor import expand_pol
     >>> x,y = symbols('x,y')
-    >>> expand_pol(x*(x+1)*(x+2)**2, [x]) #doctest: +SKIP
+    >>> expand_pol(x*(x+1)*(x+2)**2, [x])
     x**4 + 5*x**3 + 8*x**2 + 4*x
-    >>> expand_pol((1+x+y)*(x+y),[x,y])   #doctest: +SKIP
+    >>> expand_pol((1+x+y)*(x+y),[x,y])
     x**2 + 2*x*y + x + y**2 + y
     """
     p = sympify(p)
