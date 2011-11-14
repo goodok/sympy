@@ -2,6 +2,7 @@ from sympy.core import (Basic, Expr, S)
 from sympy.core.numbers import Infinity, Zero
 from sympy.core.power import Pow
 from sympy.functions import factorial
+from sympy.solvers.recurr import rsolve
 
 class Sequence(Expr):
     """Represents an Sequence.
@@ -14,19 +15,29 @@ class Sequence(Expr):
     >>> from sympy import S, oo
     >>> from sympy.abc import k
 
-    >>> Sequence((1, oo), formula=(k, S(1)/k))
-    [0, 1, 1/2, 1/3, 1/4, 1/5, ...]
+    >>> seq = Sequence((3, oo), formula=(k, S(1)/k))
+    >>> seq
+    [0, ..., 1/3, 1/4, 1/5, 1/6, 1/7, ...]
+    >>> seq.is_infinite
+    True
+    >>> seq.start_index
+    3
+    >>> seq.end_index
+    oo
+    >>> seq.info
+    Sequence((3, oo), formula=(k, 1/k))
 
-    >>> f = AbstractFunction("f", k)                 #doctest: +SKIP
-    >>> f                                       #doctest: +SKIP
-    f(k)
-    >>> Sequence((1, oo), function = f)         #doctest: +SKIP
+    >>> seq[4:6]
+    [0, ..., 1/4, 1/5, 1/6]
+
+
+    >>> f = AbstractFunction("f")          #doctest: +SKIP
+    >>> Sequence((1, oo), function=f)      #doctest: +SKIP
     [f(1), f(2), f(3), ...]
 
-    >>> f = ImplementedFunction("f", k, S(1)/k))     #doctest: +SKIP
-    >>> f                                       #doctest: +SKIP
-    f(k) == S(1)/k
-    >>> Sequence((1, oo), function = f)         #doctest: +SKIP
+    >>> f = lambda k: S(1)/k
+    >>> seq = Sequence((1, oo), function = f)
+    >>> seq
     [0, 1, 1/2, 1/3, 1/4, 1/5, ...]
 
 
@@ -37,7 +48,7 @@ class Sequence(Expr):
 
     Through periodical list (finite or infinite sequence)
 
-    >>> Sequence((0, oo), baselist = [1, 2, 3, 4], kind="periodical")
+    >>> Sequence((0, oo), baselist=[1, 2, 3, 4], kind="periodical")
     [1, 2, 3, 4, 1, ...]
 
     Through the list (only finite sequence)
@@ -47,7 +58,7 @@ class Sequence(Expr):
 
     Representations:
 
-    By default Sequence printed as lists (if it possible) for human recognizing:
+    By default Sequence printed as lists (if it possible) for human reading:
 
     >>> seq = Sequence((1, oo), formula=(k, S(1)/k))
     >>> seq
@@ -82,11 +93,18 @@ class Sequence(Expr):
         """Create a new Sequence instance out of something useful. """
         formula = kwargs.pop("formula", None)
         if formula:
-            return  cls._from_formula(size, formula, **kwargs)
-
+            return cls._from_formula(size, formula, **kwargs)
 
         if baselist:
-            return  cls._from_baselist(size, baselist, **kwargs)
+            return cls._from_baselist(size, baselist, **kwargs)
+
+        function = kwargs.pop("function", None)
+        if function:
+            return cls._from_function(size, function, **kwargs)
+
+        recurr = kwargs.pop("recurr", None)
+        if recurr:
+            return cls._from_recurr(size, recurr, **kwargs)
 
 
     @classmethod
@@ -112,16 +130,30 @@ class Sequence(Expr):
         baselist = []
         period = 0
 
-        arglist = [size, kind, baselist, period, formula]
-
+        arglist = [size, kind, baselist, period, formula[0], formula[1]]
         obj._args = tuple(arglist)
+        return obj
 
+    @classmethod
+    def from_function(cls, size, function, **kwargs):
+        """Construct a sequence from a ``function``. """
+        return cls._from_function(size, function, **kwargs)
+
+    @classmethod
+    def _from_function(cls, size, function, **opt):
+        """Construct a sequence from a ``function``. """
+        obj = Expr.__new__(cls, **opt)
+
+        kind = "function"
+
+        arglist = [size, kind, function]
+        obj._args = tuple(arglist)
         return obj
 
     @classmethod
     def from_baselist(cls, size, baselist, **kwargs):
         """Construct a sequence from a ``baselist``. """
-        return cls._from_formula(size, baselist, **kwargs)
+        return cls._from_baselist(size, baselist, **kwargs)
 
     @classmethod
     def _from_baselist(cls, size, baselist, **opt):
@@ -134,13 +166,30 @@ class Sequence(Expr):
             period = len(baselist)
         else:
             period = 0
-            assert size[1]==len(baselist)
+            assert size[1]- size[0] + 1 == len(baselist)
 
         arglist = [size, kind, baselist, period, None]
-
         obj._args = tuple(arglist)
-
         return obj
+
+    @classmethod
+    def from_recurr(cls, size, recurr, **kwargs):
+        """Construct a sequence from a ``recurr``. """
+        return cls._from_recurr(size, recurr, **kwargs)
+
+    @classmethod
+    def _from_recurr(cls, size, recurr, **opt):
+        """Construct a sequence from a ``recurr``. """
+        obj = Expr.__new__(cls, **opt)
+
+        kind = "recurr"
+        k = recurr[1].args[0]
+        formula = rsolve(*recurr)
+
+        arglist = [size, kind, recurr, None, k, formula]
+        obj._args = tuple(arglist)
+        return obj
+
 
     @property
     def kind(self):
@@ -156,14 +205,14 @@ class Sequence(Expr):
 
     @property
     def length(self):
-        return self.size[1]
+        return self.end_index - self.start_index + 1
 
     @property
     def end_index(self):
-        return self.start_index + self.length - 1
+        return self.size[1]
 
     @property
-    def is_infinit(self):
+    def is_infinite(self):
         return isinstance(self.end_index, Infinity)
 
     @property
@@ -178,21 +227,60 @@ class Sequence(Expr):
 
     @property
     def k(self):
-        assert self.kind == "formula"
-        return self._args[4][0]
+        assert (self.kind == "formula") or (self.kind == "recurr")
+        return self._args[4]
 
     @property
     def formula(self):
-        assert self.kind == "formula"
-        return self._args[4][1]
+        assert (self.kind == "formula") or (self.kind == "recurr")
+        return self._args[5]
 
+    @property
+    def function(self):
+        return self._args[2]
+
+    @property
+    def recurr(self):
+        return self._args[2]
+
+    def __getitem__(self, i):
+        kind = self.kind
+        if isinstance(i, slice):
+            slc = i
+            start = max(slc.start, self.start_index)
+            if self.is_infinite:
+                stop = slc.stop
+            else:
+                stop = min(slc.stop, self.stop_index)
+            new_size = (start, stop)
+
+            if (kind == "formula"):
+                return self.from_formula(new_size, (self.k, self.formula))
+        else:
+            if i < self.start_index:
+                return S.Zero
+
+            if not self.is_infinite:
+                if i > self.end_index:
+                    return S.Zero
+
+            if (kind == "formula") or (kind == "recurr"):
+                return self.formula.subs(self.k, i)
+            if kind == "function":
+                return self.function(i)
+            elif kind == "periodical":
+                i = (i - self.start_index) % self.period
+                return self.baselist[i]
+            elif kind == "finitlist":
+                i = (i - self.start_index)
+                return self.baselist[i]
+
+    def show(self, n=5):
+        self.show_n = n
+        return self
 
     def _sympystr(self, printer, *args):
-        show_n = self.show_n
-
         l = []
-        if self.kind == "finitlist":
-            show_n = min(show_n, self.length)
 
         if self.start_index > 1:
           l.append(printer._print(S.Zero))
@@ -200,33 +288,16 @@ class Sequence(Expr):
         elif self.start_index ==1:
           l.append(printer._print(S.Zero))
 
-        l.extend([printer._print(self[i]) for i in range(self.start_index, self.start_index + show_n)])
+        count = self.show_n
+        if not self.is_infinite:
+            count = min(count, self.length)
 
-        if self.end_index > self.show_n:
+        l.extend([printer._print(self[i]) for i in range(self.start_index, self.start_index + count)])
+
+        if self.is_infinite or (self.length > self.show_n):
             l.append("...")
         return "[" + ", ". join(l) + "]"
 
-    def __getitem__(self,key):
-        if key < self.start_index:
-            return S.Zero
-
-        # TODO: create is_infinit property
-        if self.is_infinit:
-            if key > self.end_index:
-                return S.Zero
-
-        if self.kind == "formula":
-            return self.formula.subs(self.k, key)
-        elif self.kind == "periodical":
-            i = (key - self.size[0]) % self.period
-            return self.baselist[i]
-        elif self.kind == "finitlist":
-            i = (key - self.size[0])
-            return self.baselist[i]
-
-    def show(self, n=5):
-        self.show_n = n
-        return self
 
     @property
     def info(self):
@@ -247,8 +318,9 @@ class Sequence(Expr):
              r += ', baselist=%s, kind="%s"' % (self.baselist, kind)
         elif kind == "finitlist":
             r += ', baselist=%s' % (self.baselist)
+        elif kind == "recurr":
+            r += ', recurr=(%s, %s, %s)' % (self.recurr)
         r += ")"
-
         return r
 
 
@@ -263,9 +335,7 @@ class Sequence(Expr):
 
 
 class TaylorSeries(Basic):
-
     """
-
     Examples:
 
     >>> from sympy import Sequence, TaylorSeries
