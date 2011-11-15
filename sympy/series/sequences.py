@@ -1,10 +1,290 @@
 from sympy.core import (Basic, Expr, S)
-from sympy.core.numbers import Infinity, Zero
+from sympy.core.numbers import (Infinity, Zero)
 from sympy.core.power import Pow
 from sympy.functions import factorial
 from sympy.solvers.recurr import rsolve
+from sympy.core.numbers import ilcm
 
-class Sequence(Expr):
+
+from sequencesexpr import SeqExpr
+
+class SequenceBase(SeqExpr):
+    """
+    Base (atomic) Sequence class.
+
+    All other kindes of sequences (SeqPer, SeqFunc, ) inherited from it.
+    This class rather is Abstract
+    """
+    is_SequenceAtom = True
+    show_n = 5
+
+    def __new__(cls, *args, **kwarg):
+        obj = SeqExpr.__new__(cls, *args)
+        return obj
+
+    @property
+    def size(self):
+        return self._args[0]
+
+    @property
+    def start_index(self):
+        return self.size[0]
+
+    @property
+    def stop_index(self):
+        return self.size[1]
+
+    @property
+    def length(self):
+        return self.stop_index - self.start_index + 1
+
+    @property
+    def is_infinite(self):
+        return isinstance(self.stop_index, Infinity)
+
+    @property
+    def is_direct_calculated(self):
+        return False
+
+    def calc_size(self, slc):
+        start_index = self.start_index
+        stop_index = self.stop_index
+        if slc.start == None:
+            slc_start = 0
+        else:
+            slc_start = slc.start
+        start = max(slc_start, start_index)
+        if self.is_infinite:
+            if slc.stop == None:
+                stop = stop_index
+            else:
+                stop = slc.stop
+        else:
+            stop = min(slc.stop, stop_index)
+        return (start, stop)
+
+    def is_out_of_range(self, i):
+        if i < self.start_index:
+            return True
+
+        if not self.is_infinite:
+            if i > self.stop_index:
+                return True
+
+        return False
+
+
+    def _pretty(self,  printer, *args):
+        printset = []
+
+        if self.start_index > 1:
+          printset.append(S.Zero)
+          printset.append("...")
+        elif self.start_index ==1:
+          printset.append(S.Zero)
+
+        count = self.show_n
+        if not self.is_infinite:
+            count = min(count, self.length)
+
+        printset.extend([self[i] for i in range(self.start_index, self.start_index + count)])
+
+        if self.is_infinite or (self.length > self.show_n):
+            printset.append("...")
+        return printer._print_seq(printset, '[', ']', ', ' )
+
+
+class SeqPer(SequenceBase):
+    """
+    Periodical sequence.
+    """
+
+    def __new__(cls, size, baselist = None, **kwargs):
+
+        """Create a new periodical seuqence SeqPer instance out of something useful. """
+
+        obj = SequenceBase.__new__(cls, size, baselist)
+        return obj
+
+    @classmethod
+    def _from_args(cls, size, baselist, **opt):
+        """Construct a sequence from a ``function``. """
+        obj = SeqPer.__new__(cls, size, baselist)
+        return obj
+
+    @property
+    def baselist(self):
+        return self._args[1]
+
+    @property
+    def period(self):
+        return len(self.baselist)
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            new_size = self.calc_size(i)
+
+            # shift left circular the base list if its start index has changed
+            new_baselist = self.baselist
+            baselist = self.baselist
+            shift = (new_size[0] - self.start_index) % self.period
+            if shift != 0:
+                new_baselist = baselist[shift:] + baselist[:shift]
+
+            return self._from_args(new_size, new_baselist)
+
+        else:
+            if self.is_out_of_range(i):
+                return S.Zero
+            i = (i - self.start_index) % self.period
+            return self.baselist[i]
+
+class SeqList(SequenceBase):
+    """
+    Periodical sequence.
+    """
+
+    def __new__(cls, size, baselist = None, **kwargs):
+
+        """Create a new periodical seuqence SeqPer instance out of something useful. """
+        assert len(baselist) == size[1] - size[0] + 1
+        obj = SequenceBase.__new__(cls, size, baselist)
+        return obj
+
+    @classmethod
+    def _from_args(cls, size, baselist, **opt):
+        """Construct a sequence from a ``function``. """
+        obj = SeqList.__new__(cls, size, baselist)
+        return obj
+
+    @property
+    def baselist(self):
+        return self._args[1]
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            new_size = self.calc_size(i)
+            a = new_size[0] - self.start
+            b = new_size[1] - self.start
+            new_baselist = baselist[a:b]
+            return self._from_args(new_size, new_baselist)
+
+        else:
+            if self.is_out_of_range(i):
+                return S.Zero
+            return self.baselist[i-self.start_index]
+
+class SeqFormula(SequenceBase):
+    """
+    Sequence defined by formula.
+
+    It is may bee depricated, since SeqFunction is.
+    """
+
+    def __new__(cls, size, k, formula, **kwargs):
+
+        """Create a new periodical seuqence SeqPer instance out of something useful. """
+
+        obj = SequenceBase.__new__(cls, size, k, formula)
+        return obj
+
+    @classmethod
+    def _from_args(cls, size, k, formula, **opt):
+        """Construct a sequence from a ``function``. """
+        obj = SeqFormula.__new__(cls, size, k, formula)
+        return obj
+
+    @property
+    def k(self):
+        return self._args[1]
+
+    @property
+    def formula(self):
+        return self._args[2]
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            new_size = self.calc_size(i)
+            return self._from_args(new_size, self.k, self.formula)
+
+        elif self.is_out_of_range(i):
+            return S.Zero
+        else:
+            return self.formula.subs(self.k, i)
+
+class SeqFunc(SequenceBase):
+    """
+    Sequence defined by function.
+    """
+    def __new__(cls, size, function, **kwargs):
+
+        """Create a new periodical seuqence SeqPer instance out of something useful. """
+
+        obj = SequenceBase.__new__(cls, size, function)
+        return obj
+
+    @classmethod
+    def _from_args(cls, size, function, **opt):
+        """Construct a sequence from a ``function``. """
+        obj = SeqFunc.__new__(cls, size, function)
+        return obj
+
+    @property
+    def function(self):
+        return self._args[1]
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            new_size = self.calc_size(i)
+            return self._from_args(new_size, self.function)
+
+        elif self.is_out_of_range(i):
+            return S.Zero
+        else:
+            return self.function(i)
+
+class SeqRecurr(SequenceBase):
+    """
+    Sequence defined by function.
+    """
+    def __new__(cls, size, recurr, **kwargs):
+
+        """Create a new periodical sequence SeqPer instance out of something useful. """
+        k = recurr[1].args[0]
+        formula = rsolve(*recurr)
+        obj = SequenceBase.__new__(cls, size, recurr, k, formula)
+        return obj
+
+    @classmethod
+    def _from_args(cls, size, recurr, **opt):
+        """Construct a sequence from a ``function``. """
+        obj = SeqRecurr.__new__(cls, size, recurr)
+        return obj
+
+    @property
+    def recurr(self):
+        return self._args[1]
+
+    @property
+    def k(self):
+        return self._args[2]
+
+    @property
+    def formula(self):
+        return self._args[3]
+
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            new_size = self.calc_size(i)
+            return self._from_args(new_size, self.recurr)
+
+        elif self.is_out_of_range(i):
+            return S.Zero
+        else:
+            return self.formula.subs(self.k, i)
+
+class Sequence(SeqExpr):
     """Represents an Sequence.
 
     Constructions:
@@ -22,7 +302,7 @@ class Sequence(Expr):
     True
     >>> seq.start_index
     3
-    >>> seq.end_index
+    >>> seq.stop_index
     oo
     >>> seq.info
     Sequence((3, oo), formula=(k, 1/k))
@@ -86,253 +366,35 @@ class Sequence(Expr):
 
     __slots__ = ['rep', 'gens']
 
-    is_Sequence = True
+    is_SequenceAtom = True
 
     show_n = 5
-    def __new__(cls, size, baselist = [], **kwargs):
+    def __new__(cls, size, **kwargs):
         """Create a new Sequence instance out of something useful. """
+
+        baselist = kwargs.pop("periodical", None)
+        if baselist:
+            return SeqPer._from_args(size, baselist, **kwargs)
+
+        baselist = kwargs.pop("finitlist", None)
+        if baselist:
+            return SeqList._from_args(size, baselist, **kwargs)
+
         formula = kwargs.pop("formula", None)
         if formula:
-            return cls._from_formula(size, formula, **kwargs)
-
-        if baselist:
-            return cls._from_baselist(size, baselist, **kwargs)
+            k = formula[0]
+            formula = formula[1]
+            return SeqFormula._from_args(size, k, formula, **kwargs)
 
         function = kwargs.pop("function", None)
         if function:
-            return cls._from_function(size, function, **kwargs)
+            return SeqFunc._from_args(size, function, **kwargs)
 
         recurr = kwargs.pop("recurr", None)
         if recurr:
-            return cls._from_recurr(size, recurr, **kwargs)
+            return SeqRecurr._from_args(size, recurr, **kwargs)
 
-
-    @classmethod
-    def new(cls, size):
-        """Construct :class:`Sequence` instance from raw representation. """
-        obj = Basic.__new__(cls)
-
-        obj.size = size
-
-        return obj
-
-    @classmethod
-    def from_formula(cls, size, formula, **kwargs):
-        """Construct a sequence from a ``formula``. """
-        return cls._from_formula(size, formula, **kwargs)
-
-    @classmethod
-    def _from_formula(cls, size, formula, **opt):
-        """Construct a sequence from a ``formula``. """
-        obj = Expr.__new__(cls, **opt)
-
-        kind = "formula"
-        baselist = []
-        period = 0
-
-        arglist = [size, kind, baselist, period, formula[0], formula[1]]
-        obj._args = tuple(arglist)
-        return obj
-
-    @classmethod
-    def from_function(cls, size, function, **kwargs):
-        """Construct a sequence from a ``function``. """
-        return cls._from_function(size, function, **kwargs)
-
-    @classmethod
-    def _from_function(cls, size, function, **opt):
-        """Construct a sequence from a ``function``. """
-        obj = Expr.__new__(cls, **opt)
-
-        kind = "function"
-
-        arglist = [size, kind, function]
-        obj._args = tuple(arglist)
-        return obj
-
-    @classmethod
-    def from_baselist(cls, size, baselist, **kwargs):
-        """Construct a sequence from a ``baselist``. """
-        return cls._from_baselist(size, baselist, **kwargs)
-
-    @classmethod
-    def _from_baselist(cls, size, baselist, **opt):
-        """Construct a sequence from a ``baselist``. """
-        obj = Expr.__new__(cls, **opt)
-
-        baselist = baselist
-        kind = opt.pop("kind", "finitlist")
-        if kind=="periodical":
-            period = len(baselist)
-        else:
-            period = 0
-            assert size[1]- size[0] + 1 == len(baselist)
-
-        arglist = [size, kind, baselist, period, None]
-        obj._args = tuple(arglist)
-        return obj
-
-    @classmethod
-    def from_recurr(cls, size, recurr, **kwargs):
-        """Construct a sequence from a ``recurr``. """
-        return cls._from_recurr(size, recurr, **kwargs)
-
-    @classmethod
-    def _from_recurr(cls, size, recurr, **opt):
-        """Construct a sequence from a ``recurr``. """
-        obj = Expr.__new__(cls, **opt)
-
-        kind = "recurr"
-        k = recurr[1].args[0]
-        formula = rsolve(*recurr)
-
-        arglist = [size, kind, recurr, None, k, formula]
-        obj._args = tuple(arglist)
-        return obj
-
-
-    @property
-    def kind(self):
-        return self._args[1]
-
-    @property
-    def size(self):
-        return self._args[0]
-
-    @property
-    def start_index(self):
-        return self.size[0]
-
-    @property
-    def length(self):
-        return self.end_index - self.start_index + 1
-
-    @property
-    def end_index(self):
-        return self.size[1]
-
-    @property
-    def is_infinite(self):
-        return isinstance(self.end_index, Infinity)
-
-    @property
-    def baselist(self):
-        return self._args[2]
-
-    @property
-    def period(self):
-        assert self.kind == "periodical"
-        assert len(self.baselist) == self._args[3]
-        return len(self.baselist)
-
-    @property
-    def k(self):
-        assert (self.kind == "formula") or (self.kind == "recurr")
-        return self._args[4]
-
-    @property
-    def formula(self):
-        assert (self.kind == "formula") or (self.kind == "recurr")
-        return self._args[5]
-
-    @property
-    def function(self):
-        return self._args[2]
-
-    @property
-    def recurr(self):
-        return self._args[2]
-
-    def __getitem__(self, i):
-        kind = self.kind
-        if isinstance(i, slice):
-            slc = i
-            start = max(slc.start, self.start_index)
-            if self.is_infinite:
-                stop = slc.stop
-            else:
-                stop = min(slc.stop, self.stop_index)
-            new_size = (start, stop)
-
-            if (kind == "formula"):
-                return self.from_formula(new_size, (self.k, self.formula))
-        else:
-            if i < self.start_index:
-                return S.Zero
-
-            if not self.is_infinite:
-                if i > self.end_index:
-                    return S.Zero
-
-            if (kind == "formula") or (kind == "recurr"):
-                return self.formula.subs(self.k, i)
-            if kind == "function":
-                return self.function(i)
-            elif kind == "periodical":
-                i = (i - self.start_index) % self.period
-                return self.baselist[i]
-            elif kind == "finitlist":
-                i = (i - self.start_index)
-                return self.baselist[i]
-
-    def show(self, n=5):
-        self.show_n = n
-        return self
-
-    def _sympystr(self, printer, *args):
-        l = []
-
-        if self.start_index > 1:
-          l.append(printer._print(S.Zero))
-          l.append("...")
-        elif self.start_index ==1:
-          l.append(printer._print(S.Zero))
-
-        count = self.show_n
-        if not self.is_infinite:
-            count = min(count, self.length)
-
-        l.extend([printer._print(self[i]) for i in range(self.start_index, self.start_index + count)])
-
-        if self.is_infinite or (self.length > self.show_n):
-            l.append("...")
-        return "[" + ", ". join(l) + "]"
-
-
-    @property
-    def info(self):
-        # TODO: connect with printer system properly
-        class SequenceInfo(object):
-            def __init__(self, sequence):
-                self.s = sequence._info()
-            def __str__(self):
-                return self.s
-        return SequenceInfo(self)
-
-    def _info(self):
-        r = self.__class__.__name__ + "((%s, %s)" % self.size
-        kind = self.kind
-        if kind == "formula":
-            r += ", formula=(%s, %s)" % (self.k, self.formula)
-        elif kind == "periodical":
-             r += ', baselist=%s, kind="%s"' % (self.baselist, kind)
-        elif kind == "finitlist":
-            r += ', baselist=%s' % (self.baselist)
-        elif kind == "recurr":
-            r += ', recurr=(%s, %s, %s)' % (self.recurr)
-        r += ")"
-        return r
-
-
-    @property
-    def domain(self):
-        """Get the ground domain of ``self``. """
-        return self.get_domain()
-
-    def get_domain(f):
-        """Get the ground domain of ``f``. """
-        return f.rep.dom
-
+        raise ValueError(kwargs)
 
 class TaylorSeries(Basic):
     """

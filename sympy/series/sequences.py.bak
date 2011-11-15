@@ -1,0 +1,262 @@
+    @classmethod
+    def new(cls, size):
+        """Construct :class:`Sequence` instance from raw representation. """
+        obj = Basic.__new__(cls)
+
+        #obj.size = size
+
+        return obj
+
+    @classmethod
+    def from_formula(cls, size, formula, **kwargs):
+        """Construct a sequence from a ``formula``. """
+        return cls._from_formula(size, formula, **kwargs)
+
+    @classmethod
+    def _from_formula(cls, size, formula, **opt):
+        """Construct a sequence from a ``formula``. """
+        obj = Expr.__new__(cls, **opt)
+
+        factor = S.One
+        kind = "formula"
+        baselist = []
+        period = 0
+
+        arglist = [size, factor, kind, baselist, period, formula[0], formula[1]]
+        obj._args = tuple(arglist)
+        return obj
+
+    @classmethod
+    def from_function(cls, size, function, **kwargs):
+        """Construct a sequence from a ``function``. """
+        return cls._from_function(size, function, **kwargs)
+
+    @classmethod
+    def _from_function(cls, size, function, **opt):
+        """Construct a sequence from a ``function``. """
+        obj = Expr.__new__(cls, **opt)
+
+        factor = S.One
+        kind = "function"
+
+        arglist = [size, factor, kind, function]
+        obj._args = tuple(arglist)
+        return obj
+
+    @classmethod
+    def from_baselist(cls, size, baselist, **kwargs):
+        """Construct a sequence from a ``baselist``. """
+        return cls._from_baselist(size, baselist, **kwargs)
+
+    @classmethod
+    def _from_baselist(cls, size, baselist, **opt):
+        """Construct a sequence from a ``baselist``. """
+        obj = Expr.__new__(cls, **opt)
+        factor = S.One
+
+        baselist = baselist
+        kind = opt.pop("kind", "finitelist")
+        if kind=="periodical":
+            period = len(baselist)
+        else:
+            period = 0
+            assert size[1]- size[0] + 1 == len(baselist)
+
+        arglist = [size, factor, kind, baselist, period, None]
+        obj._args = tuple(arglist)
+        return obj
+
+    @classmethod
+    def from_recurr(cls, size, recurr, **kwargs):
+        """Construct a sequence from a ``recurr``. """
+        return cls._from_recurr(size, recurr, **kwargs)
+
+    @classmethod
+    def _from_recurr(cls, size, recurr, **opt):
+        """Construct a sequence from a ``recurr``. """
+        obj = Expr.__new__(cls, **opt)
+        factor = S.One
+
+        kind = "recurr"
+        k = recurr[1].args[0]
+        formula = rsolve(*recurr)
+
+        arglist = [size, factor, kind, recurr, None, k, formula]
+        obj._args = tuple(arglist)
+        return obj
+
+
+    @property
+    def size(self):
+        return self._args[0]
+
+    @property
+    def factor(self):
+        return self._args[1]
+
+    @property
+    def kind(self):
+        return self._args[2]
+
+    @property
+    def start_index(self):
+        return self.size[0]
+
+    @property
+    def length(self):
+        return self.stop_index - self.start_index + 1
+
+    @property
+    def stop_index(self):
+        return self.size[1]
+
+    @property
+    def baselist(self):
+        return self._args[3]
+
+    @property
+    def period(self):
+        assert self.kind == "periodical"
+        assert len(self.baselist) == self._args[4]
+        return len(self.baselist)
+
+    @property
+    def k(self):
+        assert (self.kind == "formula") or (self.kind == "recurr")
+        return self._args[5]
+
+    @property
+    def formula(self):
+        assert (self.kind == "formula") or (self.kind == "recurr")
+        return self._args[6]
+
+    @property
+    def function(self):
+        return self._args[3]
+
+    @property
+    def recurr(self):
+        return self._args[3]
+
+    @property
+    def is_direct_calculated(self):
+        kind = self.kind
+        r = False
+        if (kind=="finitelist") or (kind=="periodical") \
+                or (kind=="formula"):
+            r =  True
+        if (kind=="function"):
+            r = True
+        return False
+
+    def __getitem__(self, i):
+        kind = self.kind
+        if isinstance(i, slice):
+            slc = i
+            if slc.start == None:
+                slc_start = 0
+            else:
+                slc_start = slc.start
+            start = max(slc_start, self.start_index)
+            if self.is_infinite:
+                if slc.stop == None:
+                    stop = self.stop_index
+                else:
+                    stop = slc.stop
+            else:
+                stop = min(slc.stop, self.stop_index)
+            new_size = (start, stop)
+
+            if (kind == "formula"):
+                return self.from_formula(new_size, (self.k, self.formula))
+        else:
+            if i < self.start_index:
+                return S.Zero
+
+            if not self.is_infinite:
+                if i > self.stop_index:
+                    return S.Zero
+
+            if (kind == "formula") or (kind == "recurr"):
+                return self.formula.subs(self.k, i)
+            if kind == "function":
+                return self.function(i)
+            elif kind == "periodical":
+                i = (i - self.start_index) % self.period
+                return self.baselist[i]
+            elif kind == "finitelist":
+                i = (i - self.start_index)
+                return self.baselist[i]
+
+    def show(self, n=5):
+        self.show_n = n
+        return self
+
+
+    @property
+    def info(self):
+        # TODO: connect with printer system properly
+        class SequenceInfo(object):
+            def __init__(self, sequence):
+                self.s = sequence._info()
+            def __str__(self):
+                return self.s
+        return SequenceInfo(self)
+
+    def _info(self):
+        r = self.__class__.__name__ + "((%s, %s)" % self.size
+        kind = self.kind
+        if kind == "formula":
+            r += ", formula=(%s, %s)" % (self.k, self.formula)
+        elif kind == "periodical":
+             r += ', baselist=%s, kind="%s"' % (self.baselist, kind)
+        elif kind == "finitelist":
+            r += ', baselist=%s' % (self.baselist)
+        elif kind == "recurr":
+            r += ', recurr=(%s, %s, %s)' % (self.recurr)
+        r += ")"
+        return r
+
+    @property
+    def domain(self):
+        """Get the ground domain of ``self``. """
+        return self.get_domain()
+
+    def get_domain(f):
+        """Get the ground domain of ``f``. """
+        return f.rep.dom
+
+
+
+    # collobration with the core
+
+    def _hashable_content(self):
+        """Allow SymPy to hash Sequence instances. """
+        return (self.kind, self.baselist)
+
+    def __hash__(self):
+        return super(Sequence, self).__hash__()
+
+    @property
+    def is_number(self):
+        return False
+
+    def s__neg__(self):
+        from copy import copy
+        #obj = copy(self)
+        # self._sign = S.NegativeOne * self._sign
+        return obj
+
+    def s__add__(self, s):
+        if self.kind == "periodical":
+            if s.kind == "periodical":
+                if self.period == s.period:
+                    period = self.period
+                    if self.start_index == s.start_index:
+                        start_index = self.start_index
+                        baselist = [self.factor * e[0] + s.factor * e[1] \
+                            for e in zip(self.baselist, s.baselist)]
+                        return self._from_baselist(self.size, baselist, kind=self.kind)
+                else:
+                    period = ilcm(self.period, s.period)
+        return self
