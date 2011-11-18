@@ -16,6 +16,9 @@ class Add(AssocOp):
     #identity = S.Zero
     # cyclic import, so defined in numbers.py
 
+    def _hashable_content(self):
+        return tuple(sorted(self._args, key=hash))
+
     @classmethod
     def flatten(cls, seq):
         """
@@ -224,7 +227,7 @@ class Add(AssocOp):
         # solution is not to sort things at all - but this needs some more
         # fixing. NOTE: this is used in primitive, too, so if it changes
         # here it should be changed there.
-        newseq.sort(key=hash)
+        # newseq.sort(key=hash)
 
         # current code expects coeff to be always in slot-0
         if coeff is not S.Zero:
@@ -835,7 +838,7 @@ class Add(AssocOp):
             c = terms.pop(0)
         else:
             c = None
-        terms.sort(key=hash)
+        # terms.sort(key=hash)
         if c:
             terms.insert(0, c)
         return Rational(ngcd, dlcm), self._new_rawargs(*terms)
