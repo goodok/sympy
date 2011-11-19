@@ -81,9 +81,9 @@ def test_evalf_exponentiation():
 # An example from Smith, "Multiple Precision Complex Arithmetic and Functions"
 def test_evalf_complex_cancellation():
     A = Rational('63287/100000')
-    B = Rational('52498/100000')
+    B = Rational('52498/100000')    # Rational(26249, 50000)
     C = Rational('69301/100000')
-    D = Rational('83542/100000')
+    D = Rational('83542/100000')    # Rational(41771, 50000)
     F = Rational('2231321613/2500000000')
     # XXX: the number of returned mantissa digits in the real part could
     # change with the implementation. What matters is that the returned digits are
