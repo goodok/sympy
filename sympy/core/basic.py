@@ -107,6 +107,7 @@ class Basic(PicklableWithSlots):
     __metaclass__ = WithAssumptions
     __slots__ = ['_mhash',              # hash value
                  '_args',               # arguments
+                 '_hashable_tuple_chached', # sorted arguments, to sor them once only (for speed, but not clear)
                 ]
 
     # To be overridden with True in the appropriate subclasses
@@ -148,6 +149,7 @@ class Basic(PicklableWithSlots):
 
         obj._mhash = None # will be set by __hash__ method.
         obj._args = args  # all items in args must be Basic objects
+        obj._hashable_tuple_chached = None # will be set by _hashable_content method
         return obj
 
 

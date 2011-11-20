@@ -17,7 +17,9 @@ class Add(AssocOp):
     # cyclic import, so defined in numbers.py
 
     def _hashable_content(self):
-        return tuple(sorted(self._args, key=hash))
+        if self._hashable_tuple_chached == None:
+            self._hashable_tuple_chached = tuple(sorted(self._args, key=hash))
+        return self._hashable_tuple_chached
 
     @classmethod
     def flatten(cls, seq):
