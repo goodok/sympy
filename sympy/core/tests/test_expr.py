@@ -759,6 +759,12 @@ def test_as_coeff_add():
     e = (x + y)**2
     assert e.as_coeff_add(y) == (0, (e,))
 
+def test_as_coeff_add_2():
+    x = Symbol('x')
+    y = Symbol('y')
+    r = (3 + x + y).as_coeff_add()
+    assert r == (3, (x, y))
+
 def test_as_coeff_mul():
     assert S(2).as_coeff_mul() == (2, ())
     assert S(3.0).as_coeff_mul() == (1, (S(3.0),))

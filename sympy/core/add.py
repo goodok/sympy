@@ -73,13 +73,17 @@ class Add(AssocOp):
 
         terms = {}      # term -> coeff
                         # e.g. x**2 -> 5   for ... + 5*x**2 + ...
+        terms_c = []
+        terms_s = []
+        terms_i = {}
 
         coeff = S.Zero  # standalone term (Number or zoo will always be in slot 0)
                         # e.g. 3 + ...
         order_factors = []
 
+        current_pos = 0
         for o in seq:
-
+            current_pos += 1
             # O(x)
             if o.is_Order:
                 for o1 in order_factors:
@@ -113,7 +117,15 @@ class Add(AssocOp):
             # Add([...])
             elif o.is_Add:
                 # NB: here we assume Add is always commutative
-                seq.extend(o.args)  # TODO zerocopy?
+                #seq.extend(o.args)  # TODO zerocopy?
+
+                # Now we insert nested Add inplace, so we can to do not care
+                # about commutativity.
+                _args = o.args
+                i = len(_args)
+                while i>0:
+                    i -= 1
+                    seq.insert(current_pos, _args[i])
                 continue
 
             # Mul([...])
@@ -150,17 +162,28 @@ class Add(AssocOp):
 
             # let's collect terms with the same s, so e.g.
             # 2*x**2 + 3*x**2  ->  5*x**2
-            if s in terms:
-                terms[s] += c
+
+            #if s in terms:
+            #    terms[s] += c
+            #else:
+            #    terms[s] = c
+            if s in terms_i:
+                i = terms_i[s]
+                terms_c[i] += c
             else:
-                terms[s] = c
+                i = len(terms_i)
+                terms_i[s] = i
+                terms_s.append(s)
+                terms_c.append(c)
 
 
         # now let's construct new args:
         # [2*x**2, x**3, 7*x**4, pi, ...]
         newseq = []
         noncommutative = False
-        for s,c in terms.items():
+        for i in range(len(terms_s)):
+            c = terms_c[i]
+            s = terms_s[i]
             # 0*s
             if c is S.Zero:
                 continue
