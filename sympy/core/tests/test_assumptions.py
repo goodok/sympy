@@ -493,7 +493,6 @@ def test_is_irrational():
 
     assert (sqrt(8)/sqrt(2)).is_irrational == False
 
-@XFAIL
 def test_is_irrational_pow():
     from sympy.core.power import Pow
     from sympy.core.numbers import I, pi, E
