@@ -137,7 +137,11 @@ class Add(AssocOp):
                 # it can combine with other terms (just like is done
                 # with the Pow below)
                 if c.is_Number and s.is_Add:
-                    seq.extend([c*a for a in s.args])
+                    _args = s.args
+                    i = len(_args)
+                    while i>0:
+                        i -= 1
+                        seq.insert(current_pos, c *_args[i])
                     continue
 
             # check for unevaluated Pow, e.g. 2**3 or 2**(-1/2)
