@@ -230,14 +230,24 @@ class Pow(Expr):
                 return True
 
     def _eval_is_irrational(self):
-        if self.base.is_irrational == True:
-            return True
-        elif self.base.is_rational:
-           if (self.exp.is_integer==False) and (self.base.is_complex == False):
+        b, e = self.as_base_exp()
+        if b.is_irrational == True:
+             if e.is_zero is True:
+                return False
+             elif e.is_zero is None:
+                return None
+             elif e.is_imaginary:  # is_complex==True even for integers S(2)
+                return False
+             else:
+                 return True
+        elif b.is_rational:
+            if e.is_zero is True:
+                return False
+            if (e.is_integer==False) and (e.is_imaginary == False): # is_complex==True even for integers S(2)
                 return True
-           elif (self.base.is_integer==True):
-                if self.exp.is_rational:
-                    if self.exp.is_integer:
+            elif b.is_integer==True:
+                if e.is_rational:
+                    if e.is_integer:
                         return False
                     return True
         return None

@@ -498,6 +498,7 @@ def test_is_irrational_pow():
     from sympy.core.numbers import I, pi, E
     from sympy.functions.elementary.exponential import log
     from sympy.functions.elementary.miscellaneous import sqrt, root
+    from sympy.abc import x
 
     assert (pi**2).is_irrational == True
 
@@ -514,3 +515,16 @@ def test_is_irrational_pow():
     assert Pow(3, 2).is_irrational == False
     assert (Rational(3, 5)**2).is_irrational == False
     assert (Rational(3, 5)**Rational(3, 5)).is_irrational == True
+
+    assert (S(2)**I).is_irrational == False
+    z = Symbol("z", positive=False, negative=False,real=True)
+    assert (2**z).is_irrational == False
+    assert Pow(2,0,evaluate=False).is_irrational == False
+    assert Pow(x,0,evaluate=False).is_irrational == None
+
+    x = Symbol("x", real=True)
+    assert Pow(x,0,evaluate=False).is_irrational == None
+
+    x = Symbol("x", rational=True)
+    assert Pow(x,0,evaluate=False).is_irrational == False
+
