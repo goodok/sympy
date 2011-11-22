@@ -84,6 +84,7 @@ class Add(AssocOp):
         current_pos = 0
         for o in seq:
             current_pos += 1
+
             # O(x)
             if o.is_Order:
                 for o1 in order_factors:
@@ -117,9 +118,7 @@ class Add(AssocOp):
             # Add([...])
             elif o.is_Add:
                 # NB: here we assume Add is always commutative
-                #seq.extend(o.args)  # TODO zerocopy?
-
-                # Now we insert nested Add inplace, so we can to do not care
+                # Now we insert nested Add in-place, so we can to do not care
                 # about commutativity.
                 _args = o.args
                 i = len(_args)
@@ -167,10 +166,6 @@ class Add(AssocOp):
             # let's collect terms with the same s, so e.g.
             # 2*x**2 + 3*x**2  ->  5*x**2
 
-            #if s in terms:
-            #    terms[s] += c
-            #else:
-            #    terms[s] = c
             if s in terms_i:
                 i = terms_i[s]
                 terms_c[i] += c
@@ -249,14 +244,6 @@ class Add(AssocOp):
                 if o.contains(coeff):
                     coeff = S.Zero
                     break
-
-
-        # order args canonically
-        # Currently we sort things using hashes, as it is quite fast. A better
-        # solution is not to sort things at all - but this needs some more
-        # fixing. NOTE: this is used in primitive, too, so if it changes
-        # here it should be changed there.
-        # newseq.sort(key=hash)
 
         # current code expects coeff to be always in slot-0
         if coeff is not S.Zero:
@@ -867,7 +854,6 @@ class Add(AssocOp):
             c = terms.pop(0)
         else:
             c = None
-        # terms.sort(key=hash)
         if c:
             terms.insert(0, c)
         return Rational(ngcd, dlcm), self._new_rawargs(*terms)
