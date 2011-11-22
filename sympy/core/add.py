@@ -447,7 +447,7 @@ class Add(AssocOp):
             if a:
                 others = list(self.args)
                 others.remove(t)
-                if all(x.is_rational is True for x in others):
+                if all((x.is_rational is True) or (x.is_irrational is True) for x in others):
                     return True
                 return None
             if a is None:
