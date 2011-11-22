@@ -161,10 +161,8 @@ def test_piecewise_fold_expand():
 
     p2 = piecewise_fold(expand((1-x)*p1))
 
-    # assert p2 == Piecewise((1 - x, Interval(0,1,False,True)), \
-    #   (Piecewise((-x, Interval(0,1,False,True)), (0, True)), True))
     assert p2 == Piecewise((1 - x, Interval(0,1,False,True)), \
-       (Piecewise((1, Interval(0,1,False,True)), (0, True)), True))
+       (Piecewise((-x, Interval(0,1,False,True)), (0, True)), True))
 
     p2 = expand(piecewise_fold((1-x)*p1))
     assert p2 == Piecewise((1 - x, Interval(0,1,False,True)), (0, True))
