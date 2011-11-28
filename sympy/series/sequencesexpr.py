@@ -3,6 +3,7 @@ from sympy.core.basic import Basic
 from sympy.core.singleton import S
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
+from sympy.functions.elementary.miscellaneous import Min, Max
 
 
 class SeqExpr(Expr):
@@ -122,7 +123,21 @@ class SeqAdd(SeqExpr, Add):
     def as_ordered_terms(self, order=None):
         return self.args
 
+    @property
+    @cacheit
+    def start_index(self):
+        i = S.Infinity
+        for seq in self.args:
+            i = Min(i, seq.start_index)
+        return i
 
+    @property
+    @cacheit
+    def stop_index(self):
+        i = S.Zero
+        for seq in self.args:
+            i = Max(i, seq.stop_index)
+        return i
 
 
 class SeqMul(SeqExpr, Mul):
