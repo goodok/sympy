@@ -1,6 +1,6 @@
 from sympy import Expr, Symbol, Eq, Mul, Add, Pow, expand, sympify, Tuple
 from sympy.core.basic import Basic
-from sympy.core.singleton import S
+from sympy.core.singleton import (Singleton, S)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
 #from sympy.functions.elementary.miscellaneous import Min, Max
@@ -25,7 +25,7 @@ class SeqExpr(Expr):
     is_Sequence = True
     is_SequenceAtom = False
     is_Identity = False
-    is_ZeroSequence = False
+    is_EmptySequence = False
     # is_commutative = False ???
 
     # The following is adapted from the core Expr object
@@ -84,27 +84,25 @@ class SeqExpr(Expr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
+class EmptySequence(SeqExpr):
+    """Represents the empty sequence."""
+
+    __metaclass__ = Singleton
+
+    is_EmptySequence = True
+
+    def __getitem__(self, i):
+        return S.Zero
+
 
 class SeqAdd(SeqExpr, Add):
-    """A Sum of Sequence Expressions
-
-    SeqAdd inherits from and operates like SymPy Add
-
-    >>> from sympy import SeqAdd, SequenceSymbol
-    >>> A = SequenceSymbol('A', 5, 5)
-    >>> B = SequenceSymbol('B', 5, 5)
-    >>> C = SequenceSymbol('C', 5, 5)
-    >>> SeqAdd(A, B, C)
-    A + B + C
-    """
-
+    """A Sum of Sequence Expressions."""
 
     def __new__(cls, *args):
 
         args = map(sequenceify, args)
 
-        #TODO: is it correct, to check arg!=0? args must be Expr type
-        args = [arg for arg in args if arg!=0]
+        args = tuple([arg for arg in args if not arg.is_EmptySequence])
 
         if not all(arg.is_Sequence for arg in args):
             raise ValueError("Mix of Sequence and Scalar symbols")
@@ -142,27 +140,42 @@ class SeqAdd(SeqExpr, Add):
     def stop_index(self):
         return self.interval._sup
 
+    def is_out_of_range(self, i):
+        if i < self.start_index:
+            return True
+
+        if not self.is_infinite:
+            if i > self.stop_index:
+                return True
+
+        return False
+
+    def calc_interval_from_slice(self, slc):
+        slc_start = slc.start
+        if slc_start == None:
+            slc_start = S.Zero
+        slc_stop  = slc.stop
+        if slc_stop == None:
+            slc_stop = S.Infinity
+        return self.interval & Interval(slc_start, slc_stop)
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return SeqAdd(*(seq[i] for seq in self.args))
+        else:
+            return Add(*(seq[i] for seq in self.args))
+
 
 class SeqMul(SeqExpr, Mul):
-    """A Product of Sequence Expressions
-
-    SeqMul inherits from and operates like SymPy Mul
-
-    >>> from sympy import SeqMul, SequenceSymbol
-    >>> A = SequenceSymbol('A', 5, 4)
-    >>> B = SequenceSymbol('B', 4, 3)
-    >>> C = SequenceSymbol('C', 3, 6)
-    >>> SeqMul(A, B, C)
-    A*B*C
-    """
+    """A Product of Sequence Expressions."""
 
     def __new__(cls, *args):
 
         # Check that the shape of the args is consistent
         seqs = [arg for arg in args if arg.is_Sequence]
 
-        if any(arg.is_zero for arg in args):
-            return ZeroSequence()
+        if any(arg.is_Sequence and arg.is_EmptySequence for arg in args):
+            return S.EmptySequence
 
         #expr = sequenceify(Mul.__new__(cls, *args))
         expr = sequenceify(Mul.__new__(cls, *args))
@@ -173,8 +186,8 @@ class SeqMul(SeqExpr, Mul):
         if not expr.is_Mul:
             return expr
 
-        if any(arg.is_Sequence and arg.is_ZeroSequence for arg in expr.args):
-            return ZeroSequence()
+        if any(arg.is_Sequence and arg.is_EmptySequence for arg in expr.args):
+            return S.EmptySequence
 
         return expr
 

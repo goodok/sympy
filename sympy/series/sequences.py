@@ -1,5 +1,5 @@
-from sympy.core import (Basic, Expr, S)
-from sympy.core.numbers import (Infinity, Zero)
+from sympy.core import (Basic, Expr)
+from sympy.core.singleton import (Singleton, S)
 from sympy.core.power import Pow
 from sympy.functions import factorial
 from sympy.solvers.recurr import rsolve
@@ -7,7 +7,7 @@ from sympy.core.numbers import ilcm
 from sympy.core.sets import Interval
 
 
-from sequencesexpr import SeqExpr
+from sequencesexpr import (SeqExpr, EmptySequence)
 
 class SequenceBase(SeqExpr):
     """
@@ -20,7 +20,7 @@ class SequenceBase(SeqExpr):
     show_n = 5
 
     def __new__(cls, *args, **kwarg):
-        if type(args[0])== tuple:
+        if len(args) and (type(args[0])== tuple):
             _args = list(args)
             _args[0] = Interval(args[0][0], args[0][1])
             args = tuple(_args)
@@ -45,28 +45,20 @@ class SequenceBase(SeqExpr):
 
     @property
     def is_infinite(self):
-        return isinstance(self.stop_index, Infinity)
+        return self.stop_index == S.Infinity
 
     @property
     def is_direct_calculated(self):
         return False
 
     def calc_interval_from_slice(self, slc):
-        start_index = self.start_index
-        stop_index = self.stop_index
-        if slc.start == None:
-            slc_start = 0
-        else:
-            slc_start = slc.start
-        start = max(slc_start, start_index)
-        if self.is_infinite:
-            if slc.stop == None:
-                stop = stop_index
-            else:
-                stop = slc.stop
-        else:
-            stop = min(slc.stop, stop_index)
-        return Interval(start, stop)
+        slc_start = slc.start
+        if slc_start == None:
+            slc_start = S.Zero
+        slc_stop  = slc.stop
+        if slc_stop == None:
+            slc_stop = S.Infinity
+        return self.interval & Interval(slc_start, slc_stop)
 
     def is_out_of_range(self, i):
         if i < self.start_index:
@@ -128,6 +120,8 @@ class SeqPer(SequenceBase):
     def __getitem__(self, i):
         if isinstance(i, slice):
             new_interval = self.calc_interval_from_slice(i)
+            if new_interval == S.EmptySet:
+                return S.EmptySequence
 
             # shift left circular the base list if its start index has changed
             new_baselist = self.baselist
@@ -169,6 +163,8 @@ class SeqList(SequenceBase):
     def __getitem__(self, i):
         if isinstance(i, slice):
             new_interval = self.calc_interval_from_slice(i)
+            if new_interval == S.EmptySet:
+                return S.EmptySequence
             a = new_interval.left - self.start
             b = new_interval.rigth - self.start
             new_baselist = baselist[a:b]
@@ -210,6 +206,8 @@ class SeqFormula(SequenceBase):
     def __getitem__(self, i):
         if isinstance(i, slice):
             new_interval = self.calc_interval_from_slice(i)
+            if new_interval == S.EmptySet:
+                return S.EmptySequence
             return self._from_args(new_interval, self.k, self.formula)
 
         elif self.is_out_of_range(i):
@@ -241,6 +239,8 @@ class SeqFunc(SequenceBase):
     def __getitem__(self, i):
         if isinstance(i, slice):
             new_interval = self.calc_interval_from_slice(i)
+            if new_interval == S.EmptySet:
+                return S.EmptySequence
             return self._from_args(new_interval, self.function)
 
         elif self.is_out_of_range(i):
@@ -282,6 +282,8 @@ class SeqRecurr(SequenceBase):
     def __getitem__(self, i):
         if isinstance(i, slice):
             new_interval = self.calc_interval_from_slice(i)
+            if new_interval == S.EmptySet:
+                return S.EmptySequence
             return self._from_args(new_size, self.recurr)
 
         elif self.is_out_of_range(i):
@@ -334,3 +336,4 @@ class Sequence(SeqExpr):
             return SeqRecurr._from_args(interval, recurr, **kwargs)
 
         raise ValueError(kwargs)
+

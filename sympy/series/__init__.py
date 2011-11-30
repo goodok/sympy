@@ -6,7 +6,8 @@ from gruntz import gruntz
 from series import series
 from residues import residue
 
-from sequences import Sequence, TaylorSeries
+from sequences import Sequence
+from taylor import TaylorSeries
 
 O = Order
 

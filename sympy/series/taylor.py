@@ -1,9 +1,15 @@
 
-class TaylorSeries(Basic):
+from sympy.core.singleton import (Singleton, S)
+from sympy.core import (Pow)
+from sympy.functions.combinatorial.factorials import factorial
+
+from taylorexpr import TaylorSeriesExpr
+
+class TaylorSeries(TaylorSeriesExpr):
     """
     Examples:
 
-    >>> from sympy import Sequence, TaylorSeries
+    >>> from sympy.series import Sequence, TaylorSeries
     >>> from sympy import S, oo
     >>> from sympy.abc import x, k
     >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
@@ -27,7 +33,7 @@ class TaylorSeries(Basic):
 
         sequence = kwargs.get("sequence", None)
 
-        obj = Basic.__new__(self, x, sequence)
+        obj = TaylorSeriesExpr.__new__(self, x, sequence)
         return obj
 
     @property
@@ -38,10 +44,10 @@ class TaylorSeries(Basic):
     def sequence(self):
         return self._args[1]
 
-    def __getitem__(self,key):
-        a =  self.sequence[key]
-        if not isinstance(a, Zero) and key <> 0:
-            a = a / factorial(key) * Pow(self.x, key)
+    def __getitem__(self, i):
+        a =  self.sequence[i]
+        if (a != S.Zero) and (i != 0):
+            a = a / factorial(i) * Pow(self.x, i)
         return a
 
 
@@ -51,8 +57,8 @@ class TaylorSeries(Basic):
 
     def _sympystr(self, printer, *args):
         s = self.sequence
-        l = [self[i] for i in range(s.size[0], self.show_n + 1)]
-        l = [i for i in l if not isinstance(i, Zero)]
+        l = [self[i] for i in range(s.start_index, self.show_n + 1)]
+        l = [i for i in l if i != S.Zero]
         l = [printer._print(i) for i in l]
         return " + ". join(l) + " + ... "
 
