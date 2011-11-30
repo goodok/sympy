@@ -29,6 +29,8 @@ class TaylorSeries(TaylorSeriesExpr):
     """
 
     show_n = 5
+    show_method ='series'
+
     def __new__(self, x, **kwargs):
 
         sequence = kwargs.get("sequence", None)
@@ -51,16 +53,20 @@ class TaylorSeries(TaylorSeriesExpr):
         return a
 
 
-    def show(self, n=5):
+    def show(self, n=5, **kwargs):
+        self.show_method = kwargs.get('method', 'series')
         self.show_n = n
         return self
 
     def _sympystr(self, printer, *args):
-        s = self.sequence
-        l = [self[i] for i in range(s.start_index, self.show_n + 1)]
-        l = [i for i in l if i != S.Zero]
-        l = [printer._print(i) for i in l]
-        return " + ". join(l) + " + ... "
+        if self.show_method=='series':
+            s = self.sequence
+            l = [self[i] for i in range(s.start_index, self.show_n + 1)]
+            l = [i for i in l if i != S.Zero]
+            l = [printer._print(i) for i in l]
+            return " + ". join(l) + " + ... "
+        else:
+            return printer._print_Basic(self, *args)
 
     def __mul__(self, other):
         assert self.x == other.x

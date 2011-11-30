@@ -84,7 +84,6 @@ def test_sequance_factory():
     assert seq[4:] == Sequence(Interval(4, oo), formula=(k, S(1)/k))
 
 def test_add_empty():
-    import pudb; pudb.set_trace()
     seq = SeqPer((8, 12), (0, 2))
     r = SeqAdd(seq, S.EmptySequence)
     assert r==seq
@@ -96,4 +95,6 @@ def test_taylorseries():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))
     from sympy.abc import x
     ts = TaylorSeries(x, sequence=seq)
+    assert str(ts) == 'x**3/18 + x**4/96 + x**5/600 + ... '
+    assert ts == TaylorSeries(x, sequence=seq)
 
