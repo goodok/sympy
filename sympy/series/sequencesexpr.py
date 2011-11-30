@@ -90,7 +90,6 @@ class EmptySequence(SeqExpr):
     __metaclass__ = Singleton
 
     is_EmptySequence = True
-
     def __getitem__(self, i):
         return S.Zero
 
@@ -102,7 +101,10 @@ class SeqAdd(SeqExpr, Add):
 
         args = map(sequenceify, args)
 
+        # remove EmptySequence
         args = tuple([arg for arg in args if not arg.is_EmptySequence])
+        if len(args)==0:
+            return S.EmptySequence
 
         if not all(arg.is_Sequence for arg in args):
             raise ValueError("Mix of Sequence and Scalar symbols")
