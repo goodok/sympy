@@ -104,7 +104,7 @@ def E_nl(n, Z=1):
         raise ValueError("'n' must be positive integer")
     return -Z**2/(2*n**2)
 
-def E_nl_dirac(n, l, spin_up=True, Z=1, c=Float("137.035999037")):
+def E_nl_dirac(n, l, spin_up=True, Z=1, c=Float("137.035999037", 25)):
     """
     Returns the relativistic energy of the state (n, l, spin) in Hartree atomic
     units.
@@ -122,25 +122,25 @@ def E_nl_dirac(n, l, spin_up=True, Z=1, c=Float("137.035999037")):
 
     >>> from sympy.physics.hydrogen import E_nl_dirac
     >>> E_nl_dirac(1, 0)
-    -0.500006656595360
+    -0.500006656596557
 
     >>> E_nl_dirac(2, 0)
-    -0.125002080189006
+    -0.125002080189194
     >>> E_nl_dirac(2, 1)
-    -0.125000416024704
+    -0.125000416028977
     >>> E_nl_dirac(2, 1, False)
-    -0.125002080189006
+    -0.125002080189194
 
     >>> E_nl_dirac(3, 0)
-    -0.0555562951740285
+    -0.0555562951764227
     >>> E_nl_dirac(3, 1)
-    -0.0555558020932949
+    -0.0555558020913670
     >>> E_nl_dirac(3, 1, False)
-    -0.0555562951740285
+    -0.0555562951764227
     >>> E_nl_dirac(3, 2)
-    -0.0555556377366884
+    -0.0555556377338150
     >>> E_nl_dirac(3, 2, False)
-    -0.0555558020932949
+    -0.0555558020913670
 
 
     """
@@ -157,4 +157,7 @@ def E_nl_dirac(n, l, spin_up=True, Z=1, c=Float("137.035999037")):
         skappa = -l
     c = S(c)
     beta = sqrt(skappa**2 - Z**2/c**2)
-    return c**2/sqrt(1+Z**2/(n + skappa + beta)**2/c**2) - c**2
+    r = c**2/sqrt(1+Z**2/(n + skappa + beta)**2/c**2) - c**2
+    if r.is_Float:
+        r = Float(r, 15)
+    return r
