@@ -492,7 +492,7 @@ class ClassDoc(NumpyDocString):
     def methods(self):
         if self._cls is None:
             return []
-        return [name for name,func in inspect_getmembers(self._cls)
+        return [name for name,func in inspect.getmembers(self._cls)
                 if ((not name.startswith('_')
                      or name in self.extra_public_methods)
                     and callable(func))]
@@ -501,7 +501,7 @@ class ClassDoc(NumpyDocString):
     def properties(self):
         if self._cls is None:
             return []
-        return [name for name,func in inspect_getmembers(self._cls)
+        return [name for name,func in inspect.getmembers(self._cls)
                 if not name.startswith('_') and func is None]
 
 
@@ -523,3 +523,5 @@ def inspect_getmembers(object, predicate=None):
             results.append((key, value))
     results.sort()
     return results
+
+inspect.getmembers = inspect_getmembers
