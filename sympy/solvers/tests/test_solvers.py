@@ -652,7 +652,7 @@ def test_unrad():
     assert solve(Eq(sqrt(x + 7) + 2, sqrt(3 - x))) == [-6]
     # http://www.purplemath.com/modules/solverad.htm
     assert solve((2*x-5)**Rational(1,3)-3) == [16]
-    assert solve((x**3-3*x**2)**Rational(1,3)+1-x) == []
+    assert solve((x**3-3*x**2)**Rational(1,3)+1-x) == [S(1)/3]
     assert solve(x+1-(x**4+4*x**3-x)**Rational(1,4)) == [-S(1)/2, -S(1)/3]
     assert solve(sqrt(2*x**2-7)-(3-x)) == [-8, 2]
     assert solve(sqrt(2*x+9)-sqrt(x+1)-sqrt(x+4)) == [0]
@@ -666,10 +666,6 @@ def test_unrad():
     assert solve(sqrt(x-2)-5) == [27]
     assert solve(sqrt(17*x-sqrt(x**2-5))-7) == [3]
     assert solve(sqrt(x) - sqrt(x - 1) + sqrt(sqrt(x))) is not None
-
-@XFAIL
-def test_unrad2():
-    assert solve((x**3-3*x**2)**Rational(1,3)+1-x) == [S(1)/3] # b/c (-8/27)**(1/3) -> 2*(-1)**(1/3)/3 instead of -2/3
 
 @XFAIL
 def test_multivariate():
