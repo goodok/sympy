@@ -664,15 +664,9 @@ def test_unrad():
     assert solve(sqrt(x-3)-sqrt(x)-3) == []
     assert solve(sqrt(x-1)-x+7) == [10]
     assert solve(sqrt(x-2)-5) == [27]
-
-@XFAIL
-def test_unrad1():
-    # unrad not implemented
-    assert solve(sqrt(x) - sqrt(x - 1) + sqrt(sqrt(x))) is not None
-@XFAIL
-def test_unrad3():
-    # unrad not implemented
     assert solve(sqrt(17*x-sqrt(x**2-5))-7) == [3]
+    assert solve(sqrt(x) - sqrt(x - 1) + sqrt(sqrt(x))) is not None
+
 @XFAIL
 def test_unrad2():
     assert solve((x**3-3*x**2)**Rational(1,3)+1-x) == [S(1)/3] # b/c (-8/27)**(1/3) -> 2*(-1)**(1/3)/3 instead of -2/3
