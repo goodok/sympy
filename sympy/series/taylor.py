@@ -70,6 +70,4 @@ class TaylorSeries(TaylorSeriesExpr):
         else:
             return printer._print_Basic(self, *args)
 
-    def __mul__(self, other):
-        assert self.x == other.x
 

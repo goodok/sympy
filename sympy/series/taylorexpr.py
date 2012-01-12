@@ -181,7 +181,7 @@ class TaylorSeriesMul(TaylorSeriesExpr_Ext, Mul):
                 return TaylorSeriesCoeffMul(coeff, series[0])
 
         # further - element-wise multiplicity
-        raise NotImplemented
+        expr = Mul.__new__(cls, *args)
 
         return expr
 
@@ -189,6 +189,16 @@ class TaylorSeriesMul(TaylorSeriesExpr_Ext, Mul):
     def flatten(cls, args_seq):
         return args_seq, [], None
 
+    @property
+    def interval(self):
+        res = S.EmptySet
+        for ts in self.args:
+            res = res | ts.interval
+        return res
+
+
+    def __getitem__(self, i):
+        return 0
 
 class TaylorSeriesCoeffMul(TaylorSeriesExpr_Ext, Mul):
     def __new__(cls, coeff, ts):
