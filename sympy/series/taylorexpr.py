@@ -70,8 +70,6 @@ class TaylorSeriesAdd(TaylorSeriesExpr, Add):
 
     def __new__(cls, *args):
 
-        args = map(sequenceify, args)
-
         #TODO: is it correct, to check arg!=0? args must be Expr type
         args = [arg for arg in args if arg!=0]
 

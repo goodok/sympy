@@ -5,7 +5,7 @@ from sympy.functions import factorial
 from sympy.solvers.recurr import rsolve
 from sympy.core.numbers import ilcm
 from sympy.core.sets import Interval
-
+from sympy.core.symbol import Symbol
 
 from sequencesexpr import (SeqExpr, EmptySequence)
 
@@ -61,15 +61,16 @@ class SequenceBase(SeqExpr):
         return self.interval & Interval(slc_start, slc_stop)
 
     def is_out_of_range(self, i):
+        if isinstance(i, Symbol):
+            return False
+
         if i < self.start_index:
             return True
 
         if not self.is_infinite:
             if i > self.stop_index:
                 return True
-
         return False
-
 
     def _pretty(self,  printer, *args):
         printset = []
@@ -89,6 +90,64 @@ class SequenceBase(SeqExpr):
         if self.is_infinite or (self.length > self.show_n):
             printset.append("...")
         return printer._print_seq(printset, '[', ']', ', ' )
+
+
+class SequenceSymbol(SequenceBase, Symbol):
+    """Symbolic representation of a Sequence object"""
+
+    is_commutative = True
+
+    def __new__(cls, interval, name):
+        obj = SequenceBase.__new__(cls, interval, name)
+        return obj
+
+    @classmethod
+    def _from_args(cls, interval, name, **opt):
+        """Construct a SequenceSymbol"""
+        obj = SequenceSymbol.__new__(cls, interval, name)
+        return obj
+
+    @property
+    def name(self):
+        return self.args[1]
+
+    def __getitem__(self, i, **kw_args):
+        if isinstance(i, slice):
+            new_interval = self.calc_interval_from_slice(i)
+            if new_interval == S.EmptySet:
+                return S.EmptySequence
+            return self._from_args(new_interval, self.name)
+
+        else:
+            if self.is_out_of_range(i):
+                return S.Zero
+            return IndexedSequenceSymbol(self, i, **kw_args)
+
+    def _eval_subs(self, old, new):
+        if self==old:
+            return new
+        else:
+            raise NotImplemented
+
+    def __call__(self, *args):
+        raise TypeError( "%s object is not callable"%self.__class__ )
+
+class IndexedSequenceSymbol(Expr):
+
+    def __new__(cls, base, *args, **kw_args):
+        return Expr.__new__(cls, base, *args, **kw_args)
+
+    @property
+    def base(self):
+        return self.args[0]
+
+    @property
+    def indices(self):
+        return self.args[1:]
+
+    def _sympystr(self, p):
+        indices = map(p.doprint, self.indices)
+        return "%s[%s]" % (p.doprint(self.base), ", ".join(indices))
 
 
 class SeqPer(SequenceBase):
@@ -165,9 +224,9 @@ class SeqList(SequenceBase):
             new_interval = self.calc_interval_from_slice(i)
             if new_interval == S.EmptySet:
                 return S.EmptySequence
-            a = new_interval.left - self.start
-            b = new_interval.rigth - self.start
-            new_baselist = baselist[a:b]
+            a = new_interval.left - self.start_index
+            b = new_interval.right - self.start_index + 1
+            new_baselist = self.baselist[a:b]
             return self._from_args(new_interval, new_baselist)
 
         else:
@@ -307,11 +366,14 @@ class Sequence(SeqExpr):
     is_SequenceAtom = True
 
     show_n = 5
-    def __new__(cls, interval, **kwargs):
+    def __new__(cls, interval, name=None, **kwargs):
         """Create a new Sequence instance out of something useful. """
 
         if type(interval)== tuple:
             interval = Interval(interval[0], interval[1])
+
+        if name is not None:
+            return SequenceSymbol._from_args(interval, name, **kwargs)
 
         baselist = kwargs.pop("periodical", None)
         if baselist:

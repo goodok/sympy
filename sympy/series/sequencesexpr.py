@@ -84,53 +84,9 @@ class SeqExpr(Expr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
-class EmptySequence(SeqExpr):
-    """Represents the empty sequence."""
+class SeqExpr_Ext(SeqExpr):
 
-    __metaclass__ = Singleton
-
-    is_EmptySequence = True
-    def __getitem__(self, i):
-        return S.Zero
-
-
-class SeqAdd(SeqExpr, Add):
-    """A Sum of Sequence Expressions."""
-
-    def __new__(cls, *args):
-
-        args = map(sequenceify, args)
-
-        # remove EmptySequence
-        args = tuple([arg for arg in args if not arg.is_EmptySequence])
-        if len(args)==0:
-            return S.EmptySequence
-
-        if not all(arg.is_Sequence for arg in args):
-            raise ValueError("Mix of Sequence and Scalar symbols")
-
-        expr = Add.__new__(cls, *args)
-        expr = sequenceify(expr)
-
-        if expr.is_Mul:
-            return SeqMul(*expr.args)
-        return expr
-
-    def _hashable_content(self):
-        return tuple(sorted(self._args, key=hash))
-
-    def _sympystr(self, printer, *args):
-        return printer._print_Add(self)
-
-    def as_ordered_terms(self, order=None):
-        return self.args
-
-    @property
-    def interval(self):
-        res = S.EmptySet
-        for seq in self.args:
-            res = res | seq.interval
-        return res
+    show_n = 5
 
     @property
     @cacheit
@@ -142,14 +98,20 @@ class SeqAdd(SeqExpr, Add):
     def stop_index(self):
         return self.interval._sup
 
+    @property
+    @cacheit
+    def is_infinite(self):
+        return self.stop_index == S.Infinity
+
     def is_out_of_range(self, i):
+        if isinstance(i, Symbol):
+            return False
         if i < self.start_index:
             return True
 
         if not self.is_infinite:
             if i > self.stop_index:
                 return True
-
         return False
 
     def calc_interval_from_slice(self, slc):
@@ -161,38 +123,163 @@ class SeqAdd(SeqExpr, Add):
             slc_stop = S.Infinity
         return self.interval & Interval(slc_start, slc_stop)
 
+    def _pretty(self,  printer, *args):
+        printset = []
+
+        if self.start_index > 1:
+          printset.append(S.Zero)
+          printset.append("...")
+        elif self.start_index ==1:
+          printset.append(S.Zero)
+
+        count = self.show_n
+        if not self.is_infinite:
+            count = min(count, self.length)
+
+        printset.extend([self[i] for i in range(self.start_index, self.start_index + count)])
+
+        if self.is_infinite or (self.length > self.show_n):
+            printset.append("...")
+        return printer._print_seq(printset, '[', ']', ', ' )
+
+
+class EmptySequence(SeqExpr):
+    """Represents the empty sequence."""
+
+    __metaclass__ = Singleton
+
+    is_EmptySequence = True
+    def __getitem__(self, i):
+        return S.Zero
+
+
+class SeqAdd(SeqExpr_Ext, Add):
+    """A Sum of Sequence Expressions."""
+
+    def __new__(cls, *args):
+
+        if not all(arg.is_Sequence for arg in args):
+            raise ValueError("Mix of Sequence and Scalar symbols")
+
+        # remove EmptySequence
+        args = tuple([arg for arg in args if not arg.is_EmptySequence])
+        if len(args)==0:
+            return S.EmptySequence
+
+        expr = Add.__new__(cls, *args)
+
+        if expr.is_Mul:
+            return SeqMul(*expr.args)
+        return expr
+
+    @classmethod
+    def flatten(cls, args_seq):
+        return args_seq, [], None
+
+
+    def _hashable_content(self):
+        return tuple(sorted(self._args, key=hash))
+
+    def as_ordered_terms(self, order=None):
+        return self.args
+
+    @property
+    def interval(self):
+        res = S.EmptySet
+        for seq in self.args:
+            res = res | seq.interval
+        return res
+
     def __getitem__(self, i):
         if isinstance(i, slice):
             return SeqAdd(*(seq[i] for seq in self.args))
         else:
             return Add(*(seq[i] for seq in self.args))
 
+    def _sympystr(self, printer, *args):
+        return printer._print_Add(self)
 
-class SeqMul(SeqExpr, Mul):
-    """A Product of Sequence Expressions."""
+class SeqMul(SeqExpr_Ext, Mul):
+    """A Product of Sequence Expressions (element-wise)."""
 
     def __new__(cls, *args):
 
-        # Check that the shape of the args is consistent
+        # collect only sequenses
         seqs = [arg for arg in args if arg.is_Sequence]
 
-        if any(arg.is_Sequence and arg.is_EmptySequence for arg in args):
+        # if at least one sequence is empty then result is EmptySequence
+        if any(arg.is_EmptySequence for arg in seqs):
             return S.EmptySequence
 
-        #expr = sequenceify(Mul.__new__(cls, *args))
-        expr = sequenceify(Mul.__new__(cls, *args))
-        if expr.is_Add:
-            return SeqAdd(*expr.args)
-        if expr.is_Pow:
-            return SeqPow(*expr.args)
-        if not expr.is_Mul:
-            return expr
+        # collect scalar coefficients
+        coeffs = [arg for arg in args if not arg.is_Sequence]
 
-        if any(arg.is_Sequence and arg.is_EmptySequence for arg in expr.args):
-            return S.EmptySequence
+        # calculate the multyplicity of coefficients
+        if coeffs==[]:
+            coeff = S.One
+        else:
+            coeff = Mul(*coeffs)
 
+        # if only one seqs then return it
+        if len(seqs)==1:
+            if coeff == S.One:
+                return seqs[0]
+            else:
+                return SeqCoeffMul(coeff, seqs[0])
+
+        # further - element-wise multiplicity
+        raise NotImplemented
+
+    @classmethod
+    def flatten(cls, args_seq):
+        return args_seq, [], None
+
+    def _hashable_content(self):
+        return tuple(sorted(self._args, key=hash))
+
+    def as_ordered_terms(self, order=None):
+        return self.args
+
+    @property
+    def interval(self):
+        res = S.EmptySet
+        for seq in self.args:
+            res = res | seq.interval
+        return res
+
+
+class SeqCoeffMul(SeqExpr_Ext, Mul):
+    def __new__(cls, coeff, seq):
+        expr = Mul.__new__(cls, coeff, seq)
         return expr
 
+    @classmethod
+    def flatten(cls, args_seq):
+        coeff = args_seq[0]
+        seq = args_seq[1]
+        if isinstance(seq, SeqCoeffMul):
+            coeff *= seq.coeff
+            seq = seq.seq
+            args_seq = [coeff, seq]
+        return args_seq, [], None
+
+    @property
+    def coeff(self):
+        return self.args[0]
+
+    @property
+    def seq(self):
+        return self.args[1]
+
+    @property
+    def interval(self):
+        return self.seq.interval
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return SeqCoeffMul(self.coeff, self.seq[i])
+        else:
+            return self.coeff * self.seq[i]
 
 def sequences_only(expr):
     #return [sym for sym in expr.free_symbols if sym.is_Sequence]

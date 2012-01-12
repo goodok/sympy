@@ -6,8 +6,9 @@ from sympy.utilities.pytest import XFAIL, SKIP
 from sympy.printing.pretty import pprint
 from sympy.printing.pretty import pretty
 from sympy.core.sets import Interval
+from sympy.core.symbol import Symbol
 
-from sympy.series.sequences import Sequence, SeqPer, SeqFormula, SeqFunc
+from sympy.series.sequences import Sequence, SeqPer, SeqFormula, SeqFunc, SequenceSymbol
 from sympy.series.sequencesexpr import SeqAdd
 from sympy.series.taylor import TaylorSeries
 
@@ -90,6 +91,31 @@ def test_add_empty():
     r = seq + S.EmptySequence
     assert r==seq
 
+def test_add():
+    a = Sequence((0, oo), periodical = (1, 0))
+    b = Sequence((0, oo), periodical = (0, 1))
+    c = a - b
+    assert c.interval == Interval(0, oo)
+
+    a = Sequence((0, oo), periodical = (1, 0))
+    b = Sequence((0, oo), periodical = (0, 2))
+    c = 3*a + 7*b
+    assert c.is_Sequence
+
+    import pudb; pudb.set_trace()
+    c = 3*a + 7*b
+    d = 2*c
+    assert d.is_Sequence
+
+
+def test_symbol():
+    a = SequenceSymbol((0, 3), 'a')
+    i = Symbol('i')
+    assert a[i] != S.Zero
+    assert a.interval == Interval(0, 3)
+    assert a[0] != a[3]
+    assert a[4] == S.Zero
+
 
 def test_taylorseries():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))
@@ -97,4 +123,3 @@ def test_taylorseries():
     ts = TaylorSeries(x, sequence=seq)
     assert str(ts) == 'x**3/18 + x**4/96 + x**5/600 + ... '
     assert ts == TaylorSeries(x, sequence=seq)
-
