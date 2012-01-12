@@ -14,22 +14,19 @@ class TaylorSeries(TaylorSeriesExpr):
     >>> from sympy.abc import x, k
     >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
     >>> seq
-    [0, 1, 1/2, 1/3, 1/4, 1/5, ...]
+    SeqFormula([1, oo), k, 1/k)
 
     >>> TaylorSeries(x, sequence=seq)
     x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
 
-    >>> seq = Sequence((0, oo), baselist = [1, 0], kind="periodical")
+    >>> seq = Sequence((0, oo), periodical = (1, 0))
     >>> seq
-    [1, 0, 1, 0, ...]
+    SeqPer([0, oo), (1, 0))
 
     >>> TaylorSeries(x, sequence=seq)
     1 + x**2/2 + x**4/24 + ...
 
     """
-
-    show_n = 5
-    show_method ='series'
 
     def __new__(self, x, **kwargs):
 
@@ -45,6 +42,11 @@ class TaylorSeries(TaylorSeriesExpr):
     @property
     def sequence(self):
         return self._args[1]
+
+    @property
+    def interval(self):
+        return self.sequence.interval
+
 
     def __getitem__(self, i):
         a =  self.sequence[i]
@@ -64,7 +66,7 @@ class TaylorSeries(TaylorSeriesExpr):
             l = [self[i] for i in range(s.start_index, self.show_n + 1)]
             l = [i for i in l if i != S.Zero]
             l = [printer._print(i) for i in l]
-            return " + ". join(l) + " + ... "
+            return " + ". join(l) + " + ..."
         else:
             return printer._print_Basic(self, *args)
 

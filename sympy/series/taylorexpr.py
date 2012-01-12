@@ -1,5 +1,6 @@
 from sympy.core import (Basic, Expr, Add, Mul, Pow, S)
 from sympy.core.decorators import _sympifyit, call_highest_priority
+from sympy.core.cache import cacheit
 
 class TaylorSeriesExpr(Expr):
     """ TaylorSeries Expression Class"""
@@ -9,6 +10,9 @@ class TaylorSeriesExpr(Expr):
     is_TaylorSeries = True
     is_Identity = False
     is_ZeroSequence = False
+
+    show_method='series'
+    show_n = 6
 
     def __neg__(self):
         return TaylorSeriesMul(S.NegativeOne, self)
@@ -65,7 +69,50 @@ class TaylorSeriesExpr(Expr):
     __rtruediv__ = __rdiv__
 
 
-class TaylorSeriesAdd(TaylorSeriesExpr, Add):
+class TaylorSeriesExpr_Ext(TaylorSeriesExpr):
+
+    @property
+    @cacheit
+    def start_index(self):
+        return self.interval._inf
+
+    @property
+    @cacheit
+    def stop_index(self):
+        return self.interval._sup
+
+    @property
+    @cacheit
+    def is_infinite(self):
+        return self.stop_index == S.Infinity
+
+    def is_out_of_range(self, i):
+        if isinstance(i, Symbol):
+            return False
+        if i < self.start_index:
+            return True
+
+        if not self.is_infinite:
+            if i > self.stop_index:
+                return True
+        return False
+
+    def show(self, n=5, **kwargs):
+        TaylorSeriesExpr.show_method = kwargs.get('method', 'series')
+        self.show_n = n
+        return self
+
+    def _sympystr(self, printer, *args):
+        if self.show_method=='series':
+            l = [self[i] for i in range(self.start_index, self.show_n + 1)]
+            l = [i for i in l if i != S.Zero]
+            l = [printer._print(i) for i in l]
+            return " + ". join(l) + " + ... "
+        else:
+            _args = [args.show(method="expr") for i in args]
+            return printer._print_Basic(self, *_args)
+
+class TaylorSeriesAdd(TaylorSeriesExpr_Ext, Add):
     """    """
 
     def __new__(cls, *args):
@@ -73,6 +120,7 @@ class TaylorSeriesAdd(TaylorSeriesExpr, Add):
         #TODO: is it correct, to check arg!=0? args must be Expr type
         args = [arg for arg in args if arg!=0]
 
+        #TODO: create ScalAdd to keep scalar separatly
         if not all(arg.is_TaylorSeries for arg in args):
             raise ValueError("Mix of Sequence and Scalar symbols")
 
@@ -85,34 +133,93 @@ class TaylorSeriesAdd(TaylorSeriesExpr, Add):
     def _hashable_content(self):
         return tuple(sorted(self._args, key=hash))
 
-    def _sympystr(self, printer, *args):
-        return printer._print_Add(self)
+    @classmethod
+    def flatten(cls, args_seq):
+        return args_seq, [], None
 
     def as_ordered_terms(self, order=None):
         return self.args
 
+    @property
+    def interval(self):
+        res = S.EmptySet
+        for ts in self.args:
+            res = res | ts.interval
+        return res
 
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            pass
+        else:
+            return Add(*(ts[i] for ts in self.args))
 
-class TaylorSeriesMul(TaylorSeriesExpr, Mul):
+class TaylorSeriesMul(TaylorSeriesExpr_Ext, Mul):
     """A Product of Sequence Expressions."""
 
     def __new__(cls, *args):
 
-        # Check that the shape of the args is consistent
-        seqs = [arg for arg in args if arg.is_TaylorSeries]
-
         if any(arg.is_zero for arg in args):
-            return Zero
+            return S.Zero
 
-        if expr.is_Add:
-            return TaylorSeriesAdd(*expr.args)
-        if expr.is_Pow:
-            return TaylorSeriesPow(*expr.args)
-        if not expr.is_Mul:
-            return expr
+        # collect only series
+        series = [arg for arg in args if arg.is_TaylorSeries]
 
-        if any(arg.is_TaylorSeries and arg.is_Zero for arg in expr.args):
-            return Zero
+        # collect scalar coefficients
+        coeffs = [arg for arg in args if not arg.is_TaylorSeries]
+
+        # calculate the multyplicity of coefficients
+        if coeffs==[]:
+            coeff = S.One
+        else:
+            coeff = Mul(*coeffs)
+
+        # if only one seqs then return it
+        if len(series)==1:
+            if coeff == S.One:
+                return series[0]
+            else:
+                return TaylorSeriesCoeffMul(coeff, series[0])
+
+        # further - element-wise multiplicity
+        raise NotImplemented
 
         return expr
+
+    @classmethod
+    def flatten(cls, args_seq):
+        return args_seq, [], None
+
+
+class TaylorSeriesCoeffMul(TaylorSeriesExpr_Ext, Mul):
+    def __new__(cls, coeff, ts):
+        expr = Mul.__new__(cls, coeff, ts)
+        return expr
+
+    @classmethod
+    def flatten(cls, args_ts):
+        coeff = args_ts[0]
+        ts = args_ts[1]
+        if isinstance(ts, TaylorSeriesCoeffMul):
+            coeff *= ts.coeff
+            ts = ts.ts
+            args_ts = [coeff, ts]
+        return args_ts, [], None
+
+    @property
+    def coeff(self):
+        return self.args[0]
+
+    @property
+    def ts(self):
+        return self.args[1]
+
+    @property
+    def interval(self):
+        return self.ts.interval
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return TaylorSeriesCoeffMul(self.coeff, self.ts[i])
+        else:
+            return self.coeff * self.ts[i]
 

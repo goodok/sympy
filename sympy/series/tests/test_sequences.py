@@ -102,7 +102,6 @@ def test_add():
     c = 3*a + 7*b
     assert c.is_Sequence
 
-    import pudb; pudb.set_trace()
     c = 3*a + 7*b
     d = 2*c
     assert d.is_Sequence
@@ -121,5 +120,12 @@ def test_taylorseries():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))
     from sympy.abc import x
     ts = TaylorSeries(x, sequence=seq)
-    assert str(ts) == 'x**3/18 + x**4/96 + x**5/600 + ... '
+    assert str(ts) == 'x**3/18 + x**4/96 + x**5/600 + x**6/4320 + ...'
     assert ts == TaylorSeries(x, sequence=seq)
+
+    a = TaylorSeries(x, sequence=SeqPer((0, oo), (0, 1)))
+    b = TaylorSeries(x, sequence=SeqPer((0, oo), (1, 0)))
+    c = a + b
+    d = 1 * c
+
+

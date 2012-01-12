@@ -204,6 +204,9 @@ class SeqMul(SeqExpr_Ext, Mul):
 
     def __new__(cls, *args):
 
+        if any(arg.is_zero for arg in args):
+            return S.Zero
+
         # collect only sequenses
         seqs = [arg for arg in args if arg.is_Sequence]
 
