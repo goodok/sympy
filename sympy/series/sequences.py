@@ -17,7 +17,6 @@ class SequenceBase(SeqExpr):
     This class rather is Abstract
     """
     is_SequenceAtom = True
-    show_n = 5
 
     def __new__(cls, *args, **kwarg):
         if len(args) and (type(args[0])== tuple):
@@ -27,69 +26,16 @@ class SequenceBase(SeqExpr):
         obj = SeqExpr.__new__(cls, *args)
         return obj
 
+    def _hashable_content(self):
+        return tuple(self._args)
+
     @property
     def interval(self):
         return self._args[0]
 
     @property
-    def start_index(self):
-        return self.interval.left
-
-    @property
-    def stop_index(self):
-        return self.interval.right
-
-    @property
-    def length(self):
-        return self.stop_index - self.start_index + 1
-
-    @property
-    def is_infinite(self):
-        return self.stop_index == S.Infinity
-
-    @property
     def is_direct_calculated(self):
         return False
-
-    def calc_interval_from_slice(self, slc):
-        slc_start = slc.start
-        if slc_start == None:
-            slc_start = S.Zero
-        slc_stop  = slc.stop
-        if slc_stop == None:
-            slc_stop = S.Infinity
-        return self.interval & Interval(slc_start, slc_stop)
-
-    def is_out_of_range(self, i):
-        if isinstance(i, Symbol):
-            return False
-
-        if i < self.start_index:
-            return True
-
-        if not self.is_infinite:
-            if i > self.stop_index:
-                return True
-        return False
-
-    def _pretty(self,  printer, *args):
-        printset = []
-
-        if self.start_index > 1:
-          printset.append(S.Zero)
-          printset.append("...")
-        elif self.start_index ==1:
-          printset.append(S.Zero)
-
-        count = self.show_n
-        if not self.is_infinite:
-            count = min(count, self.length)
-
-        printset.extend([self[i] for i in range(self.start_index, self.start_index + count)])
-
-        if self.is_infinite or (self.length > self.show_n):
-            printset.append("...")
-        return printer._print_seq(printset, '[', ']', ', ' )
 
 
 class SequenceSymbol(SequenceBase, Symbol):
@@ -157,7 +103,7 @@ class SeqPer(SequenceBase):
 
     def __new__(cls, interval, baselist = None, **kwargs):
 
-        """Create a new periodical seuqence SeqPer instance out of something useful. """
+        """Create a new periodical sequence SeqPer instance out of something useful. """
 
         obj = SequenceBase.__new__(cls, interval, baselist)
         return obj
@@ -318,6 +264,10 @@ class SeqRecurr(SequenceBase):
         formula = rsolve(*recurr)
         obj = SequenceBase.__new__(cls, interval, recurr, k, formula)
         return obj
+
+    def _hashable_content(self):
+        _args = self._args
+        return (_args[0], _args[2], _args[3])
 
     @classmethod
     def _from_args(cls, interval, recurr, **opt):

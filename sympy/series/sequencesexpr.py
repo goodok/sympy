@@ -8,7 +8,7 @@ from sympy.core.numbers import (Infinity, Zero)
 from sympy.core.sets import Interval
 
 
-class SeqExpr(Expr):
+class SeqExprOp(Expr):
     """ Sequence Expression Class
     Sequence Expressions subclass SymPy Expr's so that
     SeqAdd inherits from Add
@@ -84,9 +84,18 @@ class SeqExpr(Expr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
-class SeqExpr_Ext(SeqExpr):
+class SeqExpr(SeqExprOp):
 
     show_n = 5
+
+    def _hashable_content(self):
+        return tuple(sorted(self._args, key=hash))
+
+
+    @property
+    def interval(self):
+        # abstract property
+        return None
 
     @property
     @cacheit
@@ -103,9 +112,13 @@ class SeqExpr_Ext(SeqExpr):
     def is_infinite(self):
         return self.stop_index == S.Infinity
 
+    @property
+    def length(self):
+        return self.stop_index - self.start_index + 1
+
     def is_out_of_range(self, i):
         if isinstance(i, Symbol):
-            return False
+            return None
         if i < self.start_index:
             return True
 
@@ -153,7 +166,7 @@ class EmptySequence(SeqExpr):
         return S.Zero
 
 
-class SeqAdd(SeqExpr_Ext, Add):
+class SeqAdd(SeqExpr, Add):
     """A Sum of Sequence Expressions."""
 
     def __new__(cls, *args):
@@ -177,9 +190,6 @@ class SeqAdd(SeqExpr_Ext, Add):
         return args_seq, [], None
 
 
-    def _hashable_content(self):
-        return tuple(sorted(self._args, key=hash))
-
     def as_ordered_terms(self, order=None):
         return self.args
 
@@ -199,7 +209,7 @@ class SeqAdd(SeqExpr_Ext, Add):
     def _sympystr(self, printer, *args):
         return printer._print_Add(self)
 
-class SeqMul(SeqExpr_Ext, Mul):
+class SeqMul(SeqExpr, Mul):
     """A Product of Sequence Expressions (element-wise)."""
 
     def __new__(cls, *args):
@@ -237,9 +247,6 @@ class SeqMul(SeqExpr_Ext, Mul):
     def flatten(cls, args_seq):
         return args_seq, [], None
 
-    def _hashable_content(self):
-        return tuple(sorted(self._args, key=hash))
-
     def as_ordered_terms(self, order=None):
         return self.args
 
@@ -251,7 +258,7 @@ class SeqMul(SeqExpr_Ext, Mul):
         return res
 
 
-class SeqCoeffMul(SeqExpr_Ext, Mul):
+class SeqCoeffMul(SeqExpr, Mul):
     def __new__(cls, coeff, seq):
         expr = Mul.__new__(cls, coeff, seq)
         return expr

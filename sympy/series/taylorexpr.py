@@ -2,7 +2,7 @@ from sympy.core import (Basic, Expr, Add, Mul, Pow, S)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
 
-class TaylorSeriesExpr(Expr):
+class TaylorSeriesExprOp(Expr):
     """ TaylorSeries Expression Class"""
 
     _op_priority = 13.0
@@ -69,7 +69,10 @@ class TaylorSeriesExpr(Expr):
     __rtruediv__ = __rdiv__
 
 
-class TaylorSeriesExpr_Ext(TaylorSeriesExpr):
+class TaylorSeriesExpr(TaylorSeriesExprOp):
+
+    def _hashable_content(self):
+        return tuple(self._args)
 
     @property
     @cacheit
@@ -91,7 +94,6 @@ class TaylorSeriesExpr_Ext(TaylorSeriesExpr):
             return False
         if i < self.start_index:
             return True
-
         if not self.is_infinite:
             if i > self.stop_index:
                 return True
@@ -112,7 +114,7 @@ class TaylorSeriesExpr_Ext(TaylorSeriesExpr):
             _args = [args.show(method="expr") for i in args]
             return printer._print_Basic(self, *_args)
 
-class TaylorSeriesAdd(TaylorSeriesExpr_Ext, Add):
+class TaylorSeriesAdd(TaylorSeriesExpr, Add):
     """    """
 
     def __new__(cls, *args):
@@ -153,7 +155,7 @@ class TaylorSeriesAdd(TaylorSeriesExpr_Ext, Add):
         else:
             return Add(*(ts[i] for ts in self.args))
 
-class TaylorSeriesMul(TaylorSeriesExpr_Ext, Mul):
+class TaylorSeriesMul(TaylorSeriesExpr, Mul):
     """A Product of Sequence Expressions."""
 
     def __new__(cls, *args):
@@ -185,6 +187,9 @@ class TaylorSeriesMul(TaylorSeriesExpr_Ext, Mul):
 
         return expr
 
+    def _hashable_content(self):
+        return tuple(sorted(self._args, key=hash))
+
     @classmethod
     def flatten(cls, args_seq):
         return args_seq, [], None
@@ -200,7 +205,7 @@ class TaylorSeriesMul(TaylorSeriesExpr_Ext, Mul):
     def __getitem__(self, i):
         return 0
 
-class TaylorSeriesCoeffMul(TaylorSeriesExpr_Ext, Mul):
+class TaylorSeriesCoeffMul(TaylorSeriesExpr, Mul):
     def __new__(cls, coeff, ts):
         expr = Mul.__new__(cls, coeff, ts)
         return expr
