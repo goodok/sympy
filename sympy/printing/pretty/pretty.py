@@ -26,6 +26,8 @@ class PrettyPrinter(Printer):
         "use_unicode": None,
         "wrap_line": True,
         "num_columns": None,
+        "list_sequences": False,
+        "list_series": True,
     }
 
     def __init__(self, settings=None):

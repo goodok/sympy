@@ -128,4 +128,11 @@ def test_taylorseries():
     c = a + b
     d = 1 * c
 
+def test_series_print():
+    from sympy.abc import x
+    from sympy.interactive.printing import init_printing
+    a = TaylorSeries(x, sequence=SeqPer((0, oo), (0, 1)))
+    b = TaylorSeries(x, sequence=SeqPer((0, oo), (1, 0)))
+    c = a + b
+    assert str(c) == '1 + x + x**2/2 + x**3/6 + x**4/24 + x**5/120 + x**6/720 + ...'
 

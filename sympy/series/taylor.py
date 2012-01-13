@@ -61,7 +61,7 @@ class TaylorSeries(TaylorSeriesExpr):
         return self
 
     def _sympystr(self, printer, *args):
-        if self.show_method=='series':
+        if printer._settings["list_series"]:
             s = self.sequence
             l = [self[i] for i in range(s.start_index, self.show_n + 1)]
             l = [i for i in l if i != S.Zero]

@@ -105,14 +105,89 @@ class TaylorSeriesExpr(TaylorSeriesExprOp):
         return self
 
     def _sympystr(self, printer, *args):
-        if self.show_method=='series':
+        if printer._settings["list_series"]:
             l = [self[i] for i in range(self.start_index, self.show_n + 1)]
-            l = [i for i in l if i != S.Zero]
-            l = [printer._print(i) for i in l]
-            return " + ". join(l) + " + ... "
+            terms = [i for i in l if i != S.Zero]
+
+            from sympy.printing.precedence import precedence
+            PREC = 40
+            l = []
+            for term in terms:
+                t = printer._print(term)
+                if t.startswith('-'):
+                    sign = "-"
+                    t = t[1:]
+                else:
+                    sign = "+"
+                if precedence(term) < PREC:
+                    l.extend([sign, "(%s)"%t])
+                else:
+                    l.extend([sign, t])
+            sign = l.pop(0)
+            if sign=='+':
+                sign = ""
+            return sign + ' '.join(l) + " + ..."
         else:
-            _args = [args.show(method="expr") for i in args]
-            return printer._print_Basic(self, *_args)
+            return printer._print_Basic(self, *args)
+
+    def _pretty(self, printer, *args):
+        from sympy.printing.pretty.stringpict import prettyForm, stringPict
+        if printer._settings["list_series"]:
+            # see pretty._print_Add()
+            l = [self[i] for i in range(self.start_index, self.show_n + 1)]
+            terms = [i for i in l if i != S.Zero]
+
+            def pretty_negative(pform, index):
+                """Prepend a minus sign to a pretty form. """
+                if index == 0:
+                    if pform.height() > 1:
+                        pform_neg = '- '
+                    else:
+                        pform_neg = '-'
+                else:
+                    pform_neg = ' - '
+                pform = stringPict.next(pform_neg, pform)
+                return prettyForm(binding=prettyForm.NEG, *pform)
+
+            pforms, indices = [], []
+            for i, term in enumerate(terms):
+                if term.is_Mul and term.as_coeff_mul()[0] < 0:
+                    pform = printer._print(-term)
+                    pforms.append(pretty_negative(pform, i))
+                elif term.is_Rational and term.q > 1:
+                    pforms.append(None)
+                    indices.append(i)
+                elif term.is_Number and term < 0:
+                    pform = printer._print(-term)
+                    pforms.append(pretty_negative(pform, i))
+                else:
+                    pforms.append(printer._print(term))
+
+            if indices:
+                large = True
+                for pform in pforms:
+                    if pform is not None and pform.height() > 1:
+                        break
+                else:
+                    large = False
+
+                for i in indices:
+                    term, negative = terms[i], False
+                    if term < 0:
+                        term, negative = -term, True
+                    if large:
+                        pform = prettyForm(str(term.p))/prettyForm(str(term.q))
+                    else:
+                        pform = printer._print(term)
+                    if negative:
+                        pform = pretty_negative(pform, i)
+                    pforms[i] = pform
+
+            pforms.append(prettyForm("..."))
+            return prettyForm.__add__(*pforms)
+
+        else:
+            return printer._print_Basic(self, *args)
 
 class TaylorSeriesAdd(TaylorSeriesExpr, Add):
     """    """
