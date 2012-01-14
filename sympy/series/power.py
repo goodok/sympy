@@ -7,47 +7,47 @@ from sympy.functions.combinatorial.factorials import factorial
 
 from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom
 
-class TaylorSeriesExpr(SeriesExpr):
-    is_TaylorSeries = True
+class PowerSeriesExpr(SeriesExpr):
+    is_PowerSeries = True
 
     def __neg__(self):
-        return TaylorSeriesCoeffMul(S.NegativeOne, self)
+        return PowerSeriesCoeffMul(S.NegativeOne, self)
     def __abs__(self):
         raise NotImplementedError
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__radd__')
     def __add__(self, other):
-        return TaylorSeriesAdd(self, other)
+        return PowerSeriesAdd(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__add__')
     def __radd__(self, other):
-        return TaylorSeriesAdd(other, self)
+        return PowerSeriesAdd(other, self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rsub__')
     def __sub__(self, other):
-        return TaylorSeriesAdd(self, -other)
+        return PowerSeriesAdd(self, -other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__sub__')
     def __rsub__(self, other):
-        return TaylorSeriesAdd(other, -self)
+        return PowerSeriesAdd(other, -self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rmul__')
     def __mul__(self, other):
-        return TaylorSeriesMul(self, other)
+        return PowerSeriesMul(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__mul__')
     def __rmul__(self, other):
-        return TaylorSeriesMul(other, self)
+        return PowerSeriesMul(other, self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rpow__')
     def __pow__(self, other):
         if other == -S.One:
             return Inverse(self)
-        return TaylorSeriesPow(self, other)
+        return PowerSeriesPow(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__pow__')
     def __rpow__(self, other):
@@ -55,7 +55,7 @@ class TaylorSeriesExpr(SeriesExpr):
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rdiv__')
     def __div__(self, other):
-        return TaylorSeriesMul(self, other**S.NegativeOne)
+        return PowerSeriesMul(self, other**S.NegativeOne)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__div__')
     def __rdiv__(self, other):
@@ -64,7 +64,7 @@ class TaylorSeriesExpr(SeriesExpr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
-class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
+class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
     """    """
     def __new__(cls, *args):
 
@@ -72,16 +72,16 @@ class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
         args = [arg for arg in args if arg!=0]
 
         #TODO: create ScalAdd to keep scalar separatly
-        if not all(arg.is_TaylorSeries for arg in args):
-            raise ValueError("Mix of TaylorSeries and Scalar symbols")
+        if not all(arg.is_PowerSeries for arg in args):
+            raise ValueError("Mix of PowerSeries and Scalar symbols")
 
         expr = Add.__new__(cls, *args)
 
         if expr.is_Mul:
-            return TaylorSeriesMul(*expr.args)
+            return PowerSeriesMul(*expr.args)
         return expr
 
-class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
+class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
     """A Product of Sequence Expressions."""
 
     def __new__(cls, *args):
@@ -89,10 +89,10 @@ class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
             return S.Zero
 
         # collect only series
-        series = [arg for arg in args if arg.is_TaylorSeries]
+        series = [arg for arg in args if arg.is_PowerSeries]
 
         # collect scalar coefficients
-        coeffs = [arg for arg in args if not arg.is_TaylorSeries]
+        coeffs = [arg for arg in args if not arg.is_PowerSeries]
 
         # calculate the multyplicity of coefficients
         if coeffs==[]:
@@ -105,7 +105,7 @@ class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
             if coeff == S.One:
                 return series[0]
             else:
-                return TaylorSeriesCoeffMul(coeff, series[0])
+                return PowerSeriesCoeffMul(coeff, series[0])
 
         # further - element-wise multiplicity
         expr = Mul.__new__(cls, *args)
@@ -122,32 +122,32 @@ class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
         return 0
 
 
-class TaylorSeriesCoeffMul(TaylorSeriesExpr, SeriesCoeffMul):
+class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
     def __getitem__(self, i):
         if isinstance(i, slice):
-            return TaylorSeriesCoeffMul(self.coeff, self.ts[i])
+            return PowerSeriesCoeffMul(self.coeff, self.ts[i])
         else:
             return self.coeff * self.series[i]
 
-class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
+class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """
     Examples:
 
-    >>> from sympy.series import Sequence, TaylorSeries
+    >>> from sympy.series import Sequence, PowerSeries
     >>> from sympy import S, oo
     >>> from sympy.abc import x, k
     >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
     >>> seq
     SeqFormula([1, oo), k, 1/k)
 
-    >>> TaylorSeries(x, sequence=seq)
+    >>> PowerSeries(x, sequence=seq)
     x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
 
     >>> seq = Sequence((0, oo), periodical = (1, 0))
     >>> seq
     SeqPer([0, oo), (1, 0))
 
-    >>> TaylorSeries(x, sequence=seq)
+    >>> PowerSeries(x, sequence=seq)
     1 + x**2/2 + x**4/24 + ...
 
     """
@@ -155,6 +155,6 @@ class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     def __getitem__(self, i):
         a =  self.sequence[i]
         if (a != S.Zero) and (i != 0):
-            a = a / factorial(i) * Pow(self.x, i)
+            a = a * Pow(self.x, i)
         return a
 

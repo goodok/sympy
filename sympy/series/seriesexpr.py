@@ -2,56 +2,56 @@ from sympy.core import (Basic, Expr, Add, Mul, Pow, S)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
 
-class TaylorSeriesExprOp(Expr):
+
+class SeriesExprOp(Expr):
     """ TaylorSeries Expression Class"""
 
     _op_priority = 13.0
 
-    is_TaylorSeries = True
+    is_Series = True
     is_Identity = False
-    is_ZeroSequence = False
+    is_TaylorSeries = False
 
-    show_method='series'
     show_n = 6
 
     def __neg__(self):
-        return TaylorSeriesMul(S.NegativeOne, self)
+        return SeriesCoeffMul(S.NegativeOne, self)
     def __abs__(self):
         raise NotImplementedError
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__radd__')
     def __add__(self, other):
-        return TaylorSeriesAdd(self, other)
+        return SeriesAdd(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__add__')
     def __radd__(self, other):
-        return TaylorSeriesAdd(other, self)
+        return SeriesAdd(other, self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rsub__')
     def __sub__(self, other):
-        return TaylorSeriesAdd(self, -other)
+        return SeriesAdd(self, -other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__sub__')
     def __rsub__(self, other):
-        return TaylorSeriesAdd(other, -self)
+        return SeriesAdd(other, -self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rmul__')
     def __mul__(self, other):
-        return TaylorSeriesMul(self, other)
+        return SeriesMul(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__mul__')
     def __rmul__(self, other):
-        return TaylorSeriesMul(other, self)
+        return SeriesMul(other, self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rpow__')
     def __pow__(self, other):
         if other == -S.One:
             return Inverse(self)
-        return TaylorSeriesPow(self, other)
+        return SeriesPow(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__pow__')
     def __rpow__(self, other):
@@ -59,7 +59,7 @@ class TaylorSeriesExprOp(Expr):
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rdiv__')
     def __div__(self, other):
-        return TaylorSeriesMul(self, other**S.NegativeOne)
+        return SeriesMul(self, other**S.NegativeOne)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__div__')
     def __rdiv__(self, other):
@@ -69,10 +69,7 @@ class TaylorSeriesExprOp(Expr):
     __rtruediv__ = __rdiv__
 
 
-class TaylorSeriesExpr(TaylorSeriesExprOp):
-
-    def _hashable_content(self):
-        return tuple(self._args)
+class SeriesExprInterval(object):
 
     @property
     @cacheit
@@ -99,10 +96,8 @@ class TaylorSeriesExpr(TaylorSeriesExprOp):
                 return True
         return False
 
-    def show(self, n=5, **kwargs):
-        TaylorSeriesExpr.show_method = kwargs.get('method', 'series')
-        self.show_n = n
-        return self
+
+class SeriesExprPrint(object):
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
@@ -189,23 +184,14 @@ class TaylorSeriesExpr(TaylorSeriesExprOp):
         else:
             return printer._print_Basic(self, *args)
 
-class TaylorSeriesAdd(TaylorSeriesExpr, Add):
-    """    """
 
-    def __new__(cls, *args):
+class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
+    def _hashable_content(self):
+        return tuple(self._args)
 
-        #TODO: is it correct, to check arg!=0? args must be Expr type
-        args = [arg for arg in args if arg!=0]
 
-        #TODO: create ScalAdd to keep scalar separatly
-        if not all(arg.is_TaylorSeries for arg in args):
-            raise ValueError("Mix of Sequence and Scalar symbols")
 
-        expr = Add.__new__(cls, *args)
-
-        if expr.is_Mul:
-            return TaylorSeriesMul(*expr.args)
-        return expr
+class SeriesAdd(SeriesExpr, Add):
 
     def _hashable_content(self):
         return tuple(sorted(self._args, key=hash))
@@ -232,43 +218,12 @@ class TaylorSeriesAdd(TaylorSeriesExpr, Add):
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
-            return TaylorSeriesExpr._sympystr(self, printer, *args)
+            return SeriesExprPrint._sympystr(self, printer, *args)
         else:
             return printer._print_Add(self)
 
 
-class TaylorSeriesMul(TaylorSeriesExpr, Mul):
-    """A Product of Sequence Expressions."""
-
-    def __new__(cls, *args):
-
-        if any(arg.is_zero for arg in args):
-            return S.Zero
-
-        # collect only series
-        series = [arg for arg in args if arg.is_TaylorSeries]
-
-        # collect scalar coefficients
-        coeffs = [arg for arg in args if not arg.is_TaylorSeries]
-
-        # calculate the multyplicity of coefficients
-        if coeffs==[]:
-            coeff = S.One
-        else:
-            coeff = Mul(*coeffs)
-
-        # if only one seqs then return it
-        if len(series)==1:
-            if coeff == S.One:
-                return series[0]
-            else:
-                return TaylorSeriesCoeffMul(coeff, series[0])
-
-        # further - element-wise multiplicity
-        expr = Mul.__new__(cls, *args)
-
-        return expr
-
+class SeriesMul(SeriesExpr, Mul):
     def _hashable_content(self):
         return tuple(sorted(self._args, key=hash))
 
@@ -276,25 +231,13 @@ class TaylorSeriesMul(TaylorSeriesExpr, Mul):
     def flatten(cls, args_seq):
         return args_seq, [], None
 
-    @property
-    def interval(self):
-        res = S.EmptySet
-        for ts in self.args:
-            res = res | ts.interval
-        return res
-
-
-    def __getitem__(self, i):
-        return 0
-
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
-            return TaylorSeriesExpr._sympystr(self, printer, *args)
+            return SeriesExprPrint._sympystr(self, printer, *args)
         else:
             return printer._print_Mul(self)
 
-
-class TaylorSeriesCoeffMul(TaylorSeriesExpr, Mul):
+class SeriesCoeffMul(SeriesExpr, Mul):
     def __new__(cls, coeff, ts):
         expr = Mul.__new__(cls, coeff, ts)
         return expr
@@ -302,11 +245,11 @@ class TaylorSeriesCoeffMul(TaylorSeriesExpr, Mul):
     @classmethod
     def flatten(cls, args_ts):
         coeff = args_ts[0]
-        ts = args_ts[1]
-        if isinstance(ts, TaylorSeriesCoeffMul):
-            coeff *= ts.coeff
-            ts = ts.ts
-            args_ts = [coeff, ts]
+        subseries = args_ts[1]
+        if isinstance(subseries, SeriesCoeffMul):
+            coeff *= subseries.coeff
+            series = subseries.series
+            args_ts = [coeff, series]
         return args_ts, [], None
 
     @property
@@ -314,23 +257,46 @@ class TaylorSeriesCoeffMul(TaylorSeriesExpr, Mul):
         return self.args[0]
 
     @property
-    def ts(self):
+    def series(self):
         return self.args[1]
 
     @property
     def interval(self):
-        return self.ts.interval
-
-    def __getitem__(self, i):
-        if isinstance(i, slice):
-            return TaylorSeriesCoeffMul(self.coeff, self.ts[i])
-        else:
-            return self.coeff * self.ts[i]
+        return self.series.interval
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
-            return TaylorSeriesExpr._sympystr(self, printer, *args)
+            return SeriesExprPrint._sympystr(self, printer, *args)
         else:
             return printer._print_Mul(self)
 
+
+
+class SeriesAtom(SeriesExpr):
+    def __new__(self, x, **kwargs):
+        sequence = kwargs.get("sequence", None)
+        obj = SeriesExpr.__new__(self, x, sequence)
+        return obj
+
+    @property
+    def x(self):
+        return self._args[0]
+
+    @property
+    def sequence(self):
+        return self._args[1]
+
+    @property
+    def interval(self):
+        return self.sequence.interval
+
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_series"]:
+            s = self.sequence
+            l = [self[i] for i in range(s.start_index, self.show_n + 1)]
+            l = [i for i in l if i != S.Zero]
+            l = [printer._print(i) for i in l]
+            return " + ". join(l) + " + ..."
+        else:
+            return printer._print_Basic(self, *args)
 
