@@ -136,9 +136,29 @@ class SeqExpr(SeqExprOp):
             slc_stop = S.Infinity
         return self.interval & Interval(slc_start, slc_stop)
 
-    def _pretty(self,  printer, *args):
-        printset = []
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_sequences"]:
+            printset =  self._get_printset()
+            if self.is_infinite or (self.length > self.show_n):
+                printset.append("...")
 
+            def _print_item(item):
+                if item == '...': return "..."
+                else: return printer._print(item)
+
+            l = [_print_item(item) for item in printset]
+            return '[' + ', '.join(l) + ']'
+        else:
+            return printer._print_Basic(self, *args)
+
+    def _pretty(self,  printer, *args):
+        printset =  self._get_printset()
+        if self.is_infinite or (self.length > self.show_n):
+            printset.append("...")
+        return printer._print_seq(printset, '[', ']', ', ')
+
+    def _get_printset(self):
+        printset = []
         if self.start_index > 1:
           printset.append(S.Zero)
           printset.append("...")
@@ -148,12 +168,8 @@ class SeqExpr(SeqExprOp):
         count = self.show_n
         if not self.is_infinite:
             count = min(count, self.length)
-
         printset.extend([self[i] for i in range(self.start_index, self.start_index + count)])
-
-        if self.is_infinite or (self.length > self.show_n):
-            printset.append("...")
-        return printer._print_seq(printset, '[', ']', ', ' )
+        return printset
 
 
 class EmptySequence(SeqExpr):
@@ -207,7 +223,10 @@ class SeqAdd(SeqExpr, Add):
             return Add(*(seq[i] for seq in self.args))
 
     def _sympystr(self, printer, *args):
-        return printer._print_Add(self)
+        if printer._settings["list_sequences"]:
+            return SeqExpr._sympystr(self, printer, *args)
+        else:
+            return printer._print_Add(self)
 
 class SeqMul(SeqExpr, Mul):
     """A Product of Sequence Expressions (element-wise)."""
@@ -257,6 +276,12 @@ class SeqMul(SeqExpr, Mul):
             res = res | seq.interval
         return res
 
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_sequences"]:
+            return SeqExpr._sympystr(self, printer, *args)
+        else:
+            return printer._print_Mul(self)
+
 
 class SeqCoeffMul(SeqExpr, Mul):
     def __new__(cls, coeff, seq):
@@ -290,6 +315,13 @@ class SeqCoeffMul(SeqExpr, Mul):
             return SeqCoeffMul(self.coeff, self.seq[i])
         else:
             return self.coeff * self.seq[i]
+
+
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_sequences"]:
+            return SeqExpr._sympystr(self, printer, *args)
+        else:
+            return printer._print_Mul(self)
 
 def sequences_only(expr):
     #return [sym for sym in expr.free_symbols if sym.is_Sequence]

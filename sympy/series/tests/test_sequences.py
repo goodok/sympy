@@ -115,6 +115,13 @@ def test_symbol():
     assert a[0] != a[3]
     assert a[4] == S.Zero
 
+    from sympy.interactive.printing import init_printing
+    init_printing(list_sequences=True)
+
+    s = str(a)
+    s = str(a[i])
+    s = str(a[0])
+
 
 def test_taylorseries():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))

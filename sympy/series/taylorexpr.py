@@ -230,6 +230,13 @@ class TaylorSeriesAdd(TaylorSeriesExpr, Add):
         else:
             return Add(*(ts[i] for ts in self.args))
 
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_series"]:
+            return TaylorSeriesExpr._sympystr(self, printer, *args)
+        else:
+            return printer._print_Add(self)
+
+
 class TaylorSeriesMul(TaylorSeriesExpr, Mul):
     """A Product of Sequence Expressions."""
 
@@ -280,6 +287,13 @@ class TaylorSeriesMul(TaylorSeriesExpr, Mul):
     def __getitem__(self, i):
         return 0
 
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_series"]:
+            return TaylorSeriesExpr._sympystr(self, printer, *args)
+        else:
+            return printer._print_Mul(self)
+
+
 class TaylorSeriesCoeffMul(TaylorSeriesExpr, Mul):
     def __new__(cls, coeff, ts):
         expr = Mul.__new__(cls, coeff, ts)
@@ -312,4 +326,11 @@ class TaylorSeriesCoeffMul(TaylorSeriesExpr, Mul):
             return TaylorSeriesCoeffMul(self.coeff, self.ts[i])
         else:
             return self.coeff * self.ts[i]
+
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_series"]:
+            return TaylorSeriesExpr._sympystr(self, printer, *args)
+        else:
+            return printer._print_Mul(self)
+
 

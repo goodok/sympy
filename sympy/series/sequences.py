@@ -78,6 +78,12 @@ class SequenceSymbol(SequenceBase, Symbol):
     def __call__(self, *args):
         raise TypeError( "%s object is not callable"%self.__class__ )
 
+    def _sympystr(self, printer):
+        if printer._settings["list_sequences"]:
+            return SeqExpr._sympystr(self, printer)
+        else:
+            return printer._print_Symbol(self)
+
 class IndexedSequenceSymbol(Expr):
 
     def __new__(cls, base, *args, **kw_args):
@@ -93,7 +99,9 @@ class IndexedSequenceSymbol(Expr):
 
     def _sympystr(self, p):
         indices = map(p.doprint, self.indices)
-        return "%s[%s]" % (p.doprint(self.base), ", ".join(indices))
+        l = ", ".join(indices)
+        base = p._print_Symbol(self.base)
+        return "%s[%s]" % (base, l)
 
 
 class SeqPer(SequenceBase):
