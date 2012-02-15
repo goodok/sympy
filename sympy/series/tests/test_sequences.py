@@ -35,6 +35,13 @@ def test_preodiacal():
     assert str(a) == "SeqPer([2, oo), (1, 2, 3))"
     assert pretty(a) == "[0, ..., 1, 2, 3, 1, 2, ...]"
 
+    a = SeqPer((0, oo), (0, 1))
+    import pudb; pudb.set_trace()
+    c = a**2
+
+    e = c[2]
+    assert e==1
+
 def test_formula():
     from sympy.abc import k
 
@@ -121,6 +128,13 @@ def test_symbol():
     s = str(a)
     s = str(a[i])
     s = str(a[0])
+
+
+    # cancelation
+    c = a**2
+    e1 = c[1].args[1].args[0] # a[0] - 0 is Symbol
+    e2 = c[1].args[2].args[0] # a[0] - 0 is int
+    assert e1 == e2
 
 
 def test_taylorseries():

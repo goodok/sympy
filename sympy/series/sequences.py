@@ -86,6 +86,8 @@ class SequenceSymbol(SequenceBase, Symbol):
 
 class IndexedSequenceSymbol(Expr):
 
+    is_commutative = True
+
     def __new__(cls, base, *args, **kw_args):
         return Expr.__new__(cls, base, *args, **kw_args)
 
@@ -128,6 +130,7 @@ class SeqPer(SequenceBase):
 
     @property
     def period(self):
+        #TODO: handle the case when baselist== (1)
         return len(self.baselist)
 
     def __getitem__(self, i):

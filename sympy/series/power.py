@@ -4,8 +4,11 @@ from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.singleton import (Singleton, S)
 from sympy.core import (Pow)
 from sympy.functions.combinatorial.factorials import factorial
+from sympy.core.sets import Interval
+from sympy.core.cache import cacheit
 
 from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom
+from sequencesexpr import SeqCauchyMul, SeqCauchyPow
 
 class PowerSeriesExpr(SeriesExpr):
     is_PowerSeries = True
@@ -107,19 +110,34 @@ class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
             else:
                 return PowerSeriesCoeffMul(coeff, series[0])
 
-        # further - element-wise multiplicity
+        # further
         expr = Mul.__new__(cls, *args)
         return expr
 
     @property
+    def x(self):
+        return self.args[0].x
+
+    @property
+    @cacheit
     def interval(self):
-        res = S.EmptySet
-        for ts in self.args:
-            res = res | ts.interval
+        start = Add(*(s.start_index for s in self.args))
+        stop = Add(*(s.stop_index for s in self.args))
+        res = Interval(start, stop)
         return res
 
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqCauchyMul(*(s.sequence for s in self.args))
+    
+    @cacheit
     def __getitem__(self, i):
-        return 0
+        if self.is_out_of_range(i):
+            return S.Zero
+        else:
+            c = self.sequence
+            return c[i]*Pow(self.x, i)
 
 
 class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
@@ -128,6 +146,31 @@ class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
             return PowerSeriesCoeffMul(self.coeff, self.ts[i])
         else:
             return self.coeff * self.series[i]
+
+
+class PowerSeriesPow(PowerSeriesExpr, Pow):
+
+    @property
+    def x(self):
+        return self.base.x
+
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqCauchyPow(self.base.sequence, self.exp)
+
+    @property
+    @cacheit
+    def interval(self):
+        return self.sequence.interval
+
+    @cacheit
+    def __getitem__(self, i):
+        if self.is_out_of_range(i):
+            return S.Zero
+        else:
+            c = self.sequence
+            return c[i]*Pow(self.x, i)
 
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """

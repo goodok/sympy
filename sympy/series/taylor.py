@@ -4,10 +4,13 @@ from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.singleton import (Singleton, S)
 from sympy.core import (Pow)
 from sympy.functions.combinatorial.factorials import factorial
+from sympy.core.cache import cacheit
+from sympy.core.sets import Interval
 
 from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom
+from sequencesexpr import SeqExpCauchyMul, SeqExpCauchyPow
 
-class TaylorSeriesExpr(SeriesExpr):
+class TaylorSeriesExprOp(SeriesExpr):
     is_TaylorSeries = True
 
     def __neg__(self):
@@ -64,6 +67,9 @@ class TaylorSeriesExpr(SeriesExpr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
+class TaylorSeriesExpr(TaylorSeriesExprOp):
+    pass
+
 class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
     """    """
     def __new__(cls, *args):
@@ -80,6 +86,9 @@ class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
         if expr.is_Mul:
             return TaylorSeriesMul(*expr.args)
         return expr
+
+    def coeff(self, i):
+        return self.sequence[i]
 
 class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
     """A Product of Sequence Expressions."""
@@ -107,19 +116,35 @@ class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
             else:
                 return TaylorSeriesCoeffMul(coeff, series[0])
 
-        # further - element-wise multiplicity
+        # further
         expr = Mul.__new__(cls, *args)
         return expr
 
     @property
+    def x(self):
+        return self.args[0].x
+
+    @property
+    @cacheit
     def interval(self):
-        res = S.EmptySet
-        for ts in self.args:
-            res = res | ts.interval
+        start = Add(*(s.start_index for s in self.args))
+        stop = Add(*(s.stop_index for s in self.args))
+        res = Interval(start, stop)
         return res
 
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqExpCauchyMul(*(s.sequence for s in self.args))
+
+    @cacheit
     def __getitem__(self, i):
-        return 0
+        if self.is_out_of_range(i):
+            return S.Zero
+        else:
+            c = self.sequence
+            return c[i] * Pow(self.x, i)/ factorial(i)
+
 
 
 class TaylorSeriesCoeffMul(TaylorSeriesExpr, SeriesCoeffMul):
@@ -128,6 +153,31 @@ class TaylorSeriesCoeffMul(TaylorSeriesExpr, SeriesCoeffMul):
             return TaylorSeriesCoeffMul(self.coeff, self.ts[i])
         else:
             return self.coeff * self.series[i]
+
+class TaylorSeriesPow(TaylorSeriesExpr, Pow):
+
+    @property
+    def x(self):
+        return self.base.x
+
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqExpCauchyPow(self.base.sequence, self.exp)
+
+    @property
+    @cacheit
+    def interval(self):
+        return self.sequence.interval
+
+    @cacheit
+    def __getitem__(self, i):
+        if self.is_out_of_range(i):
+            return S.Zero
+        else:
+            c = self.sequence
+            return c[i]*Pow(self.x, i)/factorial(i)
+
 
 class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     """
@@ -151,6 +201,9 @@ class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     1 + x**2/2 + x**4/24 + ...
 
     """
+
+    def coeff(self, i):
+        return self.sequence[i]
 
     def __getitem__(self, i):
         a =  self.sequence[i]

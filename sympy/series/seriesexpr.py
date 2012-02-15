@@ -1,6 +1,9 @@
 from sympy.core import (Basic, Expr, Add, Mul, Pow, S)
+from sympy.core.symbol import Symbol
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
+
+from sequences import SequenceSymbol
 
 
 class SeriesExprOp(Expr):
@@ -12,7 +15,7 @@ class SeriesExprOp(Expr):
     is_Identity = False
     is_TaylorSeries = False
 
-    show_n = 6
+    show_n = 8
 
     def __neg__(self):
         return SeriesCoeffMul(S.NegativeOne, self)
@@ -189,6 +192,9 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
     def _hashable_content(self):
         return tuple(self._args)
 
+    def coeff(self, i):
+        return self.sequence[i]
+
 
 
 class SeriesAdd(SeriesExpr, Add):
@@ -290,6 +296,9 @@ class SeriesAtom(SeriesExpr):
     def interval(self):
         return self.sequence.interval
 
+    def coeff(self, i):
+        return self.sequence[i]
+
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
             s = self.sequence
@@ -298,5 +307,10 @@ class SeriesAtom(SeriesExpr):
             l = [printer._print(i) for i in l]
             return " + ". join(l) + " + ..."
         else:
-            return printer._print_Basic(self, *args)
+            if isinstance(self.sequence, SequenceSymbol):
+                l = [printer._print_Symbol(self.x), printer._print_Basic(self.sequence)]
+                r = self.__class__.__name__ + "(%s)" % ", ".join(l)
+            else:
+                r = printer._print_Basic(self, *args)
+            return r
 
