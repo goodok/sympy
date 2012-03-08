@@ -3,11 +3,25 @@ from sympy.core.symbol import Symbol
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
 
-from sequences import SequenceSymbol
+from sympy.series.sequences import SequenceSymbol
+from sympy.series.sequencesexpr import SeqCoeffMul
+
+
+"""
+The helper module for Formal power series and Formal Taylor series.
+
+It contains common classes and metrhods for them.
+"""
+
+################################################################################
+#     Interfaces: expression operations, interval, printing,                   #
+################################################################################
 
 
 class SeriesExprOp(Expr):
-    """ TaylorSeries Expression Class"""
+    """
+    Embedding operations to the core
+    """
 
     _op_priority = 13.0
 
@@ -101,6 +115,9 @@ class SeriesExprInterval(object):
 
 
 class SeriesExprPrint(object):
+    """
+    Interface with methods for printers.
+    """
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
@@ -196,11 +213,55 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
         return self.sequence[i]
 
 
+class SeriesAtom(SeriesExpr):
+    def __new__(self, x, **kwargs):
+        sequence = kwargs.get("sequence", None)
+        obj = SeriesExpr.__new__(self, x, sequence)
+        return obj
+
+    @property
+    def x(self):
+        return self._args[0]
+
+    @property
+    def sequence(self):
+        return self._args[1]
+
+    @property
+    def interval(self):
+        return self.sequence.interval
+
+    def coeff(self, i):
+        return self.sequence[i]
+
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_series"]:
+            s = self.sequence
+            l = [self[i] for i in range(s.start_index, self.show_n + 1)]
+            l = [i for i in l if i != S.Zero]
+            l = [printer._print(i) for i in l]
+            return " + ". join(l) + " + ..."
+        else:
+            if isinstance(self.sequence, SequenceSymbol):
+                l = [printer._print_Symbol(self.x), printer._print_Basic(self.sequence)]
+                r = self.__class__.__name__ + "(%s)" % ", ".join(l)
+            else:
+                r = printer._print_Basic(self, *args)
+            return r
+
+
+################################################################################
+#                             Operations                                       #
+################################################################################
 
 class SeriesAdd(SeriesExpr, Add):
 
     def _hashable_content(self):
         return tuple(sorted(self._args, key=hash))
+
+    @property
+    def x(self):
+        return self._args[0].x
 
     @classmethod
     def flatten(cls, args_seq):
@@ -253,13 +314,13 @@ class SeriesCoeffMul(SeriesExpr, Mul):
         coeff = args_ts[0]
         subseries = args_ts[1]
         if isinstance(subseries, SeriesCoeffMul):
-            coeff *= subseries.coeff
+            coeff *= subseries.coeffitient
             series = subseries.series
             args_ts = [coeff, series]
         return args_ts, [], None
 
     @property
-    def coeff(self):
+    def coeffitient(self):
         return self.args[0]
 
     @property
@@ -270,6 +331,13 @@ class SeriesCoeffMul(SeriesExpr, Mul):
     def interval(self):
         return self.series.interval
 
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqCoeffMul(self.coeffitient, self.series.sequence)
+
+
+
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
             return SeriesExprPrint._sympystr(self, printer, *args)
@@ -278,39 +346,4 @@ class SeriesCoeffMul(SeriesExpr, Mul):
 
 
 
-class SeriesAtom(SeriesExpr):
-    def __new__(self, x, **kwargs):
-        sequence = kwargs.get("sequence", None)
-        obj = SeriesExpr.__new__(self, x, sequence)
-        return obj
-
-    @property
-    def x(self):
-        return self._args[0]
-
-    @property
-    def sequence(self):
-        return self._args[1]
-
-    @property
-    def interval(self):
-        return self.sequence.interval
-
-    def coeff(self, i):
-        return self.sequence[i]
-
-    def _sympystr(self, printer, *args):
-        if printer._settings["list_series"]:
-            s = self.sequence
-            l = [self[i] for i in range(s.start_index, self.show_n + 1)]
-            l = [i for i in l if i != S.Zero]
-            l = [printer._print(i) for i in l]
-            return " + ". join(l) + " + ..."
-        else:
-            if isinstance(self.sequence, SequenceSymbol):
-                l = [printer._print_Symbol(self.x), printer._print_Basic(self.sequence)]
-                r = self.__class__.__name__ + "(%s)" % ", ".join(l)
-            else:
-                r = printer._print_Basic(self, *args)
-            return r
 

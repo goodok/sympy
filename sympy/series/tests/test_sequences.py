@@ -33,10 +33,9 @@ def test_preodiacal():
     assert a[3:5] == SeqPer(Interval(3, 5), (2, 3, 1))
 
     assert str(a) == "SeqPer([2, oo), (1, 2, 3))"
-    assert pretty(a) == "[0, ..., 1, 2, 3, 1, 2, ...]"
+    assert pretty(a) == "[0, ..., 1, 2, 3, 1, 2, 3, 1, ...]"
 
     a = SeqPer((0, oo), (0, 1))
-    import pudb; pudb.set_trace()
     c = a**2
 
     e = c[2]
@@ -62,7 +61,7 @@ def test_formula():
     assert a[3:5] == SeqFormula(Interval(3, 5), k, S(1)/k)
 
     assert str(a) == "SeqFormula([2, oo), k, 1/k)"
-    assert pretty(a) == "[0, ..., 1/2, 1/3, 1/4, 1/5, 1/6, ...]"
+    assert pretty(a) == "[0, ..., 1/2, 1/3, 1/4, 1/5, 1/6, 1/7, 1/8, ...]"
 
 
 def test_function():
@@ -83,7 +82,7 @@ def test_function():
     #assert a[1:5] == SeqFunc((2, 5), f)
     #assert a[3:5] == SeqFunc((3, 5), f)
 
-    assert pretty(a) == "[0, ..., 1/4, 1/9, 1/16, 1/25, 1/36, ...]"
+    assert pretty(a) == "[0, ..., 1/4, 1/9, 1/16, 1/25, 1/36, 1/49, 1/64, ...]"
 
 
 def test_sequance_factory():
@@ -141,7 +140,7 @@ def test_taylorseries():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))
     from sympy.abc import x
     ts = TaylorSeries(x, sequence=seq)
-    assert str(ts) == 'x**3/18 + x**4/96 + x**5/600 + x**6/4320 + ...'
+    assert str(ts) == 'x**3/18 + x**4/96 + x**5/600 + x**6/4320 + x**7/35280 + x**8/322560 + ...'
     assert ts == TaylorSeries(x, sequence=seq)
 
     a = TaylorSeries(x, sequence=SeqPer((0, oo), (0, 1)))
@@ -155,5 +154,5 @@ def test_series_print():
     a = TaylorSeries(x, sequence=SeqPer((0, oo), (0, 1)))
     b = TaylorSeries(x, sequence=SeqPer((0, oo), (1, 0)))
     c = a + b
-    assert str(c) == '1 + x + x**2/2 + x**3/6 + x**4/24 + x**5/120 + x**6/720 + ...'
+    assert str(c) == '1 + x + x**2/2 + x**3/6 + x**4/24 + x**5/120 + x**6/720 + x**7/5040 + x**8/40320 + ...'
 

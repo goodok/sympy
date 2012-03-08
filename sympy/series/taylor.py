@@ -8,7 +8,7 @@ from sympy.core.cache import cacheit
 from sympy.core.sets import Interval
 
 from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom
-from sequencesexpr import SeqExpCauchyMul, SeqExpCauchyPow
+from sequencesexpr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow
 
 class TaylorSeriesExprOp(SeriesExpr):
     is_TaylorSeries = True
@@ -70,6 +70,62 @@ class TaylorSeriesExprOp(SeriesExpr):
 class TaylorSeriesExpr(TaylorSeriesExprOp):
     pass
 
+class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
+    """
+    Formal Taylor series.
+
+    Examples
+    ========
+
+    >>> from sympy.series import Sequence, TaylorSeries
+    >>> from sympy import S, oo
+    >>> from sympy.abc import x, k
+    >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
+    >>> seq
+    SeqFormula([1, oo), k, 1/k)
+
+    >>> TaylorSeries(x, sequence=seq)
+    x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
+
+    >>> a = Sequence((0, oo), periodical = (1, 0))
+    >>> b = Sequence((0, oo), periodical = (0, 1))
+
+    Define hyperbolic cos series with the help of sequence:
+
+    >>> tcosh = TaylorSeries(x, sequence=a)
+    >>> tcosh
+    1 + x**2/2 + x**4/24 + ...
+
+    >>> tsinh = TaylorSeries(x, sequence=b)
+    >>> tsinh
+    x + x**3/6 + x**5/120 + x**7/5040 + ...
+
+    >>> tcosh**2
+    1 + x**2 + x**4/3 + 2*x**6/45 + x**8/315 + ...
+
+    >>> tsinh**2
+    x**2 + x**4/3 + 2*x**6/45 + x**8/315 + ...
+
+    >>> c = tcosh**2 - tsinh**2
+    >>> c
+    1 + ...
+
+    Slow:
+    >>> c[100]      # doctest: +SKIP
+    0
+
+    """
+
+    def coeff(self, i):
+        return self.sequence[i]
+
+    def __getitem__(self, i):
+        a =  self.sequence[i]
+        if (a != S.Zero) and (i != 0):
+            a = a / factorial(i) * Pow(self.x, i)
+        return a
+
+
 class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
     """    """
     def __new__(cls, *args):
@@ -87,8 +143,10 @@ class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
             return TaylorSeriesMul(*expr.args)
         return expr
 
-    def coeff(self, i):
-        return self.sequence[i]
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqAdd(*(s.sequence for s in self.args))
 
 class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
     """A Product of Sequence Expressions."""
@@ -145,16 +203,45 @@ class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
             c = self.sequence
             return c[i] * Pow(self.x, i)/ factorial(i)
 
-
-
 class TaylorSeriesCoeffMul(TaylorSeriesExpr, SeriesCoeffMul):
     def __getitem__(self, i):
         if isinstance(i, slice):
-            return TaylorSeriesCoeffMul(self.coeff, self.ts[i])
+            return TaylorSeriesCoeffMul(self.coeffitient, self.ts[i])
         else:
-            return self.coeff * self.series[i]
+            return self.coeffitient * self.series[i]
 
 class TaylorSeriesPow(TaylorSeriesExpr, Pow):
+    """
+    Examples
+    ========
+
+    >>> from sympy.series import Sequence, TaylorSeries
+    >>> from sympy import S, oo
+    >>> from sympy.abc import x, k
+    >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
+    >>> seq
+    SeqFormula([1, oo), k, 1/k)
+
+    >>> TaylorSeries(x, sequence=seq)
+    x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
+
+    >>> a = Sequence((0, oo), periodical = (1, 0))
+    >>> b = Sequence((0, oo), periodical = (0, 1))
+
+    Define hyperbolic cos series with the help of sequence:
+
+    >>> tcosh = TaylorSeries(x, sequence=a)
+    >>> tcosh
+    1 + x**2/2 + x**4/24 + ...
+
+    >>> tsinh = TaylorSeries(x, sequence=b)
+    >>> tsinh
+    x + x**3/6 + x**5/120 + x**7/5040 + ...
+
+    >>> (tcosh + tsinh)**1000
+    1 + 1000*x + 500000*x**2 + 500000000*x**3/3 + 125000000000*x**4/3 + ...
+
+    """
 
     @property
     def x(self):
@@ -179,35 +266,4 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
             return c[i]*Pow(self.x, i)/factorial(i)
 
 
-class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
-    """
-    Examples:
-
-    >>> from sympy.series import Sequence, TaylorSeries
-    >>> from sympy import S, oo
-    >>> from sympy.abc import x, k
-    >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
-    >>> seq
-    SeqFormula([1, oo), k, 1/k)
-
-    >>> TaylorSeries(x, sequence=seq)
-    x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
-
-    >>> seq = Sequence((0, oo), periodical = (1, 0))
-    >>> seq
-    SeqPer([0, oo), (1, 0))
-
-    >>> TaylorSeries(x, sequence=seq)
-    1 + x**2/2 + x**4/24 + ...
-
-    """
-
-    def coeff(self, i):
-        return self.sequence[i]
-
-    def __getitem__(self, i):
-        a =  self.sequence[i]
-        if (a != S.Zero) and (i != 0):
-            a = a / factorial(i) * Pow(self.x, i)
-        return a
 

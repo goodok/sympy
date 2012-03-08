@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from sympy import Expr, Symbol, Eq, Mul, Add, Pow, expand, sympify, Tuple
 from sympy.core.basic import Basic
+from sympy.core.operations import AssocOp
+
 from sympy.core.singleton import (Singleton, S)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
@@ -9,6 +11,10 @@ from sympy.core.numbers import (Infinity, Zero)
 from sympy.core.sets import Interval
 from sympy.functions.combinatorial.factorials import factorial, binomial
 
+
+################################################################################
+#     Interfaces: expression operations, interval, printing, main sequence     #
+################################################################################
 
 class SeqExprOp(Expr):
     """ Sequence Expression Class
@@ -90,6 +96,24 @@ class SeqExprInterval(object):
     @property
     def interval(self):
         # abstract property
+        # implemented in SeqAdd, SeqMul and other expressions.
+        """
+        The interval of the sequence's index.
+
+        Examples
+        ========
+        >>> from sympy import oo
+        >>> from sympy.series.sequences import Sequence, SeqPer
+        >>> from sympy.series.sequencesexpr import SeqShiftLeft
+
+        >>> a = Sequence((0, 5), finitlist=(1, 2, 3, 4, 5, 6))
+        >>> b = Sequence((8, oo), periodical = (0, 2))
+        >>> c = a + b
+
+        >>> c.interval
+        [0, 5] U [8, oo)
+
+        """
         return None
 
     @property
@@ -170,7 +194,7 @@ class SeqExprPrint(object):
 
 class SeqExprMain(object):
     """
-    Interface for aligned to non zero sequenece.
+    Interface for aligned to non zero sequence.
     """
     @property
     @cacheit
@@ -204,14 +228,26 @@ class SeqExprMain(object):
         return SeqShiftLeftExp(self, self.first_nonzero_n)
 
 
-class SeqExpr(SeqExprOp, SeqExprInterval, SeqExprPrint, SeqExprMain):
+class SeqExprShifting(object):
+    """
+    Short methods for unitary operations.
+    """
+    def toleft(self, n):
+        return SeqShiftLeft(self, n)
+
+    def toright(self, n):
+        return SeqShiftRight(self, n)
+
+class SeqExpr(SeqExprOp, SeqExprInterval, SeqExprPrint, SeqExprShifting, SeqExprMain):
 
     def _hashable_content(self):
         return tuple(sorted(self._args, key=hash))
 
 
 class EmptySequence(SeqExpr):
-    """Represents the empty sequence."""
+    """
+    Represents the empty sequence.
+    """
 
     __metaclass__ = Singleton
 
@@ -220,10 +256,58 @@ class EmptySequence(SeqExpr):
         return S.Zero
 
 
+###########################
+#       Operations
+###########################
+
 class SeqShiftLeft(SeqExpr):
+    """
+    Shift sequence to the left.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.series.sequencesexpr import SeqShiftLeft
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = SeqPer((0, oo), (1, 2, 3))
+    >>> pprint(a)
+    [1, 2, 3, 1, 2, 3, 1, ...]
+
+    >>> pprint(SeqShiftLeft(a, 1))
+    [2, 3, 1, 2, 3, 1, 2, ...]
+
+    >>> a.toleft(2)
+    SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2)
+
+    >>> pprint(a.toleft(2))
+    [3, 1, 2, 3, 1, 2, 3, ...]
+
+
+    >>> a = Sequence((0, oo), 'a')
+    >>> pprint(a)
+    [a[0], a[1], a[2], a[3], a[4], a[5], a[6], ...]
+
+    >>> pprint(a.toleft(2))
+    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
+
+    >>> pprint(a.toright(2))
+    [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
+
+    See Also
+    ========
+    sympy.series.sequencesexpr.SeqShiftRight, SeqShiftLeftExp
+
+    """
+    # TODO:
+    # SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2) ---> SeqPer([0, oo), (3, 2, 1)
+    # seq.toright(2).toleft(2) --> seq
+    # seq.left(2).toright(2) --> seq, but with the first two items removed
 
     def __new__(cls, *args):
-        # if (args[1]==0): return args[0]
+        if (args[1]==0): return args[0]
         expr = Expr.__new__(cls, *args)
         return expr
 
@@ -242,8 +326,28 @@ class SeqShiftLeft(SeqExpr):
 
 class SeqShiftRight(SeqExpr):
 
+    """
+    Shift sequence to the right.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = Sequence((0, oo), 'a')
+    >>> pprint(a.toright(2))
+    [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
+
+    See Also
+    ========
+    sympy.series.sequencesexpr.SeqShiftLeft, SeqShiftRightExp
+
+    """
+
     def __new__(cls, *args):
-        # if (args[1]==0): return args[0]
+        if (args[1]==0): return args[0]
         expr = Expr.__new__(cls, *args)
         return expr
 
@@ -253,7 +357,7 @@ class SeqShiftRight(SeqExpr):
 
     def __getitem__(self, i):
         n = i - self.offset
-        if n > 0:
+        if n >= 0:
             return self.args[0][n]
         else:
             return S.Zero
@@ -263,27 +367,36 @@ class SeqShiftRight(SeqExpr):
         # TODO: calculate
         return self.args[0].interval
 
-class SeqShiftLeftExp(SeqShiftLeft):
-
-    def __getitem__(self, i):
-        offset = self.offset
-        n = i + offset
-        bc = factorial(i)/factorial(n) # i < n
-        return self.args[0][n]*bc
-
-class SeqShiftRightExp(SeqShiftRight):
-
-    def __getitem__(self, i):
-        offset = self.offset
-        n = i - offset
-        if n < 0:
-            return S.Zero
-        bc = factorial(i)/factorial(n)  # i > n
-        return self.args[0][n]*bc
-
-
 class SeqAdd(SeqExpr, Add):
-    """A Sum of Sequence Expressions."""
+    """
+    A Sum of the Sequences expressions.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = Sequence((0, oo), periodical = (1, 0))
+    >>> b = Sequence((0, oo), periodical = (0, 2))
+
+    >>> a + b
+    SeqPer([0, oo), (1, 0)) + SeqPer([0, oo), (0, 2))
+
+    >>> pprint(a + b)
+    [1, 2, 1, 2, 1, 2, 1, ...]
+
+    >>> a - b
+    SeqPer([0, oo), (1, 0)) - SeqPer([0, oo), (0, 2))
+
+    >>> pprint(a - b)
+    [1, -2, 1, -2, 1, -2, 1, ...]
+
+    >>> pprint(3*a - b)
+    [3, -2, 3, -2, 3, -2, 3, ...]
+
+    """
 
     def __new__(cls, *args):
 
@@ -327,65 +440,36 @@ class SeqAdd(SeqExpr, Add):
         else:
             return printer._print_Add(self)
 
-class SeqMul(SeqExpr, Mul):
-    """A Product of Sequence Expressions (element-wise)."""
-
-    def __new__(cls, *args):
-
-        if any(arg.is_zero for arg in args):
-            return S.Zero
-
-        # collect only sequenses
-        seqs = [arg for arg in args if arg.is_Sequence]
-
-        # if at least one sequence is empty then result is EmptySequence
-        if any(arg.is_EmptySequence for arg in seqs):
-            return S.EmptySequence
-
-        # collect scalar coefficients
-        coeffs = [arg for arg in args if not arg.is_Sequence]
-
-        # calculate the multiplicity of coefficients
-        if coeffs==[]:
-            coeff = S.One
-        else:
-            coeff = Mul(*coeffs)
-
-        # if only one seqs then return it
-        if len(seqs)==1:
-            if coeff == S.One:
-                return seqs[0]
-            else:
-                return SeqCoeffMul(coeff, seqs[0])
-
-        # Cauchy product
-        #expr = SeqCauchyMul.__new__(SeqCauchyMul, *seqs)
-        #return expr
-        return SeqCauchyMul(*seqs)
-        # element-wise multiplicity
-        raise NotImplemented
-
-    @classmethod
-    def flatten(cls, args_seq):
-        return args_seq, [], None
-
-    def as_ordered_terms(self, order=None):
-        return self.args
-
-    @property
-    def interval(self):
-        res = S.EmptySet
-        for seq in self.args:
-            res = res | seq.interval
-        return res
-
-    def _sympystr(self, printer, *args):
-        if printer._settings["list_sequences"]:
-            return SeqExpr._sympystr(self, printer, *args)
-        else:
-            return printer._print_Mul(self)
-
 class SeqCoeffMul(SeqExpr, Mul):
+    """
+   Multiplication of sequence by scalar.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = Sequence((0, oo), periodical = (1, 0))
+    >>> 2*a
+    2*SeqPer([0, oo), (1, 0))
+
+    >>> type(2*a)
+    <class 'sympy.series.sequencesexpr.SeqCoeffMul'>
+
+    >>> type(-a)
+    <class 'sympy.series.sequencesexpr.SeqCoeffMul'>
+
+    >>> pprint(2*a)
+    [2, 0, 2, 0, 2, 0, 2, ...]
+
+    >>> b = Sequence((0, oo), periodical = (0, 2))
+    >>> pprint(3*a - b)
+    [3, -2, 3, -2, 3, -2, 3, ...]
+
+    """
+
     def __new__(cls, coeff, seq):
         expr = Mul.__new__(cls, coeff, seq)
         return expr
@@ -428,10 +512,156 @@ class SeqCoeffMul(SeqExpr, Mul):
         else:
             return printer._print_Mul(self)
 
+
+class SeqMul(SeqExpr, Mul):
+    """
+    Dispatcher of multiplication of sequences.
+    """
+
+    def __new__(cls, *args):
+
+        if any(arg.is_zero for arg in args):
+            return S.Zero
+
+        # collect only sequenses
+        seqs = [arg for arg in args if arg.is_Sequence]
+
+        # if at least one sequence is empty then result is EmptySequence
+        if any(arg.is_EmptySequence for arg in seqs):
+            return S.EmptySequence
+
+        # collect scalar coefficients
+        coeffs = [arg for arg in args if not arg.is_Sequence]
+
+        # calculate the multiplicity of coefficients
+        if coeffs==[]:
+            coeff = S.One
+        else:
+            coeff = Mul(*coeffs)
+
+        # if only one seqs then return it
+        if len(seqs)==1:
+            if coeff == S.One:
+                return seqs[0]
+            else:
+                return SeqCoeffMul(coeff, seqs[0])
+
+        # Cauchy product
+        expr = SeqCauchyMul.__new__(SeqCauchyMul, *seqs)
+        return expr
+
+    @classmethod
+    def flatten(cls, args_seq):
+        return args_seq, [], None
+
+    def as_ordered_terms(self, order=None):
+        return self.args
+
+    @property
+    def interval(self):
+        start = Add(*(s.start_index for s in self.args))
+        stop = Add(*(s.stop_index for s in self.args))
+        res = Interval(start, stop)
+        return res
+
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_sequences"]:
+            return SeqExpr._sympystr(self, printer, *args)
+        else:
+            return printer._print_Mul(self)
+
+
+class SeqMulEW(SeqExpr, Expr):
+    """
+    Element-wise multiplications of sequences.
+
+    Examples
+    ========
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.series.sequencesexpr import SeqMulEW
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = Sequence((0, oo), periodical = (1, 2))
+    >>> b = Sequence((0, oo), periodical = (3, 4, 5))
+    >>> c = SeqMulEW(a, b)
+
+    >>> c
+    SeqMulEW(SeqPer([0, oo), (1, 2)), SeqPer([0, oo), (3, 4, 5)))
+
+    >>> pprint(c)
+    [3, 8, 5, 6, 4, 10, 3, ...]
+
+    See Also
+    ========
+
+    sympy.series.sequencesexpr.SeqCauchyMul
+
+    """
+    @property
+    def interval(self):
+        res = S.EmptySet
+        for seq in self.args:
+            res = res | seq.interval
+        return res
+
+    @cacheit
+    def __getitem__(self, i):
+        if self.is_out_of_range(i):
+            return S.Zero
+        else:
+            return self.args[0][i]*self.args[1][i]
+
+    def _sympystr(self, printer, *args):
+        if printer._settings["list_sequences"]:
+            return SeqExpr._sympystr(self, printer, *args)
+        else:
+            return printer._print_Basic(self, *args)
+
+
+
 class SeqCauchyMul(SeqExpr, Mul):
-    """Cauchy product of sequences.
-    
-    Discrete convolution of the two sequences.
+    """
+    Cauchy product of sequences.
+
+        c_n=\sum_{k=0}^n a_k b_{n-k}.
+
+
+    Examples
+    ========
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = Sequence((0, oo), 'a')
+    >>> b = Sequence((0, oo), 'b')
+    >>> c = a*b
+
+    >>> type(c)
+    <class 'sympy.series.sequencesexpr.SeqCauchyMul'>
+
+    >>> c[0]
+    a[0]*b[0]
+
+    >>> c[2]
+    a[0]*b[2] + a[1]*b[1] + a[2]*b[0]
+
+    >>> c[3]
+    a[0]*b[3] + a[1]*b[2] + a[2]*b[1] + a[3]*b[0]
+
+    See Also
+    ========
+
+    sympy.series.sequencesexpr.SeqCauchyMul, SeqExpCauchyMul
+
+
+    References
+    ==========
+    .. [1] http://en.wikipedia.org/wiki/Cauchy_product
+    .. [2] Donald E. "Knuth Art of Computer Programming, Volume 2: Seminumerical Algorithms",
+    3rd ed., sec 4.7 "Manipulation of power series", p 525.
+    .. [3] http://en.wikipedia.org/wiki/Convolution#Fast_convolution_algorithms
+
     """
     def __new__(cls, *args):
         expr = Mul.__new__(cls, *args)
@@ -440,6 +670,27 @@ class SeqCauchyMul(SeqExpr, Mul):
     @property
     @cacheit
     def interval(self):
+        """
+        >>> from sympy import oo
+        >>> from sympy.series.sequences import Sequence
+        >>> from sympy.printing.pretty.pretty import pprint
+
+        >>> a = Sequence((0, oo), 'a')
+        >>> b = Sequence((0, oo), 'b')
+        >>> c = a*b
+        >>> c
+        a*b
+        >>> type(c)
+        <class 'sympy.series.sequencesexpr.SeqCauchyMul'>
+
+        >>> c.interval
+        [0, oo)
+
+        >>> c = (Sequence((3, 4), 'a')*Sequence((5, 7), 'b'))
+        >>> c.interval
+        [8, 11]
+
+        """
         start = Add(*(s.start_index for s in self.args))
         stop = Add(*(s.stop_index for s in self.args))
         res = Interval(start, stop)
@@ -471,12 +722,47 @@ class SeqCauchyMul(SeqExpr, Mul):
 
 
 class SeqCauchyPow(SeqExpr, Pow):
-
     """
-    Faà di Bruno's Formula
-    
-    Donald E. "Knuth Art of Computer Programming, Volume 2: Seminumerical Algorithms",
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = Sequence((0, oo), 'a')
+    >>> c = a**2
+
+    >>> c[0]
+    a[0]**2
+    >>> c[1]
+    2*a[0]*a[1]
+    >>> c[2]
+    2*a[0]*a[2] + a[1]**2
+
+    >>> c[6]
+    2*a[0]*a[6] + 2*a[1]*a[5] + 2*a[2]*a[4] + a[3]**2
+
+    >>> a = SeqPer((0, oo), (1, 0))
+    >>> pprint(a**2)
+    [1, 0, 2, 0, 3, ...]
+
+    >>> pprint(a**3)
+    [1, 0, 3, 0, 6, 0, 10, ...]
+
+
+    >>> a = SeqPer((0, oo), (0, 1))
+    >>> pprint(a**2)
+    [0, 0, 1, 0, 2, 0, 3, ...]
+
+    References
+    ==========
+
+    .. [1] Donald E. "Knuth Art of Computer Programming, Volume 2: Seminumerical Algorithms",
     3rd ed., sec 4.7 "Manipulation of power series", p 526.
+    .. [2] Faà di Bruno's Formula
+
     """
 
     def __new__(cls, *args):
@@ -522,8 +808,142 @@ class SeqCauchyPow(SeqExpr, Pow):
     def _sympystr(self, printer, *args):
         return printer._print_Pow(self)
 
+
+################################################################################
+#           Operations (for exponential generating sequences)                  #
+################################################################################
+
+class SeqShiftLeftExp(SeqShiftLeft):
+    """
+    Shift sequence to the left exponentially.
+
+    This helper implimetation for the TaylorSeries.
+
+    Define sequence:
+        1 + x**2/2 + x**4/4! + x**6/6! + x**8/8! + ...
+    with coefficients
+        [1, 0, 1, 0, ...]
+
+    Remove 1 as the first element deleted while shifting:
+        x**2/2 + x**4/24 + x**6/720 + ...
+
+    Then carry out the x**2 term:
+
+        x**2/2 + x**4/24 + x**6/720 + ...  = x**2/(1/2 + (2!/4!)*x**2/2!
+            + (4!/6!)*x**4/4!) + ...
+
+    So we obtain another sequence:
+
+        [1/2, 0, 1/12, 0, 1/30, 0, 1/56, ...]
+
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.printing.pretty.pretty import pprint
+    >>> from sympy.series.sequencesexpr import SeqShiftLeftExp, SeqShiftRightExp
+
+    >>> a = SeqPer((0, oo), (1, 0))
+
+
+    >>> al = SeqShiftLeftExp(a, 2)
+    >>> pprint(al)
+    [1/2, 0, 1/12, 0, 1/30, 0, 1/56, ...]
+
+
+    See Also
+    ========
+
+    sympy.series.sequencesexpr import SeqShiftRightExp
+
+    """
+    # TODO:
+    #  SeqShiftLeftExp(SeqShiftRightExp(seq, 2), 2) --> seq
+
+    def __getitem__(self, i):
+        offset = self.offset
+        n = i + offset
+        bc = factorial(i)/factorial(n) # i < n
+        return self.args[0][n]*bc
+
+class SeqShiftRightExp(SeqShiftRight):
+    """
+    Shift sequence to the right exponentially.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.printing.pretty.pretty import pprint
+    >>> from sympy.series.sequencesexpr import SeqShiftLeftExp, SeqShiftRightExp
+
+    >>> a = SeqPer((0, oo), (1, 0))
+
+    >>> ar = SeqShiftRightExp(a, 2)
+    >>> pprint(ar)
+    [0, 0, 2, 0, 12, 0, 30, ...]
+
+    Revert:
+
+    >>> pprint(SeqShiftLeftExp(ar, 2))
+    [1, 0, 1, 0, 1, 0, 1, ...]
+
+
+    See Also
+    ========
+
+    sympy.series.sequencesexpr import SeqShiftLeftExp
+
+    """
+
+    def __getitem__(self, i):
+        offset = self.offset
+        n = i - offset
+        if n < 0:
+            return S.Zero
+        bc = factorial(i)/factorial(n)  # i > n
+        return self.args[0][n]*bc
+
 class SeqExpCauchyMul(SeqCauchyMul, Mul):
-    """Product of Exponential Generation sequences.
+    """
+    Product of Exponential Generation sequences.
+
+    This is similar to SeqCauchyMul, but for exponentional coefficient we use
+    binomial coefficients:
+
+        c_n=\sum_{k=0}^n \binom{n}{k} a_k b_{n-k} .
+
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.printing.pretty.pretty import pprint
+    >>> from sympy.series.sequencesexpr import SeqExpCauchyMul
+
+    >>> a = Sequence((0, oo), 'a')
+    >>> b = Sequence((0, oo), 'b')
+    >>> c = SeqExpCauchyMul(a, b)
+    >>> c
+    a*b
+    >>> c[0]
+    a[0]*b[0]
+    >>> c[1]
+    a[0]*b[1] + a[1]*b[0]
+    >>> c[2]
+    a[0]*b[2] + 2*a[1]*b[1] + a[2]*b[0]
+    >>> c[3]
+    a[0]*b[3] + 3*a[1]*b[2] + 3*a[2]*b[1] + a[3]*b[0]
+
+    See Also
+    ========
+
+    sympy.series.sequencesexpr.SeqCauchyMul, sympy.series.taylor
+
     """
     @cacheit
     def __getitem__(self, i):
@@ -544,44 +964,35 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
                     return Add(*tuple(c))
             return S.Zero
 
-
-class SeqExpCauchyPow_Main(SeqCauchyPow):
-    """
-    Only for main sequence
-    """
-
-    @cacheit
-    def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
-        else:
-            base = self.base
-            exp = self.exp
-            if i == S.Zero:
-                return Pow(base[i], exp)
-            else:
-                # TODO: optimize k is integer or Expression
-                assert self.base.first_nonzero_n == 0
-                #w = base.mainexp
-                w = base
-                if i < 0:
-                    return S.Zero
-                elif i == 0:
-                    return Pow(w[0], exp)
-
-                c = []
-                for k in range(1, i + 1):
-                    bc = S.One/factorial(i - k)/factorial(k)
-                    wik = self[i-k]
-                    c.append((k*exp - i + k)*w[k]*wik*bc) # recursion
-                # TODO: optimize cancel
-                r = (Add(*tuple(c))/i/w[S.Zero]).cancel()
-                r = r*factorial(i)
-                return r
-
-
-
 class SeqExpCauchyPow(SeqCauchyPow):
+    """
+
+    Power of sequences (exponential).
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.printing.pretty.pretty import pprint
+    >>> from sympy.series.sequencesexpr import SeqExpCauchyPow
+
+
+    Consider coefficient of Taylor series of `sin(x)**2'
+        x**2 + x**4/3 + 2*x**6/45  --> [0, 0, 2, 0, 8, 0, 32]
+
+    >>> a = SeqPer((0, oo), (0, 1))
+    >>> c = SeqExpCauchyPow(a,2)
+    >>> pprint(c)
+    [0, 0, 2, 0, 8, 0, 32, ...]
+
+    References
+    ==========
+
+    .. [1] Donald E. "Knuth Art of Computer Programming, Volume 2: Seminumerical Algorithms",
+    3rd ed., sec 4.7 "Manipulation of power series", p 526.
+    .. [2] Faà di Bruno's Formula
+    """
 
     # TODO: implement for various kind of Sequences.
     # TODO: use SeqCauchyPow: a_n = b_n/n!
@@ -608,3 +1019,37 @@ class SeqExpCauchyPow(SeqCauchyPow):
     def mainright(self):
         w = SeqShiftRightExp(self.main, self.first_nonzero_n)
         return w
+
+class SeqExpCauchyPow_Main(SeqCauchyPow):
+    """
+    Power of sequences (exponential) for main sequence.
+    """
+
+    @cacheit
+    def __getitem__(self, i):
+        if self.is_out_of_range(i):
+            return S.Zero
+        else:
+            base = self.base
+            exp = self.exp
+            if i == S.Zero:
+                return Pow(base[i], exp)
+            else:
+                # TODO: optimize k is integer or Expression
+                assert self.base.first_nonzero_n == 0
+                #w = base.mainexp
+                w = base
+                if i < 0:
+                    return S.Zero
+                elif i == 0:
+                    return Pow(w[0], exp)
+
+                c = []
+                for k in range(1, i + 1):
+                    bc = S.One/factorial(i - k)/factorial(k)
+                    wik = self[S(i)-k]
+                    c.append((k*exp - i + k)*w[k]*wik*bc) # recursion
+                # TODO: optimize cancel
+                r = (Add(*tuple(c))/i/w[S.Zero]).cancel()
+                r = r*factorial(i)
+                return r

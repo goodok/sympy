@@ -136,6 +136,7 @@ class Basic(PicklableWithSlots):
     is_Matrix = False
     is_Sequence = False
     is_TaylorSeries = False
+    is_PowerSeries = False
 
     @property
     @deprecated

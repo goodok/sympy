@@ -8,7 +8,7 @@ from sympy.core.sets import Interval
 from sympy.core.cache import cacheit
 
 from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom
-from sequencesexpr import SeqCauchyMul, SeqCauchyPow
+from sequencesexpr import SeqAdd, SeqCauchyMul, SeqCauchyPow
 
 class PowerSeriesExpr(SeriesExpr):
     is_PowerSeries = True
@@ -67,8 +67,68 @@ class PowerSeriesExpr(SeriesExpr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
+class PowerSeries(PowerSeriesExpr, SeriesAtom):
+    """
+    Examples:
+
+    >>> from sympy import S, oo
+    >>> from sympy.abc import x, k
+    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.series.power import PowerSeries
+
+    >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
+    >>> seq
+    SeqFormula([1, oo), k, 1/k)
+
+    >>> PowerSeries(x, sequence=seq)
+    x + x**2/2 + x**3/3 + x**4/4 + x**5/5 + x**6/6 + x**7/7 + x**8/8 + ...
+
+    >>> seq = Sequence((0, oo), periodical = (1, 0))
+    >>> seq
+    SeqPer([0, oo), (1, 0))
+
+    >>> PowerSeries(x, sequence=seq)
+    1 + x**2 + x**4 + x**6 + x**8 + ...
+
+    """
+
+    def __getitem__(self, i):
+        a =  self.sequence[i]
+        if (a != S.Zero) and (i != 0):
+            a = a * Pow(self.x, i)
+        return a
+
+
+
 class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
-    """    """
+    """
+    Summation of power series.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.abc import x
+    >>> from sympy.series.power import PowerSeries
+    >>> from sympy.series.sequences import Sequence
+
+    >>> a = PowerSeries(x, sequence=Sequence((0, oo), 'a'))
+    >>> b = PowerSeries(x, sequence=Sequence((0, oo), 'b'))
+    >>> a
+    a[0] + x*a[1] + x**2*a[2] + x**3*a[3] + x**4*a[4] + x**5*a[5] + x**6*a[6] + ...
+    >>> b
+    b[0] + x*b[1] + x**2*b[2] + x**3*b[3] + x**4*b[4] + x**5*b[5] + x**6*b[6] + ...
+
+    >>> a + b
+    a[0] + b[0] + x*a[1] + x*b[1] + x**2*a[2] + x**2*b[2] + ...
+
+    >>> (a + b)[3]
+    x**3*a[3] + x**3*b[3]
+
+    >>> (a + b).coeff(3)
+    a[3] + b[3]
+
+    """
     def __new__(cls, *args):
 
         #TODO: is it correct, to check arg!=0? args must be Expr type
@@ -84,8 +144,37 @@ class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
             return PowerSeriesMul(*expr.args)
         return expr
 
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqAdd(*(s.sequence for s in self.args))
+
 class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
-    """A Product of Sequence Expressions."""
+    """
+    A product of power series Expressions.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.abc import x
+    >>> from sympy.series.power import PowerSeries
+    >>> from sympy.series.sequences import Sequence
+
+    >>> a = PowerSeries(x, sequence=Sequence((0, oo), 'a'))
+    >>> b = PowerSeries(x, sequence=Sequence((0, oo), 'b'))
+    >>> c = a*b
+
+    >>> c[0]
+    a[0]*b[0]
+
+    >>> c[1]
+    x*(a[0]*b[1] + a[1]*b[0])
+
+    >>> c[2]
+    x**2*(a[0]*b[2] + a[1]*b[1] + a[2]*b[0])
+
+    """
 
     def __new__(cls, *args):
         if any(arg.is_zero for arg in args):
@@ -130,7 +219,7 @@ class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
     @cacheit
     def sequence(self):
         return SeqCauchyMul(*(s.sequence for s in self.args))
-    
+
     @cacheit
     def __getitem__(self, i):
         if self.is_out_of_range(i):
@@ -141,14 +230,61 @@ class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
 
 
 class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
+    """
+    Multiplication power series by scalar (common coefficient).
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.abc import x
+    >>> from sympy.series.power import PowerSeries
+    >>> from sympy.series.sequences import Sequence
+
+    >>> a = PowerSeries(x, sequence=Sequence((0, oo), 'a'))
+    >>> 2*a
+    2*a[0] + 2*x*a[1] + 2*x**2*a[2] + 2*x**3*a[3] + ...
+
+    >>> (2*a).coeffitient
+    2
+
+    >>> (2*a).series
+    a[0] + x*a[1] + x**2*a[2] + x**3*a[3] + x**4*a[4] + ...
+
+    >>> (2*a).coeff(3)
+    2*a[3]
+
+    >>> (2*a)[3]
+    2*x**3*a[3]
+
+    """
+
     def __getitem__(self, i):
         if isinstance(i, slice):
-            return PowerSeriesCoeffMul(self.coeff, self.ts[i])
+            return PowerSeriesCoeffMul(self.coeffitient, self.ts[i])
         else:
-            return self.coeff * self.series[i]
-
+            return self.coeffitient * self.series[i]
 
 class PowerSeriesPow(PowerSeriesExpr, Pow):
+    """
+    Power of fromal power series.
+
+    Example
+    =======
+    >>> from sympy import oo
+    >>> from sympy.abc import x
+    >>> from sympy.series.power import PowerSeries
+    >>> from sympy.series.sequences import Sequence
+
+    >>> a = PowerSeries(x, sequence=Sequence((0, oo), 'a'))
+    >>> c = a**2
+    >>> c
+    a[0]**2 + 2*x*a[0]*a[1] + x**2*(2*a[0]*a[2] + a[1]**2) + ...
+
+    >>> c[4]
+    x**4*(2*a[0]*a[4] + 2*a[1]*a[3] + a[2]**2)
+
+    """
 
     @property
     def x(self):
@@ -172,32 +308,4 @@ class PowerSeriesPow(PowerSeriesExpr, Pow):
             c = self.sequence
             return c[i]*Pow(self.x, i)
 
-class PowerSeries(PowerSeriesExpr, SeriesAtom):
-    """
-    Examples:
-
-    >>> from sympy.series import Sequence, PowerSeries
-    >>> from sympy import S, oo
-    >>> from sympy.abc import x, k
-    >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
-    >>> seq
-    SeqFormula([1, oo), k, 1/k)
-
-    >>> PowerSeries(x, sequence=seq)
-    x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
-
-    >>> seq = Sequence((0, oo), periodical = (1, 0))
-    >>> seq
-    SeqPer([0, oo), (1, 0))
-
-    >>> PowerSeries(x, sequence=seq)
-    1 + x**2/2 + x**4/24 + ...
-
-    """
-
-    def __getitem__(self, i):
-        a =  self.sequence[i]
-        if (a != S.Zero) and (i != 0):
-            a = a * Pow(self.x, i)
-        return a
 

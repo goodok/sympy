@@ -9,12 +9,97 @@ from sympy.core.symbol import Symbol
 
 from sequencesexpr import (SeqExpr, EmptySequence)
 
+class Sequence(SeqExpr):
+    """Represents an Sequence.
+
+    Helper fabric class for sequences constructions.
+
+    Examples
+    ========
+
+    >>> from sympy.series.sequences import Sequence, SeqFormula
+    >>> from sympy import oo, S
+    >>> from sympy.abc import k
+    >>> from sympy.printing.pretty.pretty import pprint
+
+
+    >>> seq = Sequence((3, oo), formula=(k, S(1)/k))
+    >>> seq
+    SeqFormula([3, oo), k, 1/k)
+    >>> pprint(seq)
+    [0, ..., 1/3, 1/4, 1/5, 1/6, 1/7, 1/8, 1/9, ...]
+
+    >>> Sequence((0, oo), periodical = (1, 0))
+    SeqPer([0, oo), (1, 0))
+
+    >>> Sequence((0, 2), finitlist = (1, 2, 3))
+    SeqList([0, 2], (1, 2, 3))
+
+    >>> seq = Sequence((1, oo), formula=(k, S(1)/k))
+    >>> seq[2]
+    1/2
+    >>> seq[3:]
+    SeqFormula([3, oo), k, 1/k)
+    >>> seq[:4]
+    SeqFormula([1, 4], k, 1/k)
+    >>> seq[3:6]
+    SeqFormula([3, 6], k, 1/k)
+
+    >>> seq = SeqFormula((3, 6), k, 1/k)
+    >>> seq[8:10]
+    EmptySequence()
+
+    See also
+    ========
+
+    sympy.concrete.summataions.Sum
+
+    """
+
+    __slots__ = ['rep', 'gens']
+
+    is_SequenceAtom = True
+
+    show_n = 5
+    def __new__(cls, interval, name=None, **kwargs):
+        """Create a new Sequence instance out of something useful. """
+
+        if type(interval)== tuple:
+            interval = Interval(interval[0], interval[1])
+
+        if name is not None:
+            return SequenceSymbol._from_args(interval, name, **kwargs)
+
+        baselist = kwargs.pop("periodical", None)
+        if baselist:
+            return SeqPer._from_args(interval, baselist, **kwargs)
+
+        baselist = kwargs.pop("finitlist", None)
+        if baselist:
+            return SeqList._from_args(interval, baselist, **kwargs)
+
+        formula = kwargs.pop("formula", None)
+        if formula:
+            k = formula[0]
+            formula = formula[1]
+            return SeqFormula._from_args(interval, k, formula, **kwargs)
+
+        function = kwargs.pop("function", None)
+        if function:
+            return SeqFunc._from_args(interval, function, **kwargs)
+
+        recurr = kwargs.pop("recurr", None)
+        if recurr:
+            return SeqRecurr._from_args(interval, recurr, **kwargs)
+
+        raise ValueError(kwargs)
+
 class SequenceBase(SeqExpr):
     """
     Base (atomic) Sequence class.
 
-    All other kindes of sequences (SeqPer, SeqFunc, ) inherited from it.
-    This class rather is Abstract
+    All other kinds of sequences (SeqPer, SeqFunc, ) inherited from it.
+    This class rather is an Abstract class.
     """
     is_SequenceAtom = True
 
@@ -37,9 +122,33 @@ class SequenceBase(SeqExpr):
     def is_direct_calculated(self):
         return False
 
-
 class SequenceSymbol(SequenceBase, Symbol):
-    """Symbolic representation of a Sequence object"""
+    """Symbolic representation of a sequence.
+
+    Examples
+    ========
+
+    >>> from sympy import Symbol
+    >>> from sympy.series.sequences import SequenceSymbol
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = SequenceSymbol((0, 10), 'a')
+    >>> a
+    a
+    >>> pprint(a)
+    [a[0], a[1], a[2], a[3], a[4], a[5], a[6], ...]
+
+    >>> i = Symbol('i')
+    >>> a[i]
+    a[i]
+
+    >>> b = SequenceSymbol((0, 3), 'b')
+    >>> a + b
+    a + b
+    >>> pprint(a + b)
+    [a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4], a[5], a[6], ...]
+
+    """
 
     is_commutative = True
 
@@ -109,7 +218,24 @@ class IndexedSequenceSymbol(Expr):
 class SeqPer(SequenceBase):
     """
     Periodical sequence.
-    """
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> seq = SeqPer((0, oo), (1, 2))
+    >>> pprint(seq)
+    [1, 2, 1, 2, 1, 2, 1, ...]
+
+    >>> seq = Sequence((0, oo), periodical = (1, 2, 3))
+    >>> pprint(seq)
+    [1, 2, 3, 1, 2, 3, 1, ...]
+
+"""
+
 
     def __new__(cls, interval, baselist = None, **kwargs):
 
@@ -156,7 +282,26 @@ class SeqPer(SequenceBase):
 
 class SeqList(SequenceBase):
     """
-    Periodical sequence.
+    Finite list sequence.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence, SeqList
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> seq = Sequence((1, 4), finitlist=(1, 2, 3, 4))
+    >>> pprint(seq)
+    [0, 1, 2, 3, 4]
+
+    >>> len(seq.baselist)
+    4
+
+    >>> seq = Sequence((0, 8), finitlist=(1, 2, 3, 4, 5, 6, 7, 8, 9))
+    >>> pprint(seq)
+    [1, 2, 3, 4, 5, 6, 7, ...]
+
     """
 
     def __new__(cls, interval, baselist = None, **kwargs):
@@ -192,16 +337,30 @@ class SeqList(SequenceBase):
             return self.baselist[i-self.start_index]
 
 class SeqFormula(SequenceBase):
+
+    # It is may bee depricated, since SeqFunction is present.
+
     """
     Sequence defined by formula.
 
-    It is may bee depricated, since SeqFunction is.
+    Examples
+    ========
+
+    >>> from sympy.series.sequences import Sequence, SeqFormula
+    >>> from sympy import oo, S
+    >>> from sympy.abc import k
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> seq = Sequence((3, oo), formula=(k, S(1)/k))
+    >>> seq
+    SeqFormula([3, oo), k, 1/k)
+
+    >>> pprint(seq)
+    [0, ..., 1/3, 1/4, 1/5, 1/6, 1/7, ...]
+
     """
 
     def __new__(cls, interval, k, formula, **kwargs):
-
-        """Create a new periodical seuqence SeqPer instance out of something useful. """
-
         obj = SequenceBase.__new__(cls, interval, k, formula)
         return obj
 
@@ -234,11 +393,22 @@ class SeqFormula(SequenceBase):
 class SeqFunc(SequenceBase):
     """
     Sequence defined by function.
+
+    Examples
+    ========
+
+    >>> from sympy.series.sequences import Sequence, SeqFunc
+    >>> from sympy import oo, S
+    >>> from sympy.abc import k
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> f = lambda k: S(1)/k
+    >>> seq = Sequence((1, oo), function = f)
+    >>> pprint(seq)
+    [0, 1, 1/2, 1/3, 1/4, 1/5, ...]
+
     """
     def __new__(cls, interval, function, **kwargs):
-
-        """Create a new periodical seuqence SeqPer instance out of something useful. """
-
         obj = SequenceBase.__new__(cls, interval, function)
         return obj
 
@@ -266,7 +436,30 @@ class SeqFunc(SequenceBase):
 
 class SeqRecurr(SequenceBase):
     """
-    Sequence defined by function.
+    Sequence defined by recurrence formula.
+
+    Examples
+    ========
+
+    >>> from sympy.series.sequences import Sequence, SeqRecurr
+    >>> from sympy import oo, S, Function
+    >>> from sympy.abc import n
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> y = Function("y")
+    >>> eq = (n-1)*y(n+2) - (n**2+3*n-2)*y(n+1) + 2*n*(n+1)*y(n)
+
+    >>> seq = Sequence((2, oo), recurr=(eq, y(n), { y(0):0, y(1):3 }) )
+    >>> pprint(seq)
+    [0, ..., 6, 6, -24, -264, -1968, -14736, -120192, ...]
+    >>> seq.formula
+    3*2**n - 3*n!
+
+    See Also
+    ========
+
+    sympy.solvers.recurr.rsolve
+
     """
     def __new__(cls, interval, recurr, **kwargs):
 
@@ -311,52 +504,5 @@ class SeqRecurr(SequenceBase):
         else:
             return self.formula.subs(self.k, i)
 
-class Sequence(SeqExpr):
-    """Represents an Sequence.
 
-    Helper fabric class for sequences constructions.
-
-    See also:
-        solvers.recurr.rsolve()
-        concrete.summataions.Sum()
-
-    """
-
-    __slots__ = ['rep', 'gens']
-
-    is_SequenceAtom = True
-
-    show_n = 5
-    def __new__(cls, interval, name=None, **kwargs):
-        """Create a new Sequence instance out of something useful. """
-
-        if type(interval)== tuple:
-            interval = Interval(interval[0], interval[1])
-
-        if name is not None:
-            return SequenceSymbol._from_args(interval, name, **kwargs)
-
-        baselist = kwargs.pop("periodical", None)
-        if baselist:
-            return SeqPer._from_args(interval, baselist, **kwargs)
-
-        baselist = kwargs.pop("finitlist", None)
-        if baselist:
-            return SeqList._from_args(interval, baselist, **kwargs)
-
-        formula = kwargs.pop("formula", None)
-        if formula:
-            k = formula[0]
-            formula = formula[1]
-            return SeqFormula._from_args(interval, k, formula, **kwargs)
-
-        function = kwargs.pop("function", None)
-        if function:
-            return SeqFunc._from_args(interval, function, **kwargs)
-
-        recurr = kwargs.pop("recurr", None)
-        if recurr:
-            return SeqRecurr._from_args(interval, recurr, **kwargs)
-
-        raise ValueError(kwargs)
 
