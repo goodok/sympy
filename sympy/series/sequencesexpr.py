@@ -482,13 +482,13 @@ class SeqCoeffMul(SeqExpr, Mul):
         coeff = args_seq[0]
         seq = args_seq[1]
         if isinstance(seq, SeqCoeffMul):
-            coeff *= seq.coeff
+            coeff *= seq.coefficient
             seq = seq.seq
             args_seq = [coeff, seq]
         return args_seq, [], None
 
     @property
-    def coeff(self):
+    def coefficient(self):
         return self.args[0]
 
     @property
@@ -501,9 +501,9 @@ class SeqCoeffMul(SeqExpr, Mul):
 
     def __getitem__(self, i):
         if isinstance(i, slice):
-            return SeqCoeffMul(self.coeff, self.seq[i])
+            return SeqCoeffMul(self.coefficient, self.seq[i])
         else:
-            return self.coeff * self.seq[i]
+            return self.coefficient * self.seq[i]
 
 
     def _sympystr(self, printer, *args):
@@ -600,9 +600,9 @@ class SeqMulEW(SeqExpr, Expr):
     """
     @property
     def interval(self):
-        res = S.EmptySet
+        res = self.args[0].interval
         for seq in self.args:
-            res = res | seq.interval
+            res = res & seq.interval
         return res
 
     @cacheit

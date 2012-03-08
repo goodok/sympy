@@ -135,12 +135,25 @@ def test_symbol():
     e2 = c[1].args[2].args[0] # a[0] - 0 is int
     assert e1 == e2
 
+def test_powerseries_print():
+    from sympy import S, oo
+    from sympy.abc import x, k
+    from sympy.series.sequences import Sequence
+    from sympy.series.power import PowerSeries
+
+    seq = Sequence((0, oo), periodical=(1, 2, 3))
+    ps = PowerSeries(x, sequence=seq)
+    ps2 = ps[11:12]
+    s = str(ps2)
+    assert s == '3*x**11 + x**12 + ...'
+
+
 
 def test_taylorseries():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))
     from sympy.abc import x
     ts = TaylorSeries(x, sequence=seq)
-    assert str(ts) == 'x**3/18 + x**4/96 + x**5/600 + x**6/4320 + x**7/35280 + x**8/322560 + ...'
+    assert str(ts) == 'x**3/18 + x**4/96 + x**5/600 + x**6/4320 + x**7/35280 + x**8/322560 + x**9/3265920 + x**10/36288000 + x**11/439084800 + ...'
     assert ts == TaylorSeries(x, sequence=seq)
 
     a = TaylorSeries(x, sequence=SeqPer((0, oo), (0, 1)))

@@ -237,7 +237,7 @@ class SeriesAtom(SeriesExpr):
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
             s = self.sequence
-            l = [self[i] for i in range(s.start_index, self.show_n + 1)]
+            l = [self[i] for i in range(s.start_index, s.start_index + self.show_n + 1)]
             l = [i for i in l if i != S.Zero]
             l = [printer._print(i) for i in l]
             return " + ". join(l) + " + ..."

@@ -93,10 +93,15 @@ class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """
 
     def __getitem__(self, i):
-        a =  self.sequence[i]
-        if (a != S.Zero) and (i != 0):
-            a = a * Pow(self.x, i)
-        return a
+        if isinstance(i, slice):
+            # new seqence
+            sequence = self.sequence[i]
+            return PowerSeries(self.x, sequence=sequence)
+        else:
+            a =  self.sequence[i]
+            if (a != S.Zero) and (i != 0):
+                a = a * Pow(self.x, i)
+            return a
 
 
 
