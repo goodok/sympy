@@ -8,7 +8,7 @@ from sympy.core.cache import cacheit
 from sympy.core.sets import Interval
 
 from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom
-from sequencesexpr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow
+from sequencesexpr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow, SeqExp_FaDeBruno
 
 class TaylorSeriesExprOp(SeriesExpr):
     is_TaylorSeries = True
@@ -48,8 +48,8 @@ class TaylorSeriesExprOp(SeriesExpr):
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rpow__')
     def __pow__(self, other):
-        if other == -S.One:
-            return Inverse(self)
+        #if other == -S.One:
+        #    return Inverse(self)
         return TaylorSeriesPow(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__pow__')
@@ -266,4 +266,31 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
             return c[i]*Pow(self.x, i)/factorial(i)
 
 
+class TaylorSeriesNested(TaylorSeries):
+    def __new__(cls, *args):
+        expr = TaylorSeriesExpr.__new__(cls, *args)
+        return expr
 
+    @property
+    def g(self):
+        return self.args[0]
+
+    @property
+    def f(self):
+        return self.args[1]
+
+
+    @property
+    def x(self):
+        return self.g.x
+
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqExp_FaDeBruno(self.f.sequence, self.g.sequence)
+
+
+    @property
+    @cacheit
+    def interval(self):
+        return self.f.interval

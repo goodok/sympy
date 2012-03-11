@@ -6,10 +6,9 @@ from sympy.core.operations import AssocOp
 from sympy.core.singleton import (Singleton, S)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
-#from sympy.functions.elementary.miscellaneous import Min, Max
-from sympy.core.numbers import (Infinity, Zero)
 from sympy.core.sets import Interval
 from sympy.functions.combinatorial.factorials import factorial, binomial
+from sympy.functions.combinatorial.numbers import bell
 
 
 ################################################################################
@@ -772,9 +771,12 @@ class SeqCauchyPow(SeqExpr, Pow):
     @property
     @cacheit
     def interval(self):
-        start = self.base.start_index * self.exp
-        stop = self.base.stop_index * self.exp
-        res = Interval(start, stop)
+        if self.exp > 0:
+            start = self.base.start_index * self.exp
+            stop = self.base.stop_index * self.exp
+            res = Interval(start, stop)
+        else:
+            res = Interval(S.Zero, S.Infinity)
         return res
 
     @cacheit
@@ -1053,3 +1055,50 @@ class SeqExpCauchyPow_Main(SeqCauchyPow):
                 r = (Add(*tuple(c))/i/w[S.Zero]).cancel()
                 r = r*factorial(i)
                 return r
+
+
+
+class SeqExp_FaDeBruno(SeqExpr):
+    """
+    Calculate g(f(x)) series.
+
+    Let
+        g(x)=\sum_{n=1}^\infty {b_n \over n!} x^n
+        f(x)=\sum_{n=1}^\infty {a_n \over n!} x^n
+
+    Note, that a_0 == 0, b_n == 0
+
+    Then
+        g(f(x)) = \sum_{n=1}^\infty
+{\sum_{k=1}^{n} b_k B_{n,k}(a_1,\dots,a_{n-k+1}) \over n!} x^n,
+    """
+    def __new__(cls, *args):
+        assert len(args)==2
+        assert all(arg.is_Sequence for arg in args)
+        assert args[0][0] == S.Zero
+        assert args[1][0] == S.Zero
+        expr = Expr.__new__(cls, *args)
+        return expr
+
+    def _hashable_content(self):
+        return self._args
+
+    @property
+    def g(self):
+        return self.args[0]
+
+    @property
+    def f(self):
+        return self.args[1]
+
+    @property
+    def interval(self):
+        return self.f.interval
+
+    @cacheit
+    def __getitem__(self, i):
+        s = S.Zero
+        for k in xrange(1, i+1):
+            s += self.g[k] * bell(i, k, self.f)
+        return s
+

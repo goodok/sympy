@@ -8,7 +8,8 @@ from residues import residue
 
 from sequences import Sequence
 from taylor import TaylorSeries
+from power import PowerSeries
 
 O = Order
 
-__all__ = ['gruntz', 'limit', 'series', 'O', 'Order', 'Limit', "residue", "Sequence", "TaylorSeries"]
+__all__ = ['gruntz', 'limit', 'series', 'O', 'Order', 'Limit', 'residue', 'Sequence', 'TaylorSeries', 'PowerSeries']

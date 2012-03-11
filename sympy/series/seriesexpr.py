@@ -121,7 +121,7 @@ class SeriesExprPrint(object):
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
-            l = [self[i] for i in range(self.start_index, self.show_n + 1)]
+            l = [self[i] for i in range(self.start_index, self.start_index + self.show_n + 1)]
             terms = [i for i in l if i != S.Zero]
 
             from sympy.printing.precedence import precedence
@@ -143,7 +143,12 @@ class SeriesExprPrint(object):
                 sign = ""
             return sign + ' '.join(l) + " + ..."
         else:
-            return printer._print_Basic(self, *args)
+            if isinstance(self.sequence, SequenceSymbol):
+                l = [printer._print_Symbol(self.x), printer._print_Basic(self.sequence)]
+                r = self.__class__.__name__ + "(%s)" % ", ".join(l)
+            else:
+                r = printer._print_Basic(self, *args)
+            return r
 
     def _pretty(self, printer, *args):
         from sympy.printing.pretty.stringpict import prettyForm, stringPict
@@ -233,21 +238,6 @@ class SeriesAtom(SeriesExpr):
 
     def coeff(self, i):
         return self.sequence[i]
-
-    def _sympystr(self, printer, *args):
-        if printer._settings["list_series"]:
-            s = self.sequence
-            l = [self[i] for i in range(s.start_index, s.start_index + self.show_n + 1)]
-            l = [i for i in l if i != S.Zero]
-            l = [printer._print(i) for i in l]
-            return " + ". join(l) + " + ..."
-        else:
-            if isinstance(self.sequence, SequenceSymbol):
-                l = [printer._print_Symbol(self.x), printer._print_Basic(self.sequence)]
-                r = self.__class__.__name__ + "(%s)" % ", ".join(l)
-            else:
-                r = printer._print_Basic(self, *args)
-            return r
 
 
 ################################################################################

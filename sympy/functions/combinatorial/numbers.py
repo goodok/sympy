@@ -393,6 +393,34 @@ class bell(Function):
             a = a*(n-m)/m
         return expand_mul(s)
 
+
+    @staticmethod
+    #@assoc_recurrence_memo([[S.One]])
+    def _bell_incomplete_poly(n, k):
+        """
+        The second kind of Bell polynomials (incomplite Bell polynomials).
+
+        Calculated by recurrence formula:
+            B_{n,k} = \sum_{m=1}^{n-k+1} \binom{n-1}{m-1} g_{m} B_{n-m,k-1}
+        where
+            B_{0,0} = 1;
+            B_{n,0} = 0; for n=>1
+            B_{0,k} = 0; for k=>1
+        """
+        if (n==0) and (k==0):
+            return S.One
+        elif (n==0) or (k==0):
+            return S.Zero
+        s = S.Zero
+
+        a = 1
+        for m in xrange(1, n-k+2):
+            # a = a * (n-1) // (m)
+            a= C.binomial(n-1, m-1)
+            s += a*_symbols(m)*bell._bell_incomplete_poly(n-m, k-1)
+        return s.expand()
+
+
     @classmethod
     def eval(cls, n, k_sym=None, symbols=None):
         if n.is_Integer and n.is_nonnegative:

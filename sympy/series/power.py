@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 from sympy.core import (Basic, Expr, Add, Mul, Pow)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.singleton import (Singleton, S)
@@ -48,8 +48,7 @@ class PowerSeriesExpr(SeriesExpr):
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rpow__')
     def __pow__(self, other):
-        if other == -S.One:
-            return Inverse(self)
+        # if other == -S.One: return PowerSeriesInverse(self)
         return PowerSeriesPow(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__pow__')
@@ -272,7 +271,7 @@ class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
 
 class PowerSeriesPow(PowerSeriesExpr, Pow):
     """
-    Power of fromal power series.
+    Power of formal power series.
 
     Example
     =======
@@ -314,3 +313,18 @@ class PowerSeriesPow(PowerSeriesExpr, Pow):
             return c[i]*Pow(self.x, i)
 
 
+class Reverse(PowerSeriesExpr):
+    """
+    Reversion of power series.
+
+    References
+    ==========
+
+    .. [1] Donald E. "Knuth Art of Computer Programming, Volume 2: Seminumerical Algorithms",
+    3rd ed., sec 4.7 "Manipulation of power series", p 526.
+    .. [2] http://en.wikipedia.org/wiki/Lagrange_inversion_theorem
+    .. [3] Fredrik Johansson, A fast algorithm for reversion of power series
+    .. [4] Faà di Bruno's Formula
+
+    """
+    pass

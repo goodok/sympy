@@ -147,7 +147,15 @@ def test_powerseries_print():
     s = str(ps2)
     assert s == '3*x**11 + x**12 + ...'
 
+def test_powerseries_inverse():
+    from sympy import S, oo
+    from sympy.abc import x, k
+    from sympy.series.sequences import Sequence
+    from sympy.series.power import PowerSeries
 
+    seq = Sequence((0, oo), periodical=(1, 2, 3))
+    ps = PowerSeries(x, sequence=seq)
+    c = ps**(-S.One)
 
 def test_taylorseries():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))
@@ -168,4 +176,8 @@ def test_series_print():
     b = TaylorSeries(x, sequence=SeqPer((0, oo), (1, 0)))
     c = a + b
     assert str(c) == '1 + x + x**2/2 + x**3/6 + x**4/24 + x**5/120 + x**6/720 + x**7/5040 + x**8/40320 + ...'
+
+    a = TaylorSeries(x, sequence=SeqPer((0, oo), (0, 1, 0, -1)))
+    s = str(a)
+    assert s == 'x - x**3/6 + x**5/120 - x**7/5040 + ...'
 

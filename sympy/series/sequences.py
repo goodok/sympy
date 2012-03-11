@@ -61,10 +61,12 @@ class Sequence(SeqExpr):
     is_SequenceAtom = True
 
     show_n = 5
-    def __new__(cls, interval, name=None, **kwargs):
+    def __new__(cls, interval=None, name=None, **kwargs):
         """Create a new Sequence instance out of something useful. """
 
-        if type(interval)== tuple:
+        if interval==None:
+            interval = Interval(S.Zero, S.Infinity)
+        elif type(interval)== tuple:
             interval = Interval(interval[0], interval[1])
 
         if name is not None:
@@ -306,7 +308,7 @@ class SeqList(SequenceBase):
 
     def __new__(cls, interval, baselist = None, **kwargs):
 
-        """Create a new periodical seuqence SeqPer instance out of something useful. """
+        """Create a new finite list seuqence SeqList instance out of something useful. """
         assert len(baselist) == interval.right - interval.left + 1
         obj = SequenceBase.__new__(cls, interval, baselist)
         return obj
