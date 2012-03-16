@@ -66,6 +66,9 @@ class Sequence(SeqExpr):
 
         if interval==None:
             interval = Interval(S.Zero, S.Infinity)
+        elif isinstance(interval, basestring):
+            name = interval
+            interval = Interval(S.Zero, S.Infinity)
         elif type(interval)== tuple:
             interval = Interval(interval[0], interval[1])
 
