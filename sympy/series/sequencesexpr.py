@@ -5,7 +5,7 @@ from sympy.core.operations import AssocOp
 
 from sympy.core.singleton import (Singleton, S)
 from sympy.core.decorators import _sympifyit, call_highest_priority
-from sympy.core.cache import cacheit
+from sympy.core.cache import cacheit, cacheit_recurr
 from sympy.core.sets import Interval
 from sympy.functions.combinatorial.factorials import factorial, binomial
 from sympy.functions.combinatorial.numbers import bell
@@ -779,7 +779,7 @@ class SeqCauchyPow(SeqExpr, Pow):
             res = Interval(S.Zero, S.Infinity)
         return res
 
-    @cacheit
+    @cacheit_recurr(0)      #TODO: use fist_cached_index.
     def __getitem__(self, i):
         # TODO: implement generator
         if self.is_out_of_range(i):
@@ -1026,8 +1026,7 @@ class SeqExpCauchyPow_Main(SeqCauchyPow):
     """
     Power of sequences (exponential) for main sequence.
     """
-
-    @cacheit
+    @cacheit_recurr(0)      #TODO: use fist_cached_index.
     def __getitem__(self, i):
         if self.is_out_of_range(i):
             return S.Zero

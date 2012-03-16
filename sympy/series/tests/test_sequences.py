@@ -7,6 +7,7 @@ from sympy.printing.pretty import pprint
 from sympy.printing.pretty import pretty
 from sympy.core.sets import Interval
 from sympy.core.symbol import Symbol
+from sympy.core.cache import clear_cache
 
 from sympy.series.sequences import Sequence, SeqPer, SeqFormula, SeqFunc, SequenceSymbol
 from sympy.series.sequencesexpr import SeqAdd
@@ -112,6 +113,18 @@ def test_add():
     d = 2*c
     assert d.is_Sequence
 
+def test_coefficient():
+    a = Sequence(periodical = (1, 0))
+    y = Symbol('y')
+    seq = (3*a)
+    str(2*a)
+    str(3*a)
+    assert seq.coefficient == 3
+
+    seq = 2*(y*(3*a))
+    assert seq.coefficient == 6*y
+
+    assert (3*a*y*2).coefficient == 6*y
 
 def test_symbol():
     a = SequenceSymbol((0, 3), 'a')
@@ -134,6 +147,13 @@ def test_symbol():
     e1 = c[1].args[1].args[0] # a[0] - 0 is Symbol
     e2 = c[1].args[2].args[0] # a[0] - 0 is int
     assert e1 == e2
+
+def test_Cauchy_power_recurr():
+    clear_cache()
+    a = Sequence(periodical=(1, 0))
+    c = a**2
+    r = c[200]
+
 
 def test_powerseries_print():
     from sympy import S, oo

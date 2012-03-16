@@ -181,6 +181,8 @@ class SequenceSymbol(SequenceBase, Symbol):
         else:
             if self.is_out_of_range(i):
                 return S.Zero
+            if isinstance(i, int):
+                i = S(i)
             return IndexedSequenceSymbol(self, i, **kw_args)
 
     def _eval_subs(self, old, new):
