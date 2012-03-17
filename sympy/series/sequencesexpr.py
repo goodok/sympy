@@ -154,6 +154,18 @@ class SeqExprInterval(object):
             slc_stop = S.Infinity
         return self.interval & Interval(slc_start, slc_stop)
 
+    def getitem_dispatche(self, i):
+        if isinstance(i, slice):
+            return self.getitem_slicing(i)
+        elif self.is_out_of_range(i):
+            return S.Zero
+        else:
+            return self.getitem_index(i)
+
+    def getitem_slicing(self, i):
+        mask_interval = self.calc_interval_from_slice(i)
+        return SeqSliced(self, mask_interval)
+
 class SeqExprPrint(object):
     show_n = 7
     def _sympystr(self, printer, *args):
@@ -365,6 +377,67 @@ class SeqShiftRight(SeqExpr):
     def interval(self):
         # TODO: calculate
         return self.args[0].interval
+
+class SeqSliced(SeqExpr):
+    """
+    Return sliced sequence or expression of sequence.
+
+    When sequence is simple, then trivially we can recreated and change interval.
+    But when expression of sequence is complex (like multiplication) then we
+    wrap this expression and mask original interval of it.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.series.sequences import Sequence, abstract_sequences
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = Sequence(periodical=(5, 7))
+    >>> a[2:5]
+    SeqPer([2, 5], (5, 7))
+
+
+    >>> b = Sequence(periodical=(1, 1))
+    >>> c = a*b
+
+    >>> c
+    SeqPer([0, oo), (1, 1))*SeqPer([0, oo), (5, 7))
+    >>> c.interval
+    [0, oo)
+    >>> pprint(c)
+    [5, 12, 17, 24, 29, 36, 41, ...]
+
+    >>> c[2:5]
+    SeqSliced(SeqPer([0, oo), (1, 1))*SeqPer([0, oo), (5, 7)), [2, 5])
+    >>> c[2:5].interval
+    [2, 5]
+    >>> pprint(c[2:5])
+    [0, ..., 17, 24, 29, 36]
+
+    """
+    def __new__(cls, original, mask_interval):
+        assert original.is_Sequence
+        obj = SeqExpr.__new__(cls, original, mask_interval)
+        return obj
+
+    @property
+    def original(self):
+        return self._args[0]
+
+    @property
+    def mask_interval(self):
+        return self._args[1]
+
+    @property
+    def interval(self):
+        return self.mask_interval & self.original.interval
+
+    def __getitem__(self, i):
+        if self.is_out_of_range(i):
+            return S.Zero
+        else:
+            return  self.original[i]
 
 class SeqAdd(SeqExpr, Add):
     """
@@ -620,12 +693,13 @@ class SeqMulEW(SeqExpr, Expr):
             res = res & seq.interval
         return res
 
-    @cacheit
     def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
-        else:
-            return self.args[0][i]*self.args[1][i]
+        return self.getitem_dispatche(i)
+
+    # TODO: use @cacheit_recurr
+    @cacheit
+    def getitem_index(self, i):
+        return self.args[0][i]*self.args[1][i]
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_sequences"]:
@@ -734,25 +808,26 @@ class SeqCauchyMul(SeqExpr, Mul):
         res = Interval(start, stop)
         return res
 
-    @cacheit
     def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
+        return self.getitem_dispatche(i)
+
+    # TODO: use @cacheit_recurr
+    @cacheit
+    def getitem_index(self, i):
+        c = []
+        if len(self.args)==2:
+            a = self.args[0]
+            b = self.args[1]
         else:
-            c = []
-            if len(self.args)==2:
-                a = self.args[0]
-                b = self.args[1]
-            else:
-                a = self.args[0]
-                # recurrsion
-                b = SeqCauchyMul(*self.args[1:])
-            # TODO: optimize the range (if a.start_index > 0)
-            # TODO: optimize k is integer or Expression
-            for k in range(0, i+1):
-                k = S(k)
-                c.append(a[k]*b[i-k])
-            return Add(*tuple(c))
+            a = self.args[0]
+            # recurrsion
+            b = SeqCauchyMul(*self.args[1:])
+        # TODO: optimize the range (if a.start_index > 0)
+        # TODO: optimize k is integer or Expression
+        for k in range(0, i+1):
+            k = S(k)
+            c.append(a[k]*b[i-k])
+        return Add(*tuple(c))
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_sequences"]:
@@ -820,30 +895,31 @@ class SeqCauchyPow(SeqExpr, Pow):
             res = Interval(S.Zero, S.Infinity)
         return res
 
-    @cacheit_recurr(0)      #TODO: use fist_cached_index.
     def __getitem__(self, i):
-        # TODO: implement generator
-        if self.is_out_of_range(i):
-            return S.Zero
-        else:
-            base = self.base
-            exp = self.exp
-            if i == S.Zero:
-                return Pow(base[i], exp)
-            else:
-                w = base.main
-                # TODO: optimize k is integer or Expression
-                iw = i - S(self.first_nonzero_n)
-                if iw < 0:
-                    return S.Zero
-                elif iw == 0:
-                    return Pow(w[0], exp)
+        return self.getitem_dispatche(i)
 
-                c = []
-                for k in range(1, iw+1):
-                    c.append((k*exp - iw + k)*w[k]*self[S(i)-k]) # recursion
-                # TODO: optimize cancel
-                return (Add(*tuple(c))/iw/w[S.Zero]).cancel()
+    @cacheit_recurr(0)
+    def getitem_index(self, i):
+        # TODO: implement generator
+        base = self.base
+        exp = self.exp
+        if i == S.Zero:
+            return Pow(base[i], exp)
+        else:
+            w = base.main
+            # TODO: optimize k is integer or Expression
+            iw = i - S(self.first_nonzero_n)
+            if iw < 0:
+                return S.Zero
+            elif iw == 0:
+                return Pow(w[0], exp)
+
+            c = []
+            for k in range(1, iw+1):
+                c.append((k*exp - iw + k)*w[k]*self[S(i)-k]) # recursion
+            # TODO: optimize cancel
+            return (Add(*tuple(c))/iw/w[S.Zero]).cancel()
+
     @property
     def first_nonzero_n(self):
         return self.base.first_nonzero_n * self.exp;
@@ -988,26 +1064,27 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
     sympy.series.sequencesexpr.SeqCauchyMul, sympy.series.taylor
 
     """
-    @cacheit
     def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
+        return self.getitem_dispatche(i)
+
+    #@cacheit_recurr(0)
+    @cacheit
+    def getitem_index(self, i):
+        if i == S.Zero:
+            return Mul(*(seq[i] for seq in self.args))
         else:
-            if i == S.Zero:
-                return Mul(*(seq[i] for seq in self.args))
+            c = []
+            if len(self.args)==2:
+                a = self.args[0]
+                b = self.args[1]
             else:
-                c = []
-                if len(self.args)==2:
-                    a = self.args[0]
-                    b = self.args[1]
-                else:
-                    a = self.args[0]
-                    # recurrsion
-                    b = SeqExpCauchyMul(*self.args[1:])
-                # TODO: optimize the range (if a.start_index > 0)
-                for k in range(0, i+1):
-                    c.append(a[k]*b[i-k]*binomial(i, k))
-                return Add(*tuple(c))
+                a = self.args[0]
+                # recurrsion
+                b = SeqExpCauchyMul(*self.args[1:])
+            # TODO: optimize the range (if a.start_index > 0)
+            for k in range(0, i+1):
+                c.append(a[k]*b[i-k]*binomial(i, k))
+            return Add(*tuple(c))
 
 class SeqExpCauchyPow(SeqCauchyPow):
     """
@@ -1041,17 +1118,17 @@ class SeqExpCauchyPow(SeqCauchyPow):
 
     # TODO: implement for various kind of Sequences.
     # TODO: use SeqCauchyPow: a_n = b_n/n!
-    @cacheit
     def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
+        return self.getitem_dispatche(i)
+
+    @cacheit_recurr(0)
+    def getitem_index(self, i):
+        base = self.base
+        exp = self.exp
+        if i == S.Zero:
+            return Pow(base[i], exp)
         else:
-            base = self.base
-            exp = self.exp
-            if i == S.Zero:
-                return Pow(base[i], exp)
-            else:
-                return self.mainright[i]
+            return self.mainright[i]
 
     @property
     @cacheit
@@ -1097,8 +1174,6 @@ class SeqExpCauchyPow_Main(SeqCauchyPow):
                 r = (Add(*tuple(c))/i/w[S.Zero]).cancel()
                 r = r*factorial(i)
                 return r
-
-
 
 class SeqExp_FaDeBruno(SeqExpr):
     """

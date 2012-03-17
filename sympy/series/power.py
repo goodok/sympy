@@ -66,6 +66,12 @@ class PowerSeriesExpr(SeriesExpr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
+
+    @cacheit
+    def getitem_index(self, i):
+        c = self.sequence
+        return c[i]*Pow(self.x, i)
+
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """
     Examples:
@@ -97,12 +103,7 @@ class PowerSeries(PowerSeriesExpr, SeriesAtom):
             sequence = self.sequence[i]
             return PowerSeries(self.x, sequence=sequence)
         else:
-            a =  self.sequence[i]
-            if (a != S.Zero) and (i != 0):
-                a = a * Pow(self.x, i)
-            return a
-
-
+            return self.getitem_index(i)
 
 class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
     """
@@ -206,15 +207,6 @@ class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
     def sequence(self):
         return SeqCauchyMul(*(s.sequence for s in self.args))
 
-    @cacheit
-    def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
-        else:
-            c = self.sequence
-            return c[i]*Pow(self.x, i)
-
-
 class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
     """
     Multiplication power series by scalar (common coefficient).
@@ -286,13 +278,9 @@ class PowerSeriesPow(PowerSeriesExpr, Pow):
     def interval(self):
         return self.sequence.interval
 
-    @cacheit
     def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
-        else:
-            c = self.sequence
-            return c[i]*Pow(self.x, i)
+        return self.getitem_dispatche(i)
+
 
 
 class Reverse(PowerSeriesExpr):

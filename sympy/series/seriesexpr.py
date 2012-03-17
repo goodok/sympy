@@ -5,7 +5,7 @@ from sympy.core.cache import cacheit
 from sympy.core.sets import Interval
 
 from sympy.series.sequences import Sequence, SequenceSymbol
-from sympy.series.sequencesexpr import SeqCoeffMul
+from sympy.series.sequencesexpr import SeqCoeffMul, SeqSliced
 
 
 """
@@ -89,6 +89,7 @@ class SeriesExprOp(Expr):
 
 class SeriesExprInterval(object):
 
+    #TODO: join dublicated code with SeqExprInterval
     @property
     @cacheit
     def start_index(self):
@@ -113,6 +114,27 @@ class SeriesExprInterval(object):
             if i > self.stop_index:
                 return True
         return False
+
+    def calc_interval_from_slice(self, slc):
+        slc_start = slc.start
+        if slc_start == None:
+            slc_start = S.Zero
+        slc_stop  = slc.stop
+        if slc_stop == None:
+            slc_stop = S.Infinity
+        return self.interval & Interval(slc_start, slc_stop)
+
+    def getitem_dispatche(self, i):
+        if isinstance(i, slice):
+            return self.getitem_slicing(i)
+        elif self.is_out_of_range(i):
+            return S.Zero
+        else:
+            return self.getitem_index(i)
+
+    def getitem_slicing(self, i):
+        mask_interval = self.calc_interval_from_slice(i)
+        return SeriesSliced(self, mask_interval)
 
 
 class SeriesExprPrint(object):
@@ -246,6 +268,74 @@ class SeriesAtom(SeriesExpr):
         return self.sequence[i]
 
 
+class SeriesSliced(SeriesExpr):
+    """
+    Return sliced series.
+
+    When series is simple, then trivially we can recreated and change interval.
+    But when expression of series is complex (like multiplication) then we
+    wrap this expression and mask original interval of it.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.abc import x
+    >>> from sympy.series import PowerSeries
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = PowerSeries(x, periodical=(5, 7))
+    >>> a[2:5]
+    5*x**2 + 7*x**3 + 5*x**4 + 7*x**5 + ...
+
+    >>> b = PowerSeries(x, periodical=(1, 1))
+    >>> c = a*b
+
+    >>> c
+    5 + 12*x + 17*x**2 + 24*x**3 + 29*x**4 + ...
+    >>> c.interval
+    [0, oo)
+
+    >>> c[2:5]
+    17*x**2 + 24*x**3 + 29*x**4 + 36*x**5 + ...
+    >>> c[2:5].interval
+    [2, 5]
+
+    See Also
+    ========
+
+    sympy.series.seqencesexpr.SeqSliced
+
+    """
+    # TODO: join with dublicated code of SeqSliced
+    def __new__(cls, original, mask_interval):
+        assert original.is_Series
+        obj = SeriesExpr.__new__(cls, original, mask_interval)
+        return obj
+
+    @property
+    def original(self):
+        return self._args[0]
+
+    @property
+    def mask_interval(self):
+        return self._args[1]
+
+    @property
+    def interval(self):
+        return self.mask_interval & self.original.interval
+
+    def __getitem__(self, i):
+        if self.is_out_of_range(i):
+            return S.Zero
+        else:
+            return  self.original[i]
+
+    @property
+    def sequnence(self):
+        return SeqSliced(self.original.sequence, self.mask_interval)
+
+
 ################################################################################
 #                             Operations                                       #
 ################################################################################
@@ -274,10 +364,10 @@ class SeriesAdd(SeriesExpr, Add):
         return res
 
     def __getitem__(self, i):
-        if isinstance(i, slice):
-            pass
-        else:
-            return Add(*(ts[i] for ts in self.args))
+        return self.getitem_dispatche(i)
+
+    def getitem_index(self, i):
+        return Add(*(ts[i] for ts in self.args))
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
@@ -354,6 +444,10 @@ class SeriesMul(SeriesExpr, Mul):
         stop = Add(*(s.stop_index for s in self.args))
         res = Interval(start, stop)
         return res
+
+
+    def __getitem__(self, i):
+        return self.getitem_dispatche(i)
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:

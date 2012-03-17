@@ -68,7 +68,13 @@ class TaylorSeriesExprOp(SeriesExpr):
     __rtruediv__ = __rdiv__
 
 class TaylorSeriesExpr(TaylorSeriesExprOp):
-    pass
+
+    @cacheit
+    def getitem_index(self, i):
+        a =  self.sequence[i]
+        if (a != S.Zero) and (i != 0):
+            a = a / factorial(i) * Pow(self.x, i)
+        return a
 
 class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     """
@@ -120,10 +126,7 @@ class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
         return self.sequence[i]
 
     def __getitem__(self, i):
-        a =  self.sequence[i]
-        if (a != S.Zero) and (i != 0):
-            a = a / factorial(i) * Pow(self.x, i)
-        return a
+        return self.getitem_index(i)
 
 
 class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
@@ -177,14 +180,6 @@ class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
     @cacheit
     def sequence(self):
         return SeqExpCauchyMul(*(s.sequence for s in self.args))
-
-    @cacheit
-    def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
-        else:
-            c = self.sequence
-            return c[i] * Pow(self.x, i)/ factorial(i)
 
 class TaylorSeriesCoeffMul(TaylorSeriesExpr, SeriesCoeffMul):
     # TODO: join with PowerSeries and use class method?
@@ -241,13 +236,8 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
     def interval(self):
         return self.sequence.interval
 
-    @cacheit
     def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
-        else:
-            c = self.sequence
-            return c[i]*Pow(self.x, i)/factorial(i)
+        return self.getitem_dispatche(i)
 
 
 class TaylorSeriesNested(TaylorSeries):
@@ -263,7 +253,6 @@ class TaylorSeriesNested(TaylorSeries):
     def f(self):
         return self.args[1]
 
-
     @property
     def x(self):
         return self.g.x
@@ -273,6 +262,8 @@ class TaylorSeriesNested(TaylorSeries):
     def sequence(self):
         return SeqExp_FaDeBruno(self.f.sequence, self.g.sequence)
 
+    def __getitem__(self, i):
+        return self.getitem_dispatche(i)
 
     @property
     @cacheit

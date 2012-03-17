@@ -289,9 +289,9 @@ def test_taylorseries_coefficient():
 def test_powerseries_coefficient():
     from sympy.series.power import PowerSeriesCoeffMul, PowerSeriesMul
     x, y = symbols('x, y')
-    a = PowerSeries(x, sequence=SeqPer((0, oo), (0, 1)))
-    b = PowerSeries(x, sequence=SeqPer((0, oo), (1, 0)))
-    c = PowerSeries(x, sequence=SeqPer((0, oo), (1, 0)))
+    a = PowerSeries(x, periodical=(0, 1))
+    b = PowerSeries(x, periodical=(1, 0))
+    c = PowerSeries(x, periodical=(1, 0))
 
     ts = (3*a)
     str(2*a)
@@ -325,7 +325,25 @@ def test_powerseries_coefficient():
     r = abc[0]
     assert r == 0
 
+def test_sequences_expression_slicing():
+    a, b, c = abstract_sequences('a:c')
+    abc = a*b*c
+    r = abc[2:5]
+    assert r.interval == Interval(2, 5)
 
+def test_taylorseries_expression_slicing():
+    x = Symbol("x")
+    a = PowerSeries(x, periodical=(0, 2))
+    b = PowerSeries(x, periodical=(2, 0))
+    c = PowerSeries(x, periodical=(3, 4))
+    r = (a*b*c)[2:5]
+    assert r.interval == Interval(2, 5)
+
+@XFAIL
+def test_series_print_finite():
+    ps = PowerSeries(x, periodical=(5, 7))
+    r = str(ps[2:4])
+    assert r== '5*x**2 + 7*x**3 + 5*x**4'  # now '+ ...' trayler.
 
 def test_taylorseries_print():
     from sympy.abc import x
