@@ -200,7 +200,7 @@ class SeqExprPrint(object):
         count = self.show_n
         if not self.is_infinite:
             count = min(count, self.length)
-        printset.extend([self[i] for i in range(self.start_index, self.start_index + count)])
+        printset.extend([self[i] for i in xrange(self.start_index, self.start_index + count)])
         return printset
 
 class SeqExprMain(object):
@@ -857,7 +857,7 @@ class SeqCauchyMul(SeqExpr, Mul):
             b = SeqCauchyMul(*self.args[1:])
         # TODO: optimize the range (if a.start_index > 0)
         # TODO: optimize k is integer or Expression
-        for k in range(0, i+1):
+        for k in xrange(0, i+1):
             k = S(k)
             c.append(a[k]*b[i-k])
         return Add(*tuple(c))
@@ -948,7 +948,7 @@ class SeqCauchyPow(SeqExpr, Pow):
                 return Pow(w[0], exp)
 
             c = []
-            for k in range(1, iw+1):
+            for k in xrange(1, iw+1):
                 c.append((k*exp - iw + k)*w[k]*self[S(i)-k]) # recursion
             # TODO: optimize cancel
             return (Add(*tuple(c))/iw/w[S.Zero]).cancel()
@@ -1115,7 +1115,7 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
                 # recurrsion
                 b = SeqExpCauchyMul(*self.args[1:])
             # TODO: optimize the range (if a.start_index > 0)
-            for k in range(0, i+1):
+            for k in xrange(0, i+1):
                 c.append(a[k]*b[i-k]*binomial(i, k))
             return Add(*tuple(c))
 
@@ -1199,7 +1199,7 @@ class SeqExpCauchyPow_Main(SeqCauchyPow):
                     return Pow(w[0], exp)
 
                 c = []
-                for k in range(1, i + 1):
+                for k in xrange(1, i + 1):
                     bc = S.One/factorial(i - k)/factorial(k)
                     wik = self[S(i)-k]
                     c.append((k*exp - i + k)*w[k]*wik*bc) # recursion

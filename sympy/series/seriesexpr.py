@@ -144,7 +144,7 @@ class SeriesExprPrint(object):
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
-            l = [self[i] for i in range(self.start_index, self.start_index + self.show_n + 1)]
+            l = [self[i] for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
             terms = [i for i in l if i != S.Zero]
 
             from sympy.printing.precedence import precedence
@@ -177,7 +177,7 @@ class SeriesExprPrint(object):
         from sympy.printing.pretty.stringpict import prettyForm, stringPict
         if printer._settings["list_series"]:
             # see pretty._print_Add()
-            l = [self[i] for i in range(self.start_index, self.show_n + 1)]
+            l = [self[i] for i in xrange(self.start_index, self.show_n + 1)]
             terms = [i for i in l if i != S.Zero]
 
             def pretty_negative(pform, index):
