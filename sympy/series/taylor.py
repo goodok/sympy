@@ -79,6 +79,10 @@ class TaylorSeriesExpr(TaylorSeriesExprOp):
     def compose(self, other):
         return TaylorSeriesNested(self, other)
 
+    # abstract
+    def to_power_series(self):
+        pass
+
 class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     """
     Formal Taylor series.

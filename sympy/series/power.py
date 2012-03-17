@@ -79,6 +79,11 @@ class PowerSeriesExpr(PowerSeriesExprOp):
     def compose(self, other):
         return PowerSeriesNested(self, other)
 
+    # abstract
+    def to_taylor_series(self):
+        pass
+
+
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """
     Examples:
@@ -288,9 +293,6 @@ class PowerSeriesPow(PowerSeriesExpr, Pow):
     def __getitem__(self, i):
         return self.getitem_dispatche(i)
 
-
-
-
 class PowerSeriesNested(SeriesNested, PowerSeries):
 
     @property
@@ -318,19 +320,17 @@ class FaDeBruno_powers(FaDeBruno):
 
     @property
     def _g(self):
-        return SeqMulEW(self.g, Sequence(formula=(k, factorial(k))))
+        return self.g.unfactorialize()
 
     @property
     def _f(self):
-        return SeqMulEW(self.f, Sequence(formula=(k, factorial(k))))
+        return self.f.unfactorialize()
 
 
     @property
     @cacheit
     def sequence_result(self):
-        ts = FaDeBruno(self._f, self._g)
-        return SeqMulEW(ts, Sequence(formula=(k, S(1)/factorial(k))))
-
+        return FaDeBruno(self._f, self._g).factorialize()
 
     @cacheit
     def __getitem__(self, i):

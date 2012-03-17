@@ -9,6 +9,7 @@ from residues import residue
 from sequences import Sequence
 from taylor import TaylorSeries
 from power import PowerSeries
+import seriesupdate
 
 O = Order
 

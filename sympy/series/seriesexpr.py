@@ -240,7 +240,6 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
     def coeff(self, i):
         return self.sequence[i]
 
-
 class SeriesAtom(SeriesExpr):
     def __new__(self, x, sequence_name=None, **kwargs):
         if sequence_name:

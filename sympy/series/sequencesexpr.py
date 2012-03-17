@@ -239,17 +239,23 @@ class SeqExprMain(object):
         return SeqShiftLeftExp(self, self.first_nonzero_n)
 
 
-class SeqExprShifting(object):
+class SeqExprMethods(object):
     """
     Short methods for unitary operations.
     """
     def shiftleft(self, n):
         return SeqShiftLeft(self, n)
 
-    def shifright(self, n):
+    def shiftright(self, n):
         return SeqShiftRight(self, n)
 
-class SeqExpr(SeqExprOp, SeqExprInterval, SeqExprPrint, SeqExprShifting, SeqExprMain):
+    def factorialize(self):
+        return Factorialize(self)
+
+    def unfactorialize(self):
+        return UnFactorialize(self)
+
+class SeqExpr(SeqExprOp, SeqExprInterval, SeqExprPrint, SeqExprMethods, SeqExprMain):
 
     def _hashable_content(self):
         return tuple(sorted(self._args, key=hash))
@@ -304,7 +310,7 @@ class SeqShiftLeft(SeqExpr):
     >>> pprint(a.shiftleft(2))
     [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
 
-    >>> pprint(a.shifright(2))
+    >>> pprint(a.shiftright(2))
     [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
 
     See Also
@@ -314,8 +320,8 @@ class SeqShiftLeft(SeqExpr):
     """
     # TODO:
     # SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2) ---> SeqPer([0, oo), (3, 2, 1)
-    # seq.shifright(2).shiftleft(2) --> seq
-    # seq.left(2).shifright(2) --> seq, but with the first two items removed
+    # seq.shiftright(2).shiftleft(2) --> seq
+    # seq.left(2).shiftright(2) --> seq, but with the first two items removed
 
     def __new__(cls, *args):
         if (args[1]==0): return args[0]
@@ -348,7 +354,7 @@ class SeqShiftRight(SeqExpr):
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> a = Sequence((0, oo), 'a')
-    >>> pprint(a.shifright(2))
+    >>> pprint(a.shiftright(2))
     [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
 
     See Also
@@ -438,6 +444,34 @@ class SeqSliced(SeqExpr):
             return S.Zero
         else:
             return  self.original[i]
+
+
+class Factorialize(SeqExpr):
+    #TODO: UnFactorialize(UnFactorialize(seq)) --> seq
+    def __getitem__(self, i):
+        return self.getitem_dispatche(i)
+
+    @property
+    def interval(self):
+        return self.original.interval
+
+    @property
+    def original(self):
+        return self._args[0]
+
+    @cacheit
+    def getitem_index(self, i):
+        return self.original[i]/factorial(i)
+
+class UnFactorialize(Factorialize):
+    @cacheit
+    def getitem_index(self, i):
+        return self.args[0][i]*factorial(i)
+
+###########################
+#       Binary operations
+###########################
+
 
 class SeqAdd(SeqExpr, Add):
     """
@@ -696,7 +730,6 @@ class SeqMulEW(SeqExpr, Expr):
     def __getitem__(self, i):
         return self.getitem_dispatche(i)
 
-    # TODO: use @cacheit_recurr
     @cacheit
     def getitem_index(self, i):
         return self.args[0][i]*self.args[1][i]
