@@ -2,6 +2,7 @@ from sympy.core import (Basic, Expr, Add, Mul, Pow, S)
 from sympy.core.symbol import Symbol
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
+from sympy.core.sets import Interval
 
 from sympy.series.sequences import SequenceSymbol
 from sympy.series.sequencesexpr import SeqCoeffMul
@@ -284,9 +285,70 @@ class SeriesMul(SeriesExpr, Mul):
     def _hashable_content(self):
         return tuple(sorted(self._args, key=hash))
 
+
     @classmethod
-    def flatten(cls, args_seq):
-        return args_seq, [], None
+    def check_zero(cls, args):
+
+        if any(arg.is_zero for arg in args):
+            return True
+
+        # if at least one sequence is empty then result is EmptySequence
+        # TODO: test it
+        if any(ser.sequence.is_EmptySequence for ser in args if ser.is_Series):
+            return True
+
+    @classmethod
+    def carry_out_coeff(cls, args):
+
+        # collect scalar coefficients
+        # and collect sequenses (without coefficients)
+        # Here we preserve order for noncommutative cases of coefficients, but
+        # consider only simple cases: when sequences are commutative itself
+        # TODO: use generators
+
+        coeffs = []
+        sers = []
+        for arg in args:
+            if not arg.is_Series:
+                coeffs.append(arg)
+            elif isinstance(arg, SeriesCoeffMul):
+                coeffs.append(arg.coefficient)
+                sers.append(arg.series)
+            else:
+                sers.append(arg)
+
+        # calculate the multiplicity of coefficients
+        if coeffs==[]:
+            coeff = S.One
+        else:
+            coeff = Mul(*coeffs)
+        return coeff, sers
+
+
+    @classmethod
+    def flatten(cls, args):
+        #TODO: how to use AssocOp.flatten(cls, args)
+        new_seq = []
+        while args:
+            o = args.pop()
+            if o.__class__ is cls: # classes must match exactly
+                args.extend(o.args)
+            else:
+                new_seq.append(o)
+        # c_part, nc_part, order_symbols
+        return [], new_seq, None
+
+    @property
+    def x(self):
+        return self.args[0].x
+
+    @property
+    @cacheit
+    def interval(self):
+        start = Add(*(s.start_index for s in self.args))
+        stop = Add(*(s.stop_index for s in self.args))
+        res = Interval(start, stop)
+        return res
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
@@ -304,13 +366,13 @@ class SeriesCoeffMul(SeriesExpr, Mul):
         coeff = args_ts[0]
         subseries = args_ts[1]
         if isinstance(subseries, SeriesCoeffMul):
-            coeff *= subseries.coeffitient
+            coeff *= subseries.coefficient
             series = subseries.series
             args_ts = [coeff, series]
         return args_ts, [], None
 
     @property
-    def coeffitient(self):
+    def coefficient(self):
         return self.args[0]
 
     @property
@@ -328,7 +390,7 @@ class SeriesCoeffMul(SeriesExpr, Mul):
     @property
     @cacheit
     def sequence(self):
-        return SeqCoeffMul(self.coeffitient, self.series.sequence)
+        return SeqCoeffMul(self.coefficient, self.series.sequence)
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:

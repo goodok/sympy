@@ -564,6 +564,7 @@ class SeqMul(SeqExpr, Mul):
         else:
             return SeqCoeffMul(coeff, res)
 
+    # is it needed?
     @classmethod
     def flatten(cls, args_seq):
         return args_seq, [], None

@@ -6,12 +6,13 @@ from sympy.utilities.pytest import XFAIL, SKIP
 from sympy.printing.pretty import pprint
 from sympy.printing.pretty import pretty
 from sympy.core.sets import Interval
-from sympy.core.symbol import Symbol
+from sympy.core.symbol import Symbol, symbols
 from sympy.core.cache import clear_cache
 
 from sympy.series.sequences import Sequence, SeqPer, SeqFormula, SeqFunc, SequenceSymbol
 from sympy.series.sequencesexpr import SeqAdd, SeqCoeffMul, SeqCauchyMul
-from sympy.series.taylor import TaylorSeries
+from sympy.series import TaylorSeries, PowerSeries
+
 
 def test_sequence_index():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))
@@ -113,6 +114,7 @@ def test_add():
     d = 2*c
     assert d.is_Sequence
 
+#related with flatten and canonicalization
 def test_coefficient():
     a = Sequence(periodical = (1, 0))
     y = Symbol('y')
@@ -149,7 +151,7 @@ def test_coefficient_inside_mul():
     c = Sequence('c')
     y = Symbol('y')
 
-    # manual construction of SeqCauchyMul with internal coeffitients of arguments
+    # manual construction of SeqCauchyMul with internal coefficients of arguments
     bc = 3*b*c
     abc = SeqCauchyMul(2*y*a, bc)
     assert not isinstance(abc, SeqCoeffMul)
@@ -174,7 +176,7 @@ def test_coeffmul_print():
     b = Sequence('b')
     c = Sequence('c')
     abc = a*b*3*c
-    s = str(abc)
+    s = str(abc)    # '3*(a*b*c)' now
     assert s == '3*a*b*c'
 
 def test_symbol():
@@ -241,7 +243,89 @@ def test_taylorseries():
     c = a + b
     d = 1 * c
 
-def test_series_print():
+#related with flatten and canonicalization
+def test_taylorseries_coefficient():
+    from sympy.series.taylor import TaylorSeriesCoeffMul, TaylorSeriesMul
+    x, y = symbols('x, y')
+    a = TaylorSeries(x, sequence=SeqPer((0, oo), (0, 1)))
+    b = TaylorSeries(x, sequence=SeqPer((0, oo), (1, 0)))
+    c = TaylorSeries(x, sequence=SeqPer((0, oo), (1, 0)))
+
+    ts = (3*a)
+    str(2*a)
+    str(3*a)
+    assert ts.coefficient == 3
+
+    ts = 2*(y*(3*a))
+    assert ts.coefficient == 6*y
+
+    assert (3*a*y*2).coefficient == 6*y
+
+    abc = a*3*b*c
+    assert abc == 3*a*b*c
+    assert isinstance(abc, TaylorSeriesCoeffMul)
+
+    abc = a*3*b*y*c
+    assert abc == 3*y*a*b*c
+    assert isinstance(abc, TaylorSeriesCoeffMul)
+    assert abc.coefficient == 3*y
+
+
+    # manual construction with internal coefficient of arguments
+    # note that it can be temporary, and later automatical simplified to carry out common coefficient
+    bc = 3*b*c
+    abc = TaylorSeriesMul(2*y*a, bc)
+    assert isinstance(abc, TaylorSeriesCoeffMul)
+    assert isinstance(abc.series, TaylorSeriesMul)
+    abc_series = abc.series
+    assert len(abc_series.args) == 3
+    assert abc_series == a*b*c
+    r = abc[0]
+    assert r == 0
+
+
+def test_powerseries_coefficient():
+    from sympy.series.power import PowerSeriesCoeffMul, PowerSeriesMul
+    x, y = symbols('x, y')
+    a = PowerSeries(x, sequence=SeqPer((0, oo), (0, 1)))
+    b = PowerSeries(x, sequence=SeqPer((0, oo), (1, 0)))
+    c = PowerSeries(x, sequence=SeqPer((0, oo), (1, 0)))
+
+    ts = (3*a)
+    str(2*a)
+    str(3*a)
+    assert ts.coefficient == 3
+
+    ts = 2*(y*(3*a))
+    assert ts.coefficient == 6*y
+
+    assert (3*a*y*2).coefficient == 6*y
+
+    abc = a*3*b*c
+    assert abc == 3*a*b*c
+    assert isinstance(abc, PowerSeriesCoeffMul)
+
+    abc = a*3*b*y*c
+    assert abc == 3*y*a*b*c
+    assert isinstance(abc, PowerSeriesCoeffMul)
+    assert abc.coefficient == 3*y
+
+
+    # manual construction with internal coefficient of arguments
+    # note that it can be temporary, and later automatical simplified to carry out common coefficient
+    bc = 3*b*c
+    abc = PowerSeriesMul(2*y*a, bc)
+    assert isinstance(abc, PowerSeriesCoeffMul)
+    assert isinstance(abc.series, PowerSeriesMul)
+    abc_series = abc.series
+    assert len(abc_series.args) == 3
+    assert abc_series == a*b*c
+    r = abc[0]
+    assert r == 0
+
+
+
+def test_taylorseries_print():
     from sympy.abc import x
     from sympy.interactive.printing import init_printing
     a = TaylorSeries(x, sequence=SeqPer((0, oo), (0, 1)))

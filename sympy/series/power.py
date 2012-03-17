@@ -181,43 +181,25 @@ class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
     """
 
     def __new__(cls, *args):
-        if any(arg.is_zero for arg in args):
+
+        if cls.check_zero(args):
             return S.Zero
 
-        # collect only series
-        series = [arg for arg in args if arg.is_PowerSeries]
-
-        # collect scalar coefficients
-        coeffs = [arg for arg in args if not arg.is_PowerSeries]
-
-        # calculate the multyplicity of coefficients
-        if coeffs==[]:
-            coeff = S.One
-        else:
-            coeff = Mul(*coeffs)
+        coeff, sers = cls.carry_out_coeff(args)
 
         # if only one seqs then return it
-        if len(series)==1:
-            if coeff == S.One:
-                return series[0]
-            else:
-                return PowerSeriesCoeffMul(coeff, series[0])
+        if len(sers)==1:
+            res = sers[0]
+        else:
+            # form product
+            nc, sers, order_symbol = cls.flatten(sers)
+            res = Mul.__new__(cls, *sers)
 
-        # further
-        expr = Mul.__new__(cls, *args)
-        return expr
-
-    @property
-    def x(self):
-        return self.args[0].x
-
-    @property
-    @cacheit
-    def interval(self):
-        start = Add(*(s.start_index for s in self.args))
-        stop = Add(*(s.stop_index for s in self.args))
-        res = Interval(start, stop)
-        return res
+        # wrap with coefficient
+        if coeff == S.One:
+            return res
+        else:
+            return PowerSeriesCoeffMul(coeff, res)
 
     @property
     @cacheit
@@ -249,7 +231,7 @@ class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
     >>> 2*a
     2*a[0] + 2*x*a[1] + 2*x**2*a[2] + 2*x**3*a[3] + ...
 
-    >>> (2*a).coeffitient
+    >>> (2*a).coefficient
     2
 
     >>> (2*a).series
@@ -265,9 +247,9 @@ class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
 
     def __getitem__(self, i):
         if isinstance(i, slice):
-            return PowerSeriesCoeffMul(self.coeffitient, self.ts[i])
+            return PowerSeriesCoeffMul(self.coefficient, self.ts[i])
         else:
-            return self.coeffitient * self.series[i]
+            return self.coefficient * self.series[i]
 
 class PowerSeriesPow(PowerSeriesExpr, Pow):
     """
