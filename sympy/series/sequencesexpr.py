@@ -1242,9 +1242,9 @@ class FaDeBruno(SeqExpr):
     # TODO:
     # It is work only of the leading items of both sequences are not zero.
     def __new__(cls, *args):
+        # args = (g, f)
         assert len(args)==2
         assert all(arg.is_Sequence for arg in args)
-        assert args[0][0] == S.Zero
         assert args[1][0] == S.Zero
         expr = Expr.__new__(cls, *args)
         return expr
@@ -1266,6 +1266,8 @@ class FaDeBruno(SeqExpr):
 
     @cacheit
     def __getitem__(self, i):
+        if i == S.Zero:
+            return self.g[0]
         s = S.Zero
         for k in xrange(1, i+1):
             s += self.g[k] * bell(i, k, self.f)

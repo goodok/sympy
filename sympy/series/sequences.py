@@ -259,9 +259,11 @@ class SeqPer(SequenceBase):
 
 
     def __new__(cls, interval, baselist = None, **kwargs):
-
-        """Create a new periodical sequence SeqPer instance out of something useful. """
-
+        """
+        Create a new periodical sequence SeqPer instance out of something useful.
+        """
+        if not isinstance(baselist, tuple) and baselist is not None:
+            baselist = tuple((baselist,))
         obj = SequenceBase.__new__(cls, interval, baselist)
         return obj
 

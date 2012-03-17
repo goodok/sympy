@@ -253,4 +253,4 @@ class TaylorSeriesNested(SeriesNested, TaylorSeries):
     @property
     @cacheit
     def sequence(self):
-        return FaDeBruno(self.f.sequence, self.g.sequence)
+        return FaDeBruno(self.g.sequence, self.f.sequence)

@@ -330,7 +330,7 @@ class FaDeBruno_powers(FaDeBruno):
     @property
     @cacheit
     def sequence_result(self):
-        return FaDeBruno(self._f, self._g).factorialize()
+        return FaDeBruno(self._g, self._f).factorialize()
 
     @cacheit
     def __getitem__(self, i):

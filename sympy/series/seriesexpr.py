@@ -516,7 +516,8 @@ class SeriesNested(SeriesExpr):
     @property
     @cacheit
     def sequence(self):
-        return SeqExp_FaDeBruno(self.f.sequence, self.g.sequence)
+        # abstract
+        return None
 
     def __getitem__(self, i):
         return self.getitem_dispatche(i)

@@ -19,6 +19,9 @@ def test_sequence_index():
     assert seq[5:7] == Sequence((5, 7), formula=(k, S(1)/k))
 
 def test_preodiacal():
+    a = Sequence(periodical=(1))
+    assert a.baselist == (1,)
+
     a = SeqPer(Interval(2, oo), (1, 2, 3))
     assert a.baselist ==  (1, 2, 3)
 
@@ -338,6 +341,14 @@ def test_taylorseries_expression_slicing():
     c = PowerSeries(x, periodical=(3, 4))
     r = (a*b*c)[2:5]
     assert r.interval == Interval(2, 5)
+
+def test_taylorseries_compose():
+    x = Symbol("x")
+    tcos = TaylorSeries(x, periodical=(1, 0, -1, 0))
+    tsin = TaylorSeries(x, periodical=(0, 1, 0, -1))
+    r = tcos.compose(tsin)
+    assert r.coeff(4) == S(5)
+    assert r.coeff(6) == -S(37)
 
 @XFAIL
 def test_series_print_finite():
