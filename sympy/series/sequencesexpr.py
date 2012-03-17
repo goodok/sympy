@@ -509,6 +509,9 @@ class SeqCoeffMul(SeqExpr, Mul):
         if printer._settings["list_sequences"]:
             return SeqExpr._sympystr(self, printer, *args)
         else:
+            #s = printer._print(self.coefficient, *args)
+            #s += "*"
+            #s += self.seq._sympystr(printer, *args)
             return printer._print_Mul(self)
 
 
@@ -522,15 +525,25 @@ class SeqMul(SeqExpr, Mul):
         if any(arg.is_zero for arg in args):
             return S.Zero
 
-        # collect only sequenses
-        seqs = [arg for arg in args if arg.is_Sequence]
-
         # if at least one sequence is empty then result is EmptySequence
-        if any(arg.is_EmptySequence for arg in seqs):
+        if any(seq.is_EmptySequence for seq in args if seq.is_Sequence):
             return S.EmptySequence
 
         # collect scalar coefficients
-        coeffs = [arg for arg in args if not arg.is_Sequence]
+        # and collect sequenses (without coefficients)
+        # Here we preserve order for noncommutative cases of coefficients, but
+        # consider only simple cases: when sequences are commutative itself
+        # TODO: use generators
+        coeffs = []
+        seqs = []
+        for arg in args:
+            if not arg.is_Sequence:
+                coeffs.append(arg)
+            elif isinstance(arg, SeqCoeffMul):
+                coeffs.append(arg.coefficient)
+                seqs.append(arg.seq)
+            else:
+                seqs.append(arg)
 
         # calculate the multiplicity of coefficients
         if coeffs==[]:
@@ -540,14 +553,16 @@ class SeqMul(SeqExpr, Mul):
 
         # if only one seqs then return it
         if len(seqs)==1:
-            if coeff == S.One:
-                return seqs[0]
-            else:
-                return SeqCoeffMul(coeff, seqs[0])
+            res = seqs[0]
+        else:
+            # form Cauchy product
+            res = SeqCauchyMul.__new__(SeqCauchyMul, *seqs)
 
-        # Cauchy product
-        expr = SeqCauchyMul.__new__(SeqCauchyMul, *seqs)
-        return expr
+        # wrap with coefficient
+        if coeff == S.One:
+            return res
+        else:
+            return SeqCoeffMul(coeff, res)
 
     @classmethod
     def flatten(cls, args_seq):
@@ -663,8 +678,31 @@ class SeqCauchyMul(SeqExpr, Mul):
 
     """
     def __new__(cls, *args):
+        # we do not carry out and collect scalar coefficients here
+        # as we do it in SeqMul constructor (when parsing '*' expression like '2*a*3*b'.
+        # The process of auto simplification must be logically separated in any case
+        # and the algorithms must be indepebed whether this simplification applyed or not
+        # see test_coefficient_inside_mul()
         expr = Mul.__new__(cls, *args)
         return expr
+
+    @classmethod
+    def flatten(cls, args):
+        #TODO: how to use AssocOp.flatten(cls, args)
+        new_seq = []
+        while args:
+            o = args.pop()
+            if o.__class__ is cls: # classes must match exactly
+                args.extend(o.args)
+            else:
+                new_seq.append(o)
+        # c_part, nc_part, order_symbols
+        return [], new_seq, None
+
+
+    # this is used in core in printer system, (sort_key), roots order.
+    def as_ordered_terms(self, order=None):
+        return self.args
 
     @property
     @cacheit
@@ -700,18 +738,20 @@ class SeqCauchyMul(SeqExpr, Mul):
         if self.is_out_of_range(i):
             return S.Zero
         else:
-            # TODO: args > 2
+            c = []
             if len(self.args)==2:
-                c = []
                 a = self.args[0]
                 b = self.args[1]
-                # TODO: optimize the range (if a.start_index > 0)
-                # TODO: optimize k is integer or Expression
-                for k in range(0, i+1):
-                    k = S(k)
-                    c.append(a[k]*b[i-k])
-                return Add(*tuple(c))
-            return S.Zero
+            else:
+                a = self.args[0]
+                # recurrsion
+                b = SeqCauchyMul(*self.args[1:])
+            # TODO: optimize the range (if a.start_index > 0)
+            # TODO: optimize k is integer or Expression
+            for k in range(0, i+1):
+                k = S(k)
+                c.append(a[k]*b[i-k])
+            return Add(*tuple(c))
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_sequences"]:
@@ -955,16 +995,18 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
             if i == S.Zero:
                 return Mul(*(seq[i] for seq in self.args))
             else:
-                # TODO: args > 2
+                c = []
                 if len(self.args)==2:
-                    c = []
                     a = self.args[0]
                     b = self.args[1]
-                    # TODO: optimize the range (if a.start_index > 0)
-                    for k in range(0, i+1):
-                        c.append(a[k]*b[i-k]*binomial(i, k))
-                    return Add(*tuple(c))
-            return S.Zero
+                else:
+                    a = self.args[0]
+                    # recurrsion
+                    b = SeqExpCauchyMul(*self.args[1:])
+                # TODO: optimize the range (if a.start_index > 0)
+                for k in range(0, i+1):
+                    c.append(a[k]*b[i-k]*binomial(i, k))
+                return Add(*tuple(c))
 
 class SeqExpCauchyPow(SeqCauchyPow):
     """

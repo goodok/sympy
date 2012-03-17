@@ -318,6 +318,10 @@ class SeriesCoeffMul(SeriesExpr, Mul):
         return self.args[1]
 
     @property
+    def x(self):
+        return self.series.x
+
+    @property
     def interval(self):
         return self.series.interval
 
@@ -325,8 +329,6 @@ class SeriesCoeffMul(SeriesExpr, Mul):
     @cacheit
     def sequence(self):
         return SeqCoeffMul(self.coeffitient, self.series.sequence)
-
-
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:

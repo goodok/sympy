@@ -10,7 +10,7 @@ from sympy.core.symbol import Symbol
 from sympy.core.cache import clear_cache
 
 from sympy.series.sequences import Sequence, SeqPer, SeqFormula, SeqFunc, SequenceSymbol
-from sympy.series.sequencesexpr import SeqAdd
+from sympy.series.sequencesexpr import SeqAdd, SeqCoeffMul, SeqCauchyMul
 from sympy.series.taylor import TaylorSeries
 
 def test_sequence_index():
@@ -126,6 +126,57 @@ def test_coefficient():
 
     assert (3*a*y*2).coefficient == 6*y
 
+    # collecting of coefitients
+    a = Sequence('a')
+    b = Sequence('b')
+    c = Sequence('c')
+
+    abc = a*3*b*c
+    assert abc == 3*a*b*c
+    assert isinstance(abc, SeqCoeffMul)
+    assert abc[0] == 3*a[0]*b[0]*c[0]
+
+    abc = a*3*b*y*c
+    assert abc == 3*y*a*b*c
+    assert isinstance(abc, SeqCoeffMul)
+    assert abc.coefficient == 3*y
+    assert abc[0] == 3*y*a[0]*b[0]*c[0]
+
+def test_coefficient_inside_mul():
+
+    a = Sequence('a')
+    b = Sequence('b')
+    c = Sequence('c')
+    y = Symbol('y')
+
+    # manual construction of SeqCauchyMul with internal coeffitients of arguments
+    bc = 3*b*c
+    abc = SeqCauchyMul(2*y*a, bc)
+    assert not isinstance(abc, SeqCoeffMul)
+    assert isinstance(abc, SeqCauchyMul)
+    #assert abc6.coefficient == 6*y
+    r = abc[0]
+    assert r == 6*y*a[0]*b[0]*c[0]
+
+def test_mul_print():
+    clear_cache()
+    a = Sequence('a')
+    b = Sequence('b')
+    c = Sequence('c')
+
+    abc = a*b*c
+    s = str(abc)
+    assert s == 'a*b*c'
+
+@XFAIL
+def test_coeffmul_print():
+    a = Sequence('a')
+    b = Sequence('b')
+    c = Sequence('c')
+    abc = a*b*3*c
+    s = str(abc)
+    assert s == '3*a*b*c'
+
 def test_symbol():
     a = SequenceSymbol((0, 3), 'a')
     i = Symbol('i')
@@ -148,6 +199,7 @@ def test_symbol():
     e2 = c[1].args[2].args[0] # a[0] - 0 is int
     assert e1 == e2
 
+#@SLOW
 def test_Cauchy_power_recurr():
     clear_cache()
     a = Sequence(periodical=(1, 0))
