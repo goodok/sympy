@@ -201,6 +201,15 @@ def test_Cauchy_power_recurr():
     c = a**2
     r = c[200]
 
+def test_powerseries_constructor():
+    x = Symbol('x')
+    a = PowerSeries(x, periodical=(1, 0))
+    assert a[0] == 1
+    assert a[1] == 0
+    assert a[2] == x**2
+
+    a = PowerSeries(x, 'a')
+    assert str(a[1]) in ['a[1]*x', 'x*a[1]']
 
 def test_powerseries_print():
     from sympy import S, oo

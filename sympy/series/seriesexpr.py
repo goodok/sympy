@@ -4,7 +4,7 @@ from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
 from sympy.core.sets import Interval
 
-from sympy.series.sequences import SequenceSymbol
+from sympy.series.sequences import Sequence, SequenceSymbol
 from sympy.series.sequencesexpr import SeqCoeffMul
 
 
@@ -220,8 +220,13 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
 
 
 class SeriesAtom(SeriesExpr):
-    def __new__(self, x, **kwargs):
-        sequence = kwargs.get("sequence", None)
+    def __new__(self, x, sequence_name=None, **kwargs):
+        if sequence_name:
+            sequence = Sequence(sequence_name, **kwargs)
+        else:
+            sequence = kwargs.get("sequence", None)
+            if sequence==None:
+                sequence = Sequence(**kwargs)
         obj = SeriesExpr.__new__(self, x, sequence)
         return obj
 
