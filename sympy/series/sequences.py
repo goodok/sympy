@@ -5,7 +5,7 @@ from sympy.functions import factorial
 from sympy.solvers.recurr import rsolve
 from sympy.core.numbers import ilcm
 from sympy.core.sets import Interval
-from sympy.core.symbol import Symbol
+from sympy.core.symbol import Symbol, symbols
 
 from sequencesexpr import (SeqExpr, EmptySequence)
 
@@ -221,6 +221,20 @@ class IndexedSequenceSymbol(Expr):
         base = p._print_Symbol(self.base)
         return "%s[%s]" % (base, l)
 
+def abstract_sequences(names):
+    """
+    Transform strings into instances of :class:`SequenceSymbol` class.
+
+
+        >>> from sympy.series.sequences import abstract_sequences
+
+        >>> x, y, z = abstract_sequences('x,y,z')
+        >>> a, b, c = abstract_sequences('a b c')
+        >>> a, b, c = abstract_sequences('a:c')
+        >>> (a*b*c)[0]
+        a[0]*b[0]*c[0]
+    """
+    return symbols(names, cls=Sequence)
 
 class SeqPer(SequenceBase):
     """

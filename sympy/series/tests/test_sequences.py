@@ -9,7 +9,7 @@ from sympy.core.sets import Interval
 from sympy.core.symbol import Symbol, symbols
 from sympy.core.cache import clear_cache
 
-from sympy.series.sequences import Sequence, SeqPer, SeqFormula, SeqFunc, SequenceSymbol
+from sympy.series.sequences import Sequence, SeqPer, SeqFormula, SeqFunc, SequenceSymbol, abstract_sequences
 from sympy.series.sequencesexpr import SeqAdd, SeqCoeffMul, SeqCauchyMul
 from sympy.series import TaylorSeries, PowerSeries
 
@@ -129,9 +129,7 @@ def test_coefficient():
     assert (3*a*y*2).coefficient == 6*y
 
     # collecting of coefitients
-    a = Sequence('a')
-    b = Sequence('b')
-    c = Sequence('c')
+    a, b, c = abstract_sequences('a,b,c')
 
     abc = a*3*b*c
     assert abc == 3*a*b*c
@@ -146,10 +144,8 @@ def test_coefficient():
 
 def test_coefficient_inside_mul():
 
-    a = Sequence('a')
-    b = Sequence('b')
-    c = Sequence('c')
     y = Symbol('y')
+    a, b, c = abstract_sequences('a:c')
 
     # manual construction of SeqCauchyMul with internal coefficients of arguments
     bc = 3*b*c
@@ -162,9 +158,7 @@ def test_coefficient_inside_mul():
 
 def test_mul_print():
     clear_cache()
-    a = Sequence('a')
-    b = Sequence('b')
-    c = Sequence('c')
+    a, b, c = abstract_sequences('a:c')
 
     abc = a*b*c
     s = str(abc)
@@ -172,9 +166,8 @@ def test_mul_print():
 
 @XFAIL
 def test_coeffmul_print():
-    a = Sequence('a')
-    b = Sequence('b')
-    c = Sequence('c')
+    a, b, c = abstract_sequences('a b c')
+
     abc = a*b*3*c
     s = str(abc)    # '3*(a*b*c)' now
     assert s == '3*a*b*c'
