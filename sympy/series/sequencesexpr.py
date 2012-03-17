@@ -1175,7 +1175,7 @@ class SeqExpCauchyPow_Main(SeqCauchyPow):
                 r = r*factorial(i)
                 return r
 
-class SeqExp_FaDeBruno(SeqExpr):
+class FaDeBruno(SeqExpr):
     """
     Calculate g(f(x)) series.
 
@@ -1183,12 +1183,31 @@ class SeqExp_FaDeBruno(SeqExpr):
         g(x)=\sum_{n=1}^\infty {b_n \over n!} x^n
         f(x)=\sum_{n=1}^\infty {a_n \over n!} x^n
 
-    Note, that a_0 == 0, b_n == 0
-
     Then
         g(f(x)) = \sum_{n=1}^\infty
 {\sum_{k=1}^{n} b_k B_{n,k}(a_1,\dots,a_{n-k+1}) \over n!} x^n,
+
+    Notes
+    =====
+    Note, that a_0 == 0, b_n == 0.
+    In [2] written, that only for f(X), a_0 must be zero.
+
+    A point here is that this operation is only valid when f(X) has no constant
+    term, so that the series for g(f(X)) converges in the topology of R[[X]].
+    In other words, each c_n depends on only a finite number of coefficients of
+    f(X) and g(X).
+
+
+    References
+    ==========
+
+    [1] http://en.wikipedia.org/wiki/Faà_di_Bruno's_formula
+    [2] http://en.wikipedia.org/wiki/Formal_power_series#Composition_of_series
+    [3] R P. Brent , H T Kung, "Fast Algorithms for Manipulating Formal Power Series"
+
     """
+    # TODO:
+    # It is work only of the leading items of both sequences are not zero.
     def __new__(cls, *args):
         assert len(args)==2
         assert all(arg.is_Sequence for arg in args)

@@ -7,10 +7,13 @@ from sympy.functions.combinatorial.factorials import factorial
 from sympy.core.sets import Interval
 from sympy.core.cache import cacheit
 
-from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom
-from sequencesexpr import SeqAdd, SeqCauchyMul, SeqCauchyPow
+from sympy.abc import k
 
-class PowerSeriesExpr(SeriesExpr):
+from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
+from sequences import Sequence
+from sequencesexpr import SeqAdd, SeqCauchyMul, SeqCauchyPow, FaDeBruno, SeqMulEW
+
+class PowerSeriesExprOp(SeriesExpr):
     is_PowerSeries = True
 
     def __neg__(self):
@@ -66,11 +69,15 @@ class PowerSeriesExpr(SeriesExpr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
+class PowerSeriesExpr(PowerSeriesExprOp):
 
     @cacheit
     def getitem_index(self, i):
         c = self.sequence
         return c[i]*Pow(self.x, i)
+
+    def compose(self, other):
+        return PowerSeriesNested(self, other)
 
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """
@@ -125,10 +132,10 @@ class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
     b[0] + x*b[1] + x**2*b[2] + x**3*b[3] + x**4*b[4] + x**5*b[5] + x**6*b[6] + ...
 
     >>> a + b
-    a[0] + b[0] + x*a[1] + x*b[1] + x**2*a[2] + x**2*b[2] + ...
+    a[0] + b[0] + x*(a[1] + b[1]) + x**2*(a[2] + b[2]) + ...
 
     >>> (a + b)[3]
-    x**3*a[3] + x**3*b[3]
+    x**3*(a[3] + b[3])
 
     >>> (a + b).coeff(3)
     a[3] + b[3]
@@ -280,6 +287,54 @@ class PowerSeriesPow(PowerSeriesExpr, Pow):
 
     def __getitem__(self, i):
         return self.getitem_dispatche(i)
+
+
+
+
+class PowerSeriesNested(SeriesNested, PowerSeries):
+
+    @property
+    @cacheit
+    def sequence(self):
+        return FaDeBruno_powers(self.f.sequence, self.g.sequence)
+
+class FaDeBruno_powers(FaDeBruno):
+    """
+    This is similar to SeqExp_FaDeBruno but for formal Power series.
+
+        g(x)=\sum_{n=1}^\infty {b_n} x^n
+        f(x)=\sum_{n=1}^\infty {a_n} x^n
+
+    That is without factorials.
+
+    """
+    # we use very rough method:
+    # substitute f and g sequences with g' = {g_n*n!} and f' = {f_n*n!}
+    # and use FaDeBruno
+    # then devide result by n!.
+
+    # TODO: implement exponenentionize method for sequences, whis can be used often
+    # `SeqMulEW(self.f, Sequence(formula=(k, factorial(k))))`
+
+    @property
+    def _g(self):
+        return SeqMulEW(self.g, Sequence(formula=(k, factorial(k))))
+
+    @property
+    def _f(self):
+        return SeqMulEW(self.f, Sequence(formula=(k, factorial(k))))
+
+
+    @property
+    @cacheit
+    def sequence_result(self):
+        ts = FaDeBruno(self._f, self._g)
+        return SeqMulEW(ts, Sequence(formula=(k, S(1)/factorial(k))))
+
+
+    @cacheit
+    def __getitem__(self, i):
+        return self.sequence_result[i]
 
 
 

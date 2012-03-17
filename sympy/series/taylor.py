@@ -7,8 +7,8 @@ from sympy.functions.combinatorial.factorials import factorial
 from sympy.core.cache import cacheit
 from sympy.core.sets import Interval
 
-from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom
-from sequencesexpr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow, SeqExp_FaDeBruno
+from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
+from sequencesexpr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow, FaDeBruno
 
 class TaylorSeriesExprOp(SeriesExpr):
     is_TaylorSeries = True
@@ -76,6 +76,9 @@ class TaylorSeriesExpr(TaylorSeriesExprOp):
             a = a / factorial(i) * Pow(self.x, i)
         return a
 
+    def compose(self, other):
+        return TaylorSeriesNested(self, other)
+
 class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     """
     Formal Taylor series.
@@ -122,6 +125,7 @@ class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
 
     """
 
+    # TODO: move common methods for Taylor and Power to SeriesAtom
     def coeff(self, i):
         return self.sequence[i]
 
@@ -240,32 +244,9 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
         return self.getitem_dispatche(i)
 
 
-class TaylorSeriesNested(TaylorSeries):
-    def __new__(cls, *args):
-        expr = TaylorSeriesExpr.__new__(cls, *args)
-        return expr
-
-    @property
-    def g(self):
-        return self.args[0]
-
-    @property
-    def f(self):
-        return self.args[1]
-
-    @property
-    def x(self):
-        return self.g.x
+class TaylorSeriesNested(SeriesNested, TaylorSeries):
 
     @property
     @cacheit
     def sequence(self):
-        return SeqExp_FaDeBruno(self.f.sequence, self.g.sequence)
-
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
-
-    @property
-    @cacheit
-    def interval(self):
-        return self.f.interval
+        return FaDeBruno(self.f.sequence, self.g.sequence)

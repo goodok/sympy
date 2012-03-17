@@ -497,6 +497,34 @@ class SeriesCoeffMul(SeriesExpr, Mul):
         else:
             return printer._print_Mul(self)
 
+class SeriesNested(SeriesExpr):
+    def __new__(cls, *args):
+        expr = SeriesExpr.__new__(cls, *args)
+        return expr
 
+    @property
+    def g(self):
+        return self.args[0]
+
+    @property
+    def f(self):
+        return self.args[1]
+
+    @property
+    def x(self):
+        return self.g.x
+
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqExp_FaDeBruno(self.f.sequence, self.g.sequence)
+
+    def __getitem__(self, i):
+        return self.getitem_dispatche(i)
+
+    @property
+    @cacheit
+    def interval(self):
+        return self.f.interval
 
 
