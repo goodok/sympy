@@ -231,10 +231,10 @@ class SeqExprShifting(object):
     """
     Short methods for unitary operations.
     """
-    def toleft(self, n):
+    def shiftleft(self, n):
         return SeqShiftLeft(self, n)
 
-    def toright(self, n):
+    def shifright(self, n):
         return SeqShiftRight(self, n)
 
 class SeqExpr(SeqExprOp, SeqExprInterval, SeqExprPrint, SeqExprShifting, SeqExprMain):
@@ -278,10 +278,10 @@ class SeqShiftLeft(SeqExpr):
     >>> pprint(SeqShiftLeft(a, 1))
     [2, 3, 1, 2, 3, 1, 2, ...]
 
-    >>> a.toleft(2)
+    >>> a.shiftleft(2)
     SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2)
 
-    >>> pprint(a.toleft(2))
+    >>> pprint(a.shiftleft(2))
     [3, 1, 2, 3, 1, 2, 3, ...]
 
 
@@ -289,10 +289,10 @@ class SeqShiftLeft(SeqExpr):
     >>> pprint(a)
     [a[0], a[1], a[2], a[3], a[4], a[5], a[6], ...]
 
-    >>> pprint(a.toleft(2))
+    >>> pprint(a.shiftleft(2))
     [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
 
-    >>> pprint(a.toright(2))
+    >>> pprint(a.shifright(2))
     [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
 
     See Also
@@ -302,8 +302,8 @@ class SeqShiftLeft(SeqExpr):
     """
     # TODO:
     # SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2) ---> SeqPer([0, oo), (3, 2, 1)
-    # seq.toright(2).toleft(2) --> seq
-    # seq.left(2).toright(2) --> seq, but with the first two items removed
+    # seq.shifright(2).shiftleft(2) --> seq
+    # seq.left(2).shifright(2) --> seq, but with the first two items removed
 
     def __new__(cls, *args):
         if (args[1]==0): return args[0]
@@ -336,7 +336,7 @@ class SeqShiftRight(SeqExpr):
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> a = Sequence((0, oo), 'a')
-    >>> pprint(a.toright(2))
+    >>> pprint(a.shifright(2))
     [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
 
     See Also
