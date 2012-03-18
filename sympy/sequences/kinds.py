@@ -7,7 +7,7 @@ from sympy.core.numbers import ilcm
 from sympy.core.sets import Interval
 from sympy.core.symbol import Symbol, symbols
 
-from sequencesexpr import (SeqExpr, EmptySequence)
+from expr import (SeqExpr, EmptySequence)
 
 class Sequence(SeqExpr):
     """Represents an Sequence.
@@ -17,7 +17,7 @@ class Sequence(SeqExpr):
     Examples
     ========
 
-    >>> from sympy.series.sequences import Sequence, SeqFormula
+    >>> from sympy.sequences import Sequence, SeqFormula
     >>> from sympy import oo, S
     >>> from sympy.abc import k
     >>> from sympy.printing.pretty.pretty import pprint
@@ -134,7 +134,7 @@ class SequenceSymbol(SequenceBase, Symbol):
     ========
 
     >>> from sympy import Symbol
-    >>> from sympy.series.sequences import SequenceSymbol
+    >>> from sympy.sequences import SequenceSymbol
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> a = SequenceSymbol((0, 10), 'a')
@@ -226,7 +226,7 @@ def abstract_sequences(names):
     Transform strings into instances of :class:`SequenceSymbol` class.
 
 
-        >>> from sympy.series.sequences import abstract_sequences
+        >>> from sympy.sequences import abstract_sequences
 
         >>> x, y, z = abstract_sequences('x,y,z')
         >>> a, b, c = abstract_sequences('a b c')
@@ -244,7 +244,7 @@ class SeqPer(SequenceBase):
     ========
 
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.sequences import Sequence, SeqPer
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> seq = SeqPer((0, oo), (1, 2))
@@ -311,7 +311,7 @@ class SeqList(SequenceBase):
     ========
 
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence, SeqList
+    >>> from sympy.sequences import Sequence, SeqList
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> seq = Sequence((1, 4), finitlist=(1, 2, 3, 4))
@@ -330,7 +330,7 @@ class SeqList(SequenceBase):
     def __new__(cls, interval, baselist = None, **kwargs):
 
         """Create a new finite list seuqence SeqList instance out of something useful. """
-        assert len(baselist) == interval.right - interval.left + 1
+        assert len(baselist) == interval.sup - interval.inf + 1
         obj = SequenceBase.__new__(cls, interval, baselist)
         return obj
 
@@ -369,7 +369,7 @@ class SeqFormula(SequenceBase):
     Examples
     ========
 
-    >>> from sympy.series.sequences import Sequence, SeqFormula
+    >>> from sympy.sequences import Sequence, SeqFormula
     >>> from sympy import oo, S
     >>> from sympy.abc import k
     >>> from sympy.printing.pretty.pretty import pprint
@@ -420,7 +420,7 @@ class SeqFunc(SequenceBase):
     Examples
     ========
 
-    >>> from sympy.series.sequences import Sequence, SeqFunc
+    >>> from sympy.sequences import Sequence, SeqFunc
     >>> from sympy import oo, S
     >>> from sympy.abc import k
     >>> from sympy.printing.pretty.pretty import pprint
@@ -464,7 +464,7 @@ class SeqRecurr(SequenceBase):
     Examples
     ========
 
-    >>> from sympy.series.sequences import Sequence, SeqRecurr
+    >>> from sympy.sequences import Sequence, SeqRecurr
     >>> from sympy import oo, S, Function
     >>> from sympy.abc import n
     >>> from sympy.printing.pretty.pretty import pprint

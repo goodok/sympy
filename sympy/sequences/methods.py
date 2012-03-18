@@ -1,0 +1,323 @@
+
+from sympy import Expr
+from sympy.core.cache import cacheit, cacheit_recurr
+from sympy.core.sets import Interval
+from sympy.core.singleton import (Singleton, S)
+from sympy.functions.combinatorial.factorials import factorial
+
+from expr import SeqExpr, SeqExprMethods
+from kinds import Sequence
+
+
+def reverse(self):
+    return ReverseLangrange(self)
+
+def shiftleft(self, n):
+    return SeqShiftLeft(self, n)
+
+def shiftright(self, n):
+    return SeqShiftRight(self, n)
+
+def shiftleft_exp(self, n):
+    return SeqShiftLeftExp(self, n)
+
+def shiftright_exp(self, n):
+    return SeqShiftRightExp(self, n)
+
+def factorialize(self):
+    return Factorialize(self)
+
+def unfactorialize(self):
+    return UnFactorialize(self)
+
+
+SeqExprMethods.reverse = reverse
+SeqExprMethods.shiftleft = shiftleft
+SeqExprMethods.shiftright = shiftright
+SeqExprMethods.shiftleft_exp = shiftleft_exp
+SeqExprMethods.shiftright_exp = shiftright_exp
+SeqExprMethods.factorialize = factorialize
+SeqExprMethods.unfactorialize = unfactorialize
+
+class SeqShiftLeft(SeqExpr):
+    """
+    Shift sequence to the left.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.sequences import Sequence, SeqPer
+    >>> from sympy.sequences.methods import SeqShiftLeft
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = SeqPer((0, oo), (1, 2, 3))
+    >>> pprint(a)
+    [1, 2, 3, 1, 2, 3, 1, ...]
+
+    >>> pprint(SeqShiftLeft(a, 1))
+    [2, 3, 1, 2, 3, 1, 2, ...]
+
+    >>> a.shiftleft(2)
+    SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2)
+
+    >>> pprint(a.shiftleft(2))
+    [3, 1, 2, 3, 1, 2, 3, ...]
+
+
+    >>> a = Sequence((0, oo), 'a')
+    >>> pprint(a)
+    [a[0], a[1], a[2], a[3], a[4], a[5], a[6], ...]
+
+    >>> pprint(a.shiftleft(2))
+    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
+
+    >>> pprint(a.shiftright(2))
+    [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
+
+    See Also
+    ========
+    sympy.sequences.expr.SeqShiftRight, sympy.sequences.expr.SeqShiftLeftExp
+
+    """
+    # TODO:
+    # SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2) ---> SeqPer([0, oo), (3, 2, 1)
+    # seq.shiftright(2).shiftleft(2) --> seq
+    # seq.left(2).shiftright(2) --> seq, but with the first two items removed
+
+    def __new__(cls, *args):
+        if (args[1]==0): return args[0]
+        expr = Expr.__new__(cls, *args)
+        return expr
+
+    @property
+    def offset(self):
+        return self.args[1]
+
+    def __getitem__(self, i):
+        n = i + self.offset
+        return self.args[0][n]
+
+    @property
+    def interval(self):
+        # TODO: calculate
+        return self.args[0].interval
+
+
+class SeqShiftRight(SeqExpr):
+
+    """
+    Shift sequence to the right.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.sequences import Sequence
+    >>> from sympy.printing.pretty.pretty import pprint
+
+    >>> a = Sequence('a')
+    >>> pprint(a.shiftright(2))
+    [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
+
+    See Also
+    ========
+    sympy.sequences.expr.SeqShiftLeft, SeqShiftRightExp
+
+    """
+
+    def __new__(cls, *args):
+        if (args[1]==0): return args[0]
+        expr = Expr.__new__(cls, *args)
+        return expr
+
+    @property
+    def offset(self):
+        return self.args[1]
+
+    def __getitem__(self, i):
+        n = i - self.offset
+        if n >= 0:
+            return self.args[0][n]
+        else:
+            return S.Zero
+
+    @property
+    def interval(self):
+        # TODO: calculate
+        return self.args[0].interval
+
+
+class Factorialize(SeqExpr):
+    #TODO: UnFactorialize(UnFactorialize(seq)) --> seq
+    def __getitem__(self, i):
+        return self.getitem_dispatche(i)
+
+    @property
+    def interval(self):
+        return self.original.interval
+
+    @property
+    def original(self):
+        return self._args[0]
+
+    @cacheit
+    def getitem_index(self, i):
+        return self.original[i]/factorial(i)
+
+class UnFactorialize(Factorialize):
+    #TODO:  name-token is laplace trasformation ?
+    @cacheit
+    def getitem_index(self, i):
+        return self.args[0][i]*factorial(i)
+
+################################################################################
+#           Operations (for exponential generating sequences)                  #
+################################################################################
+
+class SeqShiftLeftExp(SeqShiftLeft):
+    """
+    Shift sequence to the left exponentially.
+
+    This helper implimetation for the TaylorSeries.
+
+    Define sequence:
+        1 + x**2/2 + x**4/4! + x**6/6! + x**8/8! + ...
+    with coefficients
+        [1, 0, 1, 0, ...]
+
+    Remove 1 as the first element deleted while shifting:
+        x**2/2 + x**4/24 + x**6/720 + ...
+
+    Then carry out the x**2 term:
+
+        x**2/2 + x**4/24 + x**6/720 + ...  = x**2/(1/2 + (2!/4!)*x**2/2!
+            + (4!/6!)*x**4/4!) + ...
+
+    So we obtain another sequence:
+
+        [1/2, 0, 1/12, 0, 1/30, 0, 1/56, ...]
+
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.sequences import Sequence, SeqPer
+    >>> from sympy.printing.pretty.pretty import pprint
+    >>> from sympy.sequences.methods import SeqShiftLeftExp, SeqShiftRightExp
+
+    >>> a = SeqPer((0, oo), (1, 0))
+
+    >>> al = SeqShiftLeftExp(a, 2)
+    >>> pprint(al)
+    [1/2, 0, 1/12, 0, 1/30, 0, 1/56, ...]
+
+    Or we can use methods instead of class:
+
+    >>> pprint(a.shiftleft_exp(2))
+    [1/2, 0, 1/12, 0, 1/30, 0, 1/56, ...]
+
+
+    See Also
+    ========
+
+    sympy.sequences.expr.SeqShiftRightExp
+
+    """
+    # TODO:
+    #  SeqShiftLeftExp(SeqShiftRightExp(seq, 2), 2) --> seq
+
+    def __getitem__(self, i):
+        offset = self.offset
+        n = i + offset
+        bc = factorial(i)/factorial(n) # i < n
+        return self.args[0][n]*bc
+
+class SeqShiftRightExp(SeqShiftRight):
+    """
+    Shift sequence to the right exponentially.
+
+    Examples
+    ========
+
+    >>> from sympy import oo
+    >>> from sympy.sequences import Sequence, SeqPer
+    >>> from sympy.printing.pretty.pretty import pprint
+    >>> from sympy.sequences.methods import SeqShiftLeftExp, SeqShiftRightExp
+
+    >>> a = SeqPer((0, oo), (1, 0))
+
+    >>> ar = SeqShiftRightExp(a, 2)
+    >>> pprint(ar)
+    [0, 0, 2, 0, 12, 0, 30, ...]
+
+    Or we can use methods instead of class:
+
+    >>> pprint(a.shiftright_exp(2))
+    [0, 0, 2, 0, 12, 0, 30, ...]
+
+    Revert:
+
+    >>> pprint(SeqShiftLeftExp(ar, 2))
+    [1, 0, 1, 0, 1, 0, 1, ...]
+
+    >>> pprint(ar.shiftleft_exp(2))
+    [1, 0, 1, 0, 1, 0, 1, ...]
+
+
+    See Also
+    ========
+
+    sympy.sequences.expr import SeqShiftLeftExp
+
+    """
+
+    def __getitem__(self, i):
+        offset = self.offset
+        n = i - offset
+        if n < 0:
+            return S.Zero
+        bc = factorial(i)/factorial(n)  # i > n
+        return self.args[0][n]*bc
+
+class ReverseLangrange(SeqExpr):
+    def __new__(cls, *args):
+        assert args[0].is_Sequence
+        assert len(args)==1
+        expr = Expr.__new__(cls, *args)
+        return expr
+
+    @property
+    def original(self):
+        return self._args[0]
+
+    @property
+    def original_prepared(self):
+        """
+        Return prepeared original series.
+
+        if original sequence is {0, a1, a2, a3...}
+        then prepared sequence is {1, 0, a2, a3...}
+        """
+        #TODO: more convenient way to prepare
+        # use leadterm.
+        r = self.original[2:]
+        r = r + Sequence((1, 1), finitlist=(S.One, ))
+        return r
+
+    @property
+    def interval(self):
+        return Interval(S.Zero, S.Infinity)
+
+    def __getitem__(self, i):
+        return self.getitem_dispatche(i)
+
+    #@cacheit_recurr(0)
+    @cacheit
+    def getitem_index(self, i):
+        if i == S.Zero:
+            return S.One
+        s_n = self.original_prepared**(-i)  # TODO: very rough
+        res = s_n[i]/i
+        return res

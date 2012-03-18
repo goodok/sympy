@@ -72,8 +72,8 @@ class SeqExprOp(Expr):
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rpow__')
     def __pow__(self, other):
-        if other == -S.One:
-            return Inverse(self)
+        #if other == -S.One:
+        #    return Inverse(self)
         return SeqCauchyPow(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__pow__')
@@ -102,8 +102,8 @@ class SeqExprInterval(object):
         Examples
         ========
         >>> from sympy import oo
-        >>> from sympy.series.sequences import Sequence, SeqPer
-        >>> from sympy.series.sequencesexpr import SeqShiftLeft
+        >>> from sympy.sequences import Sequence, SeqPer
+        >>> from sympy.sequences.methods import SeqShiftLeft
 
         >>> a = Sequence((0, 5), finitlist=(1, 2, 3, 4, 5, 6))
         >>> b = Sequence((8, oo), periodical = (0, 2))
@@ -210,7 +210,7 @@ class SeqExprMain(object):
     @property
     @cacheit
     def first_nonzero_n(self):
-        # or maybe main_offset
+        # or maybe main_offset, or `order`
         """
         get first non zero index
         """
@@ -231,12 +231,12 @@ class SeqExprMain(object):
     @property
     @cacheit
     def main(self):
-        return SeqShiftLeft(self, self.first_nonzero_n)
+        return self.shiftleft(self.first_nonzero_n)
 
     @property
     @cacheit
     def mainexp(self):
-        return SeqShiftLeftExp(self, self.first_nonzero_n)
+        return self.shiftleft_exp(self.first_nonzero_n)
 
 
 class SeqExprMethods(object):
@@ -244,16 +244,19 @@ class SeqExprMethods(object):
     Short methods for unitary operations.
     """
     def shiftleft(self, n):
-        return SeqShiftLeft(self, n)
+        pass
 
     def shiftright(self, n):
-        return SeqShiftRight(self, n)
+        pass
 
     def factorialize(self):
-        return Factorialize(self)
+        pass
 
     def unfactorialize(self):
-        return UnFactorialize(self)
+        pass
+
+    def reverse(self):
+        pass
 
 class SeqExpr(SeqExprOp, SeqExprInterval, SeqExprPrint, SeqExprMethods, SeqExprMain):
 
@@ -277,112 +280,6 @@ class EmptySequence(SeqExpr):
 #       Operations
 ###########################
 
-class SeqShiftLeft(SeqExpr):
-    """
-    Shift sequence to the left.
-
-    Examples
-    ========
-
-    >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence, SeqPer
-    >>> from sympy.series.sequencesexpr import SeqShiftLeft
-    >>> from sympy.printing.pretty.pretty import pprint
-
-    >>> a = SeqPer((0, oo), (1, 2, 3))
-    >>> pprint(a)
-    [1, 2, 3, 1, 2, 3, 1, ...]
-
-    >>> pprint(SeqShiftLeft(a, 1))
-    [2, 3, 1, 2, 3, 1, 2, ...]
-
-    >>> a.shiftleft(2)
-    SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2)
-
-    >>> pprint(a.shiftleft(2))
-    [3, 1, 2, 3, 1, 2, 3, ...]
-
-
-    >>> a = Sequence((0, oo), 'a')
-    >>> pprint(a)
-    [a[0], a[1], a[2], a[3], a[4], a[5], a[6], ...]
-
-    >>> pprint(a.shiftleft(2))
-    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
-
-    >>> pprint(a.shiftright(2))
-    [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
-
-    See Also
-    ========
-    sympy.series.sequencesexpr.SeqShiftRight, SeqShiftLeftExp
-
-    """
-    # TODO:
-    # SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2) ---> SeqPer([0, oo), (3, 2, 1)
-    # seq.shiftright(2).shiftleft(2) --> seq
-    # seq.left(2).shiftright(2) --> seq, but with the first two items removed
-
-    def __new__(cls, *args):
-        if (args[1]==0): return args[0]
-        expr = Expr.__new__(cls, *args)
-        return expr
-
-    @property
-    def offset(self):
-        return self.args[1]
-
-    def __getitem__(self, i):
-        n = i + self.offset
-        return self.args[0][n]
-
-    @property
-    def interval(self):
-        # TODO: calculate
-        return self.args[0].interval
-
-class SeqShiftRight(SeqExpr):
-
-    """
-    Shift sequence to the right.
-
-    Examples
-    ========
-
-    >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence
-    >>> from sympy.printing.pretty.pretty import pprint
-
-    >>> a = Sequence((0, oo), 'a')
-    >>> pprint(a.shiftright(2))
-    [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
-
-    See Also
-    ========
-    sympy.series.sequencesexpr.SeqShiftLeft, SeqShiftRightExp
-
-    """
-
-    def __new__(cls, *args):
-        if (args[1]==0): return args[0]
-        expr = Expr.__new__(cls, *args)
-        return expr
-
-    @property
-    def offset(self):
-        return self.args[1]
-
-    def __getitem__(self, i):
-        n = i - self.offset
-        if n >= 0:
-            return self.args[0][n]
-        else:
-            return S.Zero
-
-    @property
-    def interval(self):
-        # TODO: calculate
-        return self.args[0].interval
 
 class SeqSliced(SeqExpr):
     """
@@ -396,7 +293,7 @@ class SeqSliced(SeqExpr):
     ========
 
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence, abstract_sequences
+    >>> from sympy.sequences import Sequence, abstract_sequences
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> a = Sequence(periodical=(5, 7))
@@ -445,29 +342,6 @@ class SeqSliced(SeqExpr):
         else:
             return  self.original[i]
 
-
-class Factorialize(SeqExpr):
-    #TODO: UnFactorialize(UnFactorialize(seq)) --> seq
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
-
-    @property
-    def interval(self):
-        return self.original.interval
-
-    @property
-    def original(self):
-        return self._args[0]
-
-    @cacheit
-    def getitem_index(self, i):
-        return self.original[i]/factorial(i)
-
-class UnFactorialize(Factorialize):
-    @cacheit
-    def getitem_index(self, i):
-        return self.args[0][i]*factorial(i)
-
 ###########################
 #       Binary operations
 ###########################
@@ -481,7 +355,7 @@ class SeqAdd(SeqExpr, Add):
     ========
 
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.sequences import Sequence
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> a = Sequence((0, oo), periodical = (1, 0))
@@ -554,7 +428,7 @@ class SeqCoeffMul(SeqExpr, Mul):
     ========
 
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.sequences import Sequence
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> a = Sequence((0, oo), periodical = (1, 0))
@@ -562,10 +436,10 @@ class SeqCoeffMul(SeqExpr, Mul):
     2*SeqPer([0, oo), (1, 0))
 
     >>> type(2*a)
-    <class 'sympy.series.sequencesexpr.SeqCoeffMul'>
+    <class 'sympy.sequences.expr.SeqCoeffMul'>
 
     >>> type(-a)
-    <class 'sympy.series.sequencesexpr.SeqCoeffMul'>
+    <class 'sympy.sequences.expr.SeqCoeffMul'>
 
     >>> pprint(2*a)
     [2, 0, 2, 0, 2, 0, 2, ...]
@@ -700,8 +574,8 @@ class SeqMulEW(SeqExpr, Expr):
     Examples
     ========
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence
-    >>> from sympy.series.sequencesexpr import SeqMulEW
+    >>> from sympy.sequences import Sequence
+    >>> from sympy.sequences.expr import SeqMulEW
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> a = Sequence((0, oo), periodical = (1, 2))
@@ -717,7 +591,7 @@ class SeqMulEW(SeqExpr, Expr):
     See Also
     ========
 
-    sympy.series.sequencesexpr.SeqCauchyMul
+    sympy.sequences.expr.SeqCauchyMul
 
     """
     @property
@@ -752,7 +626,7 @@ class SeqCauchyMul(SeqExpr, Mul):
     Examples
     ========
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.sequences import Sequence
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> a = Sequence((0, oo), 'a')
@@ -760,7 +634,7 @@ class SeqCauchyMul(SeqExpr, Mul):
     >>> c = a*b
 
     >>> type(c)
-    <class 'sympy.series.sequencesexpr.SeqCauchyMul'>
+    <class 'sympy.sequences.expr.SeqCauchyMul'>
 
     >>> c[0]
     a[0]*b[0]
@@ -774,7 +648,7 @@ class SeqCauchyMul(SeqExpr, Mul):
     See Also
     ========
 
-    sympy.series.sequencesexpr.SeqCauchyMul, SeqExpCauchyMul
+    sympy.sequences.expr.SeqCauchyMul, sympy.sequences.expr.SeqExpCauchyMul
 
 
     References
@@ -817,7 +691,7 @@ class SeqCauchyMul(SeqExpr, Mul):
     def interval(self):
         """
         >>> from sympy import oo
-        >>> from sympy.series.sequences import Sequence
+        >>> from sympy.sequences import Sequence
         >>> from sympy.printing.pretty.pretty import pprint
 
         >>> a = Sequence((0, oo), 'a')
@@ -826,7 +700,7 @@ class SeqCauchyMul(SeqExpr, Mul):
         >>> c
         a*b
         >>> type(c)
-        <class 'sympy.series.sequencesexpr.SeqCauchyMul'>
+        <class 'sympy.sequences.expr.SeqCauchyMul'>
 
         >>> c.interval
         [0, oo)
@@ -876,7 +750,7 @@ class SeqCauchyPow(SeqExpr, Pow):
     ========
 
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.sequences import Sequence, SeqPer
     >>> from sympy.printing.pretty.pretty import pprint
 
     >>> a = Sequence((0, oo), 'a')
@@ -961,104 +835,6 @@ class SeqCauchyPow(SeqExpr, Pow):
         return printer._print_Pow(self)
 
 
-################################################################################
-#           Operations (for exponential generating sequences)                  #
-################################################################################
-
-class SeqShiftLeftExp(SeqShiftLeft):
-    """
-    Shift sequence to the left exponentially.
-
-    This helper implimetation for the TaylorSeries.
-
-    Define sequence:
-        1 + x**2/2 + x**4/4! + x**6/6! + x**8/8! + ...
-    with coefficients
-        [1, 0, 1, 0, ...]
-
-    Remove 1 as the first element deleted while shifting:
-        x**2/2 + x**4/24 + x**6/720 + ...
-
-    Then carry out the x**2 term:
-
-        x**2/2 + x**4/24 + x**6/720 + ...  = x**2/(1/2 + (2!/4!)*x**2/2!
-            + (4!/6!)*x**4/4!) + ...
-
-    So we obtain another sequence:
-
-        [1/2, 0, 1/12, 0, 1/30, 0, 1/56, ...]
-
-
-    Examples
-    ========
-
-    >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence, SeqPer
-    >>> from sympy.printing.pretty.pretty import pprint
-    >>> from sympy.series.sequencesexpr import SeqShiftLeftExp, SeqShiftRightExp
-
-    >>> a = SeqPer((0, oo), (1, 0))
-
-
-    >>> al = SeqShiftLeftExp(a, 2)
-    >>> pprint(al)
-    [1/2, 0, 1/12, 0, 1/30, 0, 1/56, ...]
-
-
-    See Also
-    ========
-
-    sympy.series.sequencesexpr import SeqShiftRightExp
-
-    """
-    # TODO:
-    #  SeqShiftLeftExp(SeqShiftRightExp(seq, 2), 2) --> seq
-
-    def __getitem__(self, i):
-        offset = self.offset
-        n = i + offset
-        bc = factorial(i)/factorial(n) # i < n
-        return self.args[0][n]*bc
-
-class SeqShiftRightExp(SeqShiftRight):
-    """
-    Shift sequence to the right exponentially.
-
-    Examples
-    ========
-
-    >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence, SeqPer
-    >>> from sympy.printing.pretty.pretty import pprint
-    >>> from sympy.series.sequencesexpr import SeqShiftLeftExp, SeqShiftRightExp
-
-    >>> a = SeqPer((0, oo), (1, 0))
-
-    >>> ar = SeqShiftRightExp(a, 2)
-    >>> pprint(ar)
-    [0, 0, 2, 0, 12, 0, 30, ...]
-
-    Revert:
-
-    >>> pprint(SeqShiftLeftExp(ar, 2))
-    [1, 0, 1, 0, 1, 0, 1, ...]
-
-
-    See Also
-    ========
-
-    sympy.series.sequencesexpr import SeqShiftLeftExp
-
-    """
-
-    def __getitem__(self, i):
-        offset = self.offset
-        n = i - offset
-        if n < 0:
-            return S.Zero
-        bc = factorial(i)/factorial(n)  # i > n
-        return self.args[0][n]*bc
-
 class SeqExpCauchyMul(SeqCauchyMul, Mul):
     """
     Product of Exponential Generation sequences.
@@ -1073,9 +849,9 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
     ========
 
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.sequences import Sequence, SeqPer
     >>> from sympy.printing.pretty.pretty import pprint
-    >>> from sympy.series.sequencesexpr import SeqExpCauchyMul
+    >>> from sympy.sequences.expr import SeqExpCauchyMul
 
     >>> a = Sequence((0, oo), 'a')
     >>> b = Sequence((0, oo), 'b')
@@ -1094,7 +870,7 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
     See Also
     ========
 
-    sympy.series.sequencesexpr.SeqCauchyMul, sympy.series.taylor
+    sympy.sequences.expr.SeqCauchyMul, sympy.series.taylor
 
     """
     def __getitem__(self, i):
@@ -1119,6 +895,7 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
                 c.append(a[k]*b[i-k]*binomial(i, k))
             return Add(*tuple(c))
 
+
 class SeqExpCauchyPow(SeqCauchyPow):
     """
 
@@ -1128,9 +905,9 @@ class SeqExpCauchyPow(SeqCauchyPow):
     ========
 
     >>> from sympy import oo
-    >>> from sympy.series.sequences import Sequence, SeqPer
+    >>> from sympy.sequences import Sequence, SeqPer
     >>> from sympy.printing.pretty.pretty import pprint
-    >>> from sympy.series.sequencesexpr import SeqExpCauchyPow
+    >>> from sympy.sequences.expr import SeqExpCauchyPow
 
 
     Consider coefficient of Taylor series of `sin(x)**2'
@@ -1172,8 +949,7 @@ class SeqExpCauchyPow(SeqCauchyPow):
     @property
     @cacheit
     def mainright(self):
-        w = SeqShiftRightExp(self.main, self.first_nonzero_n)
-        return w
+        return self.main.shiftright_exp(self.first_nonzero_n)
 
 class SeqExpCauchyPow_Main(SeqCauchyPow):
     """
@@ -1249,6 +1025,7 @@ class FaDeBruno(SeqExpr):
         expr = Expr.__new__(cls, *args)
         return expr
 
+    # TODO: remove this?
     def _hashable_content(self):
         return self._args
 
@@ -1273,3 +1050,44 @@ class FaDeBruno(SeqExpr):
             s += self.g[k] * bell(i, k, self.f)
         return s
 
+
+class ReverseLangrange(SeqExpr):
+    def __new__(cls, *args):
+        assert args[0].is_Sequence
+        assert len(args)==1
+        expr = Expr.__new__(cls, *args)
+        return expr
+
+    @property
+    def original(self):
+        return self._args[0]
+
+    @property
+    def original_prepared(self):
+        """
+        Return prepeared original series.
+
+        if original sequence is {0, a1, a2, a3...}
+        then prepared sequence is {1, 0, a2, a3...}
+        """
+        #TODO: more convenient way to prepare
+        # use leadterm.
+        r = self.original[2:]
+        #r = r + Sequence((1, 1), finitlist=(S.One, ))
+        return r
+
+    @property
+    def interval(self):
+        return Interval(S.Zero, S.Infinity)
+
+    def __getitem__(self, i):
+        return self.getitem_dispatche(i)
+
+    #@cacheit_recurr(0)
+    @cacheit
+    def getitem_index(self, i):
+        if i == S.Zero:
+            return S.One
+        s_n = self.original_prepared**(-i)  # TODO: very rough
+        res = s_n[i]/i
+        return res

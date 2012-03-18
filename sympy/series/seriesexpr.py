@@ -4,8 +4,8 @@ from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit
 from sympy.core.sets import Interval
 
-from sympy.series.sequences import Sequence, SequenceSymbol
-from sympy.series.sequencesexpr import SeqCoeffMul, SeqSliced
+from sympy.sequences import Sequence, SequenceSymbol
+from sympy.sequences.expr import SeqCoeffMul, SeqSliced
 
 
 """

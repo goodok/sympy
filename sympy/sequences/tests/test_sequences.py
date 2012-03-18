@@ -9,8 +9,9 @@ from sympy.core.sets import Interval
 from sympy.core.symbol import Symbol, symbols
 from sympy.core.cache import clear_cache
 
-from sympy.series.sequences import Sequence, SeqPer, SeqFormula, SeqFunc, SequenceSymbol, abstract_sequences
-from sympy.series.sequencesexpr import SeqAdd, SeqCoeffMul, SeqCauchyMul
+from sympy.sequences import Sequence, SequenceSymbol, abstract_sequences
+from sympy.sequences.kinds import SeqPer, SeqFormula, SeqFunc
+from sympy.sequences.expr import SeqAdd, SeqCoeffMul, SeqCauchyMul
 from sympy.series import TaylorSeries, PowerSeries
 
 
@@ -217,7 +218,6 @@ def test_powerseries_constructor():
 def test_powerseries_print():
     from sympy import S, oo
     from sympy.abc import x, k
-    from sympy.series.sequences import Sequence
     from sympy.series.power import PowerSeries
 
     seq = Sequence((0, oo), periodical=(1, 2, 3))
@@ -226,10 +226,9 @@ def test_powerseries_print():
     s = str(ps2)
     assert s == '3*x**11 + x**12 + ...'
 
-def test_powerseries_inverse():
+def test_powerseries_power():
     from sympy import S, oo
     from sympy.abc import x, k
-    from sympy.series.sequences import Sequence
     from sympy.series.power import PowerSeries
 
     seq = Sequence((0, oo), periodical=(1, 2, 3))
@@ -349,6 +348,16 @@ def test_taylorseries_compose():
     r = tcos.compose(tsin)
     assert r.coeff(4) == S(5)
     assert r.coeff(6) == -S(37)
+
+def test_series_reverse():
+    x = Symbol("x")
+    tsin = TaylorSeries(x, periodical=(0, 1, 0, -1))
+    psin = tsin.to_power_series()
+    psin.sequence
+
+    t1 = psin.reverse()
+    r = t1[1]
+
 
 @XFAIL
 def test_series_print_finite():

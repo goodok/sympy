@@ -7,8 +7,10 @@ from sympy.functions.combinatorial.factorials import factorial
 from sympy.core.cache import cacheit
 from sympy.core.sets import Interval
 
+from sympy.sequences.expr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow, FaDeBruno
+
 from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
-from sequencesexpr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow, FaDeBruno
+
 
 class TaylorSeriesExprOp(SeriesExpr):
     is_TaylorSeries = True
@@ -90,7 +92,8 @@ class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     Examples
     ========
 
-    >>> from sympy.series import Sequence, TaylorSeries
+    >>> from sympy.series import TaylorSeries
+    >>> from sympy.sequences import Sequence
     >>> from sympy import S, oo
     >>> from sympy.abc import x, k
     >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
@@ -100,16 +103,13 @@ class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     >>> TaylorSeries(x, sequence=seq)
     x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
 
-    >>> a = Sequence((0, oo), periodical = (1, 0))
-    >>> b = Sequence((0, oo), periodical = (0, 1))
-
     Define hyperbolic cos series with the help of sequence:
 
-    >>> tcosh = TaylorSeries(x, sequence=a)
+    >>> tcosh = TaylorSeries(x, periodical = (1, 0))
     >>> tcosh
     1 + x**2/2 + x**4/24 + ...
 
-    >>> tsinh = TaylorSeries(x, sequence=b)
+    >>> tsinh = TaylorSeries(x, periodical = (0, 1))
     >>> tsinh
     x + x**3/6 + x**5/120 + x**7/5040 + ...
 
@@ -202,7 +202,8 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
     Examples
     ========
 
-    >>> from sympy.series import Sequence, TaylorSeries
+    >>> from sympy.series import TaylorSeries
+    >>> from sympy.sequences import Sequence
     >>> from sympy import S, oo
     >>> from sympy.abc import x, k
     >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
@@ -212,16 +213,13 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
     >>> TaylorSeries(x, sequence=seq)
     x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
 
-    >>> a = Sequence((0, oo), periodical = (1, 0))
-    >>> b = Sequence((0, oo), periodical = (0, 1))
-
     Define hyperbolic cos series with the help of sequence:
 
-    >>> tcosh = TaylorSeries(x, sequence=a)
+    >>> tcosh = TaylorSeries(x, periodical = (1, 0))
     >>> tcosh
     1 + x**2/2 + x**4/24 + ...
 
-    >>> tsinh = TaylorSeries(x, sequence=b)
+    >>> tsinh = TaylorSeries(x, periodical = (0, 1))
     >>> tsinh
     x + x**3/6 + x**5/120 + x**7/5040 + ...
 

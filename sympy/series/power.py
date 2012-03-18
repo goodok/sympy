@@ -10,8 +10,8 @@ from sympy.core.cache import cacheit
 from sympy.abc import k
 
 from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
-from sequences import Sequence
-from sequencesexpr import SeqAdd, SeqCauchyMul, SeqCauchyPow, FaDeBruno, SeqMulEW
+#from sympy.sequences import Sequence
+from sympy.sequences.expr import SeqAdd, SeqCauchyMul, SeqCauchyPow, FaDeBruno #SeqMulEW
 
 class PowerSeriesExprOp(SeriesExpr):
     is_PowerSeries = True
@@ -83,6 +83,8 @@ class PowerSeriesExpr(PowerSeriesExprOp):
     def to_taylor_series(self):
         pass
 
+    def reverse(self):
+        return Reverse(self)
 
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """
@@ -90,7 +92,7 @@ class PowerSeries(PowerSeriesExpr, SeriesAtom):
 
     >>> from sympy import S, oo
     >>> from sympy.abc import x, k
-    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.sequences import Sequence
     >>> from sympy.series.power import PowerSeries
 
     >>> seq = Sequence((1, oo), formula = (k, S(1)/k))
@@ -100,11 +102,7 @@ class PowerSeries(PowerSeriesExpr, SeriesAtom):
     >>> PowerSeries(x, sequence=seq)
     x + x**2/2 + x**3/3 + x**4/4 + x**5/5 + x**6/6 + x**7/7 + x**8/8 + ...
 
-    >>> seq = Sequence((0, oo), periodical = (1, 0))
-    >>> seq
-    SeqPer([0, oo), (1, 0))
-
-    >>> PowerSeries(x, sequence=seq)
+    >>> PowerSeries(x, periodical = (1, 0))
     1 + x**2 + x**4 + x**6 + x**8 + ...
 
     """
@@ -127,10 +125,9 @@ class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
     >>> from sympy import oo
     >>> from sympy.abc import x
     >>> from sympy.series.power import PowerSeries
-    >>> from sympy.series.sequences import Sequence
 
-    >>> a = PowerSeries(x, sequence=Sequence((0, oo), 'a'))
-    >>> b = PowerSeries(x, sequence=Sequence((0, oo), 'b'))
+    >>> a = PowerSeries(x, 'a')
+    >>> b = PowerSeries(x, 'b')
     >>> a
     a[0] + x*a[1] + x**2*a[2] + x**3*a[3] + x**4*a[4] + x**5*a[5] + x**6*a[6] + ...
     >>> b
@@ -176,10 +173,10 @@ class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
     >>> from sympy import oo
     >>> from sympy.abc import x
     >>> from sympy.series.power import PowerSeries
-    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.sequences import Sequence
 
-    >>> a = PowerSeries(x, sequence=Sequence((0, oo), 'a'))
-    >>> b = PowerSeries(x, sequence=Sequence((0, oo), 'b'))
+    >>> a = PowerSeries(x, 'a')
+    >>> b = PowerSeries(x, 'b')
     >>> c = a*b
 
     >>> c[0]
@@ -229,9 +226,9 @@ class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
     >>> from sympy import oo
     >>> from sympy.abc import x
     >>> from sympy.series.power import PowerSeries
-    >>> from sympy.series.sequences import Sequence
+    >>> from sympy.sequences import Sequence
 
-    >>> a = PowerSeries(x, sequence=Sequence((0, oo), 'a'))
+    >>> a = PowerSeries(x, 'a')
     >>> 2*a
     2*a[0] + 2*x*a[1] + 2*x**2*a[2] + 2*x**3*a[3] + ...
 
@@ -264,9 +261,8 @@ class PowerSeriesPow(PowerSeriesExpr, Pow):
     >>> from sympy import oo
     >>> from sympy.abc import x
     >>> from sympy.series.power import PowerSeries
-    >>> from sympy.series.sequences import Sequence
 
-    >>> a = PowerSeries(x, sequence=Sequence((0, oo), 'a'))
+    >>> a = PowerSeries(x, 'a')
     >>> c = a**2
     >>> c
     a[0]**2 + 2*x*a[0]*a[1] + x**2*(2*a[0]*a[2] + a[1]**2) + ...
@@ -337,8 +333,7 @@ class FaDeBruno_powers(FaDeBruno):
         return self.sequence_result[i]
 
 
-
-class Reverse(PowerSeriesExpr):
+class Reverse(PowerSeries):
     """
     Reversion of power series.
 
@@ -352,4 +347,30 @@ class Reverse(PowerSeriesExpr):
     .. [4] Faà di Bruno's Formula
 
     """
-    pass
+    def __new__(cls, original):
+        assert original.is_Series
+        original_seq = original.sequence
+        assert original_seq[0] == S.Zero
+        assert original_seq[1] <> S.Zero
+        obj = SeriesExpr.__new__(cls, original)
+        return obj
+
+    @property
+    def x(self):
+        return self.original.x
+
+    @property
+    def original(self):
+        return self._args[0]
+
+    @property
+    def interval(self):
+        return self.sequence.interval
+
+    @property
+    def original_seq(self):
+        return self.original.sequence
+
+    @property
+    def sequence(self):
+        return self.original_seq.reverse()
