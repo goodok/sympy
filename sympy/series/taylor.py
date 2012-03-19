@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 from sympy.core import (Basic, Expr, Add, Mul, Pow)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.singleton import (Singleton, S)
@@ -84,6 +84,9 @@ class TaylorSeriesExpr(TaylorSeriesExprOp):
     # abstract
     def to_power_series(self):
         pass
+
+    def reverse(self):
+        return Reverse(self)
 
 class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     """
@@ -252,3 +255,51 @@ class TaylorSeriesNested(SeriesNested, TaylorSeries):
     @cacheit
     def sequence(self):
         return FaDeBruno(self.g.sequence, self.f.sequence)
+
+
+class Reverse(TaylorSeries):
+    """
+    Reversion of power series.
+
+
+    See Also:
+
+    References
+    ==========
+
+    .. [1] Donald E. "Knuth Art of Computer Programming, Volume 2: Seminumerical Algorithms",
+    3rd ed., sec 4.7 "Manipulation of power series", p 526.
+    .. [2] http://en.wikipedia.org/wiki/Lagrange_inversion_theorem
+    .. [3] Fredrik Johansson, A fast algorithm for reversion of power series
+    .. [4] Faà di Bruno's Formula
+
+    """
+    # Note
+    # we use power series
+    def __new__(cls, original):
+        assert original.is_Series
+        original_seq = original.sequence
+        assert original_seq[0] == S.Zero
+        assert original_seq[1] <> S.Zero
+        obj = SeriesExpr.__new__(cls, original)
+        return obj
+
+    @property
+    def x(self):
+        return self.original.x
+
+    @property
+    def original(self):
+        return self._args[0]
+
+    @property
+    def interval(self):
+        return self.sequence.interval
+
+    @property
+    def original_seq(self):
+        return self.original.sequence
+
+    @property
+    def sequence(self):
+        return self.original_seq.factorialize().reverse().unfactorialize()

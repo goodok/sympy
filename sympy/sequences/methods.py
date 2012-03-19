@@ -5,7 +5,7 @@ from sympy.core.sets import Interval
 from sympy.core.singleton import (Singleton, S)
 from sympy.functions.combinatorial.factorials import factorial
 
-from expr import SeqExpr, SeqExprMethods
+from expr import SeqExpr, SeqExprMethods, SeqCauchyPow, FaDeBruno
 from kinds import Sequence
 
 
@@ -30,6 +30,8 @@ def factorialize(self):
 def unfactorialize(self):
     return UnFactorialize(self)
 
+def compose(self, other):
+    return FaDeBruno(self.unfactorialize(), other.unfactorialize()).factorialize()
 
 SeqExprMethods.reverse = reverse
 SeqExprMethods.shiftleft = shiftleft
@@ -38,6 +40,7 @@ SeqExprMethods.shiftleft_exp = shiftleft_exp
 SeqExprMethods.shiftright_exp = shiftright_exp
 SeqExprMethods.factorialize = factorialize
 SeqExprMethods.unfactorialize = unfactorialize
+SeqExprMethods.compose = compose
 
 class SeqShiftLeft(SeqExpr):
     """
@@ -282,6 +285,9 @@ class SeqShiftRightExp(SeqShiftRight):
         return self.args[0][n]*bc
 
 class ReverseLangrange(SeqExpr):
+    """
+    Composition inversion of power series
+    """
     def __new__(cls, *args):
         assert args[0].is_Sequence
         assert len(args)==1
@@ -293,6 +299,7 @@ class ReverseLangrange(SeqExpr):
         return self._args[0]
 
     @property
+    @cacheit
     def original_prepared(self):
         """
         Return prepeared original series.
@@ -301,9 +308,7 @@ class ReverseLangrange(SeqExpr):
         then prepared sequence is {1, 0, a2, a3...}
         """
         #TODO: more convenient way to prepare
-        # use leadterm.
-        r = self.original[2:]
-        r = r + Sequence((1, 1), finitlist=(S.One, ))
+        r = self.original.shiftleft(1)
         return r
 
     @property
@@ -317,7 +322,7 @@ class ReverseLangrange(SeqExpr):
     @cacheit
     def getitem_index(self, i):
         if i == S.Zero:
-            return S.One
+            return S.Zero
         s_n = self.original_prepared**(-i)  # TODO: very rough
-        res = s_n[i]/i
+        res = s_n[i-1]/i
         return res

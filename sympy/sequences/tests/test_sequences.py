@@ -198,12 +198,32 @@ def test_symbol():
     e2 = c[1].args[2].args[0] # a[0] - 0 is int
     assert e1 == e2
 
+def test_sequence_CauchyPower():
+    a = Sequence(periodical=(0, 1, 0, -1))
+    r = a**(2)
+    assert r[0] == S.Zero
+    assert r[1] == S.Zero
+
+
 #@SLOW
-def test_Cauchy_power_recurr():
+def test_sequence_CauchyPower_recurr():
     clear_cache()
     a = Sequence(periodical=(1, 0))
     c = a**2
     r = c[200]
+
+def test_sequence_reverse():
+    a = Sequence(periodical=(0, 1, 0, -1))
+    ssin = a.factorialize()
+    r = ssin.reverse()
+    assert r[0] == S.Zero
+    assert r[1] == S.One
+    assert r[5] == S(3)/40
+    assert r[7] == S(5)/112
+
+    ssin.reverse().compose(ssin)
+
+
 
 def test_powerseries_constructor():
     x = Symbol('x')

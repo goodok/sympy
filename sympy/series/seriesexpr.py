@@ -238,6 +238,7 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
         return tuple(self._args)
 
     def coeff(self, i):
+        # TODO: the name-token override `Expr.coeff`
         return self.sequence[i]
 
 class SeriesAtom(SeriesExpr):
