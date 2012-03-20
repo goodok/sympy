@@ -280,11 +280,6 @@ class PowerSeriesPow(PowerSeriesExpr, Pow):
     def sequence(self):
         return SeqCauchyPow(self.base.sequence, self.exp)
 
-    @property
-    @cacheit
-    def interval(self):
-        return self.sequence.interval
-
 class PowerSeriesNested(SeriesNested, PowerSeries):
 
     @property
@@ -358,10 +353,6 @@ class Reverse(PowerSeries):
     @property
     def original(self):
         return self._args[0]
-
-    @property
-    def interval(self):
-        return self.sequence.interval
 
     @property
     def original_seq(self):

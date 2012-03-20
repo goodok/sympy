@@ -233,11 +233,6 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
     def sequence(self):
         return SeqExpCauchyPow(self.base.sequence, self.exp)
 
-    @property
-    @cacheit
-    def interval(self):
-        return self.sequence.interval
-
 class TaylorSeriesNested(SeriesNested, TaylorSeries):
 
     @property
@@ -280,10 +275,6 @@ class Reverse(TaylorSeries):
     @property
     def original(self):
         return self._args[0]
-
-    @property
-    def interval(self):
-        return self.sequence.interval
 
     @property
     def original_seq(self):

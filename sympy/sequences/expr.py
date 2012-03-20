@@ -173,6 +173,9 @@ class SeqExprInterval(object):
             slc_stop = S.Infinity
         return self.interval & Interval(slc_start, slc_stop)
 
+    def __getitem__(self, i):
+        return self.getitem_dispatche(i)
+
     def getitem_dispatche(self, i):
         if isinstance(i, slice):
             return self.getitem_slicing(i)
@@ -182,11 +185,8 @@ class SeqExprInterval(object):
             return self.getitem_index(i)
 
     def getitem_slicing(self, i):
-        mask_interval = self.calc_interval_from_slice(i)
-        return SeqSliced(self, mask_interval)
-
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
+        mask = self.calc_interval_from_slice(i)
+        return SeqSliced(self, mask)
 
 
 class SeqExprPrint(object):

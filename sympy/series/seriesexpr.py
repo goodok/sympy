@@ -5,7 +5,7 @@ from sympy.core.cache import cacheit
 from sympy.core.sets import Interval, EmptySet
 
 from sympy.sequences import Sequence, SequenceSymbol
-from sympy.sequences.expr import SeqCoeffMul, SeqSliced
+from sympy.sequences.expr import SeqExprInterval, SeqExprPrint, SeqSliced, SeqCoeffMul
 
 
 """
@@ -87,60 +87,20 @@ class SeriesExprOp(Expr):
     __rtruediv__ = __rdiv__
 
 
-class SeriesExprInterval(object):
+class SeriesExprInterval(SeqExprInterval):
 
     #TODO: join dublicated code with SeqExprInterval
-    @property
-    @cacheit
-    def start_index(self):
-        return self.interval._inf
 
     @property
     @cacheit
-    def stop_index(self):
-        return self.interval._sup
-
-    @property
-    @cacheit
-    def is_infinite(self):
-        return self.stop_index == S.Infinity
-
-    def is_out_of_range(self, i):
-        if isinstance(i, Symbol):
-            return False
-        if i < self.start_index:
-            return True
-        if not self.is_infinite:
-            if i > self.stop_index:
-                return True
-        return False
-
-    def calc_interval_from_slice(self, slc):
-        slc_start = slc.start
-        if slc_start == None:
-            slc_start = S.Zero
-        slc_stop  = slc.stop
-        if slc_stop == None:
-            slc_stop = S.Infinity
-        return self.interval & Interval(slc_start, slc_stop)
-
-
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
-
-    def getitem_dispatche(self, i):
-        if isinstance(i, slice):
-            return self.getitem_slicing(i)
-        elif self.is_out_of_range(i):
-            return S.Zero
-        else:
-            return self.getitem_index(i)
+    def interval(self):
+        return self.sequence.interval
 
     def getitem_slicing(self, i):
         mask_interval = self.calc_interval_from_slice(i)
         return SeriesSliced(self, mask_interval)
 
-class SeriesExprPrint(object):
+class SeriesExprPrint(SeqExprPrint):
     """
     Interface with methods for printers.
     """
@@ -235,20 +195,6 @@ class SeriesExprPrint(object):
         else:
             return printer._print_Basic(self, *args)
 
-    def show(self, n, m=None):
-        """
-        Show (print) only part of the terms: from n to m.
-
-        If only n is present, then it is memorize this value to the object.
-        """
-        res = self
-        if m is not None:
-            res = self[n:m]
-            n = m - n
-        if n > 0:
-            res.show_n = n
-        return res
-
 class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
     def _hashable_content(self):
         return tuple(self._args)
@@ -276,15 +222,11 @@ class SeriesAtom(SeriesExpr):
     def sequence(self):
         return self._args[1]
 
-    @property
-    def interval(self):
-        return self.sequence.interval
-
     def coeff(self, i):
         return self.sequence[i]
 
 
-class SeriesSliced(SeriesExpr):
+class SeriesSliced(SeriesExpr, SeqSliced):
     """
     Return sliced series.
 
@@ -337,21 +279,6 @@ class SeriesSliced(SeriesExpr):
 
         obj = SeriesExpr.__new__(cls, original, mask)
         return obj
-
-    @property
-    def original(self):
-        return self._args[0]
-
-    @property
-    def mask(self):
-        return self._args[1]
-
-    @property
-    def interval(self):
-        return self.mask & self.original.interval
-
-    def getitem_index(self, i):
-        return  self.original[i]
 
     @property
     def sequnence(self):
@@ -463,7 +390,6 @@ class SeriesMul(SeriesExpr, Mul):
         stop = Add(*(s.stop_index for s in self.args))
         res = Interval(start, stop)
         return res
-
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
