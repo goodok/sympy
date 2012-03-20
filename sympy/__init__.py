@@ -64,6 +64,7 @@ from tensor import *
 from parsing import *
 # Adds about .04-.05 seconds of import time
 # from combinatorics import *
+from sequences import Sequence, abstract_sequences
 # This module is slow to import:
 #from physics import units
 from plotting import Plot, textplot

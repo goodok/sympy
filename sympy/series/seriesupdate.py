@@ -24,12 +24,12 @@ from power import PowerSeries, PowerSeriesExpr
 
 
 def to_power_series(self):
-    return PowerSeries(self.x, sequence = self.sequence.factorialize())
+    return PowerSeries(self.x, sequence = self.sequence.unfactorialize())
 
 TaylorSeriesExpr.to_power_series = to_power_series
 
 def to_taylor_series(self):
-    return TaylorSeries(self.x, sequence = self.sequence.unfactorialize())
+    return TaylorSeries(self.x, sequence = self.sequence.factorialize())
 
 PowerSeriesExpr.to_taylor_series = to_taylor_series
 

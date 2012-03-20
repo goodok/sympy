@@ -13,9 +13,30 @@ def reverse(self):
     return ReverseLangrange(self)
 
 def shiftleft(self, n):
+    """
+    Returns this sequence shifted to the left.
+    """
     return SeqShiftLeft(self, n)
 
 def shiftright(self, n):
+    """
+    Returns this sequence shifted to the right.
+    """
+    return SeqShiftRight(self, n)
+
+def shift(self, n):
+    """
+    Returns this sequence shifted to the right.
+
+    If n is negative, sequence will be shifted to the left, and elemets below n
+    will be discarded.
+
+    Does not change this sequence.
+    """
+    if (n < S.Zero):
+        return SeqShiftLeft(self, -n)
+    elif n == S.Zero:
+        return self
     return SeqShiftRight(self, n)
 
 def shiftleft_exp(self, n):
@@ -24,22 +45,23 @@ def shiftleft_exp(self, n):
 def shiftright_exp(self, n):
     return SeqShiftRightExp(self, n)
 
-def factorialize(self):
-    return Factorialize(self)
-
 def unfactorialize(self):
     return UnFactorialize(self)
 
+def factorialize(self):
+    return Factorialize(self)
+
 def compose(self, other):
-    return FaDeBruno(self.unfactorialize(), other.unfactorialize()).factorialize()
+    return FaDeBruno(self.factorialize(), other.factorialize()).unfactorialize()
 
 SeqExprMethods.reverse = reverse
 SeqExprMethods.shiftleft = shiftleft
 SeqExprMethods.shiftright = shiftright
+SeqExprMethods.shift = shift
 SeqExprMethods.shiftleft_exp = shiftleft_exp
 SeqExprMethods.shiftright_exp = shiftright_exp
-SeqExprMethods.factorialize = factorialize
 SeqExprMethods.unfactorialize = unfactorialize
+SeqExprMethods.factorialize = factorialize
 SeqExprMethods.compose = compose
 
 class SeqShiftLeft(SeqExpr):
@@ -61,22 +83,33 @@ class SeqShiftLeft(SeqExpr):
     >>> pprint(SeqShiftLeft(a, 1))
     [2, 3, 1, 2, 3, 1, 2, ...]
 
-    >>> a.shiftleft(2)
-    SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2)
-
-    >>> pprint(a.shiftleft(2))
-    [3, 1, 2, 3, 1, 2, 3, ...]
-
 
     >>> a = Sequence((0, oo), 'a')
     >>> pprint(a)
     [a[0], a[1], a[2], a[3], a[4], a[5], a[6], ...]
 
+    >>> pprint(SeqShiftLeft(a, 2))
+    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
+
+
+    You can also use "shiftleft" function, or "shift" with negative argument:
+
     >>> pprint(a.shiftleft(2))
     [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
 
+    >>> pprint(a.shift(-2))
+    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
+
     >>> pprint(a.shiftright(2))
-    [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
+    [0, ..., a[0], a[1], a[2], a[3], a[4], ...]
+
+    You can also use "<<" operators:
+
+    >>> pprint(a << 2)
+    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
+
+    >>> pprint(a >> 2)
+    [0, ..., a[0], a[1], a[2], a[3], a[4], ...]
 
     See Also
     ========
@@ -97,14 +130,19 @@ class SeqShiftLeft(SeqExpr):
     def offset(self):
         return self.args[1]
 
-    def __getitem__(self, i):
+    def getitem_index(self, i):
         n = i + self.offset
         return self.args[0][n]
 
     @property
+    @cacheit
     def interval(self):
-        # TODO: calculate
-        return self.args[0].interval
+        old = self.args[0].interval
+        left = old.inf - self.offset
+        right = old.sup - self.offset
+        # check that the new interval has no negative indexes.
+        new = Interval(left, right) & Interval(S.Zero, S.Infinity)
+        return new
 
 
 class SeqShiftRight(SeqExpr):
@@ -121,7 +159,7 @@ class SeqShiftRight(SeqExpr):
 
     >>> a = Sequence('a')
     >>> pprint(a.shiftright(2))
-    [0, 0, a[0], a[1], a[2], a[3], a[4], ...]
+    [0, ..., a[0], a[1], a[2], a[3], a[4], ...]
 
     See Also
     ========
@@ -138,7 +176,7 @@ class SeqShiftRight(SeqExpr):
     def offset(self):
         return self.args[1]
 
-    def __getitem__(self, i):
+    def getitem_index(self, i):
         n = i - self.offset
         if n >= 0:
             return self.args[0][n]
@@ -147,14 +185,22 @@ class SeqShiftRight(SeqExpr):
 
     @property
     def interval(self):
-        # TODO: calculate
-        return self.args[0].interval
+        old = self.args[0].interval
+        return Interval(old.inf + self.offset, old.sup + self.offset)
+
 
 
 class Factorialize(SeqExpr):
-    #TODO: UnFactorialize(UnFactorialize(seq)) --> seq
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
+    """
+    Return sequence with elemetes multiplied to n!.
+
+    Laplace transformatioin.
+    It is analog of `ogf()` function power series , which returns the ordinary
+    generating function associated to series.
+    And analog of "serlaplace" in PARI/GP.
+    """
+    #TODO:  name-token is laplace trasformation ?
+    #TODO: Factorialize(Factorialize(seq)) --> seq
 
     @property
     def interval(self):
@@ -166,13 +212,23 @@ class Factorialize(SeqExpr):
 
     @cacheit
     def getitem_index(self, i):
-        return self.original[i]/factorial(i)
+        return self.args[0][i]*factorial(i)
 
 class UnFactorialize(Factorialize):
-    #TODO:  name-token is laplace trasformation ?
+    """
+    Return sequence with elemetes devided by n!.
+
+    It is analiog of `egf` function of power series, which returns the
+    exponential generating function associated to series.
+
+    This can also be computed as convol(f,exp(t)) in PARI/GP ???
+    Or as SeqMulEW(self, Sequence(formula(x, 1/x!)))
+
+    """
     @cacheit
     def getitem_index(self, i):
-        return self.args[0][i]*factorial(i)
+        return self.original[i]/factorial(i)
+
 
 ################################################################################
 #           Operations (for exponential generating sequences)                  #
@@ -231,7 +287,7 @@ class SeqShiftLeftExp(SeqShiftLeft):
     # TODO:
     #  SeqShiftLeftExp(SeqShiftRightExp(seq, 2), 2) --> seq
 
-    def __getitem__(self, i):
+    def getitem_index(self, i):
         offset = self.offset
         n = i + offset
         bc = factorial(i)/factorial(n) # i < n
@@ -253,12 +309,12 @@ class SeqShiftRightExp(SeqShiftRight):
 
     >>> ar = SeqShiftRightExp(a, 2)
     >>> pprint(ar)
-    [0, 0, 2, 0, 12, 0, 30, ...]
+    [0, ..., 2, 0, 12, 0, 30, ...]
 
     Or we can use methods instead of class:
 
     >>> pprint(a.shiftright_exp(2))
-    [0, 0, 2, 0, 12, 0, 30, ...]
+    [0, ..., 2, 0, 12, 0, 30, ...]
 
     Revert:
 
@@ -276,7 +332,7 @@ class SeqShiftRightExp(SeqShiftRight):
 
     """
 
-    def __getitem__(self, i):
+    def getitem_index(self, i):
         offset = self.offset
         n = i - offset
         if n < 0:
@@ -314,9 +370,6 @@ class ReverseLangrange(SeqExpr):
     @property
     def interval(self):
         return Interval(S.Zero, S.Infinity)
-
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
 
     #@cacheit_recurr(0)
     @cacheit

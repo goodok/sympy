@@ -214,7 +214,7 @@ def test_sequence_CauchyPower_recurr():
 
 def test_sequence_reverse():
     a = Sequence(periodical=(0, 1, 0, -1))
-    ssin = a.factorialize()
+    ssin = a.unfactorialize()
     r = ssin.reverse()
     assert r[0] == S.Zero
     assert r[1] == S.One
@@ -254,6 +254,14 @@ def test_powerseries_power():
     seq = Sequence((0, oo), periodical=(1, 2, 3))
     ps = PowerSeries(x, sequence=seq)
     c = ps**(-S.One)
+
+    ps = PowerSeries(x, sequence=Sequence((2, oo), 'a'))
+    a = ps.sequence
+    assert ps.sequence.first_nonzero_n == 2
+    c = ps**2
+
+    assert c[0] == 0
+    assert c[4] == x**4*a[2]**2
 
 def test_taylorseries():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))

@@ -349,8 +349,8 @@ class SeqList(SequenceBase):
             new_interval = self.calc_interval_from_slice(i)
             if new_interval == S.EmptySet:
                 return S.EmptySequence
-            a = new_interval.left - self.start_index
-            b = new_interval.right - self.start_index + 1
+            a = new_interval.inf - self.start_index
+            b = new_interval.sup - self.start_index + 1
             new_baselist = self.baselist[a:b]
             return self._from_args(new_interval, new_baselist)
 

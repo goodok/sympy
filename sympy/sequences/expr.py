@@ -6,7 +6,7 @@ from sympy.core.operations import AssocOp
 from sympy.core.singleton import (Singleton, S)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.cache import cacheit, cacheit_recurr
-from sympy.core.sets import Interval
+from sympy.core.sets import Interval, EmptySet
 from sympy.functions.combinatorial.factorials import factorial, binomial
 from sympy.functions.combinatorial.numbers import bell
 
@@ -88,6 +88,25 @@ class SeqExprOp(Expr):
     def __rdiv__(self, other):
         raise NotImplementedError()
 
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__div__')
+    def __rdiv__(self, other):
+        raise NotImplementedError()
+
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__div__')
+    def __rdiv__(self, other):
+        raise NotImplementedError()
+
+
+    def __lshift__(self, other):
+        "Overloading for <<"
+        return self.shiftleft(other)
+
+    def __rshift__(self, other):
+        "Overloading for >>"
+        return self.shiftright(other)
+
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
@@ -166,6 +185,10 @@ class SeqExprInterval(object):
         mask_interval = self.calc_interval_from_slice(i)
         return SeqSliced(self, mask_interval)
 
+    def __getitem__(self, i):
+        return self.getitem_dispatche(i)
+
+
 class SeqExprPrint(object):
     show_n = 7
     def _sympystr(self, printer, *args):
@@ -202,6 +225,21 @@ class SeqExprPrint(object):
             count = min(count, self.length)
         printset.extend([self[i] for i in xrange(self.start_index, self.start_index + count)])
         return printset
+
+    def show(self, n, m=None):
+        """
+        Show (print) only the part of the sequence: from n to m.
+
+        If only n is present, then it is memorize this value to the object.
+        """
+        res = self
+        if m is not None:
+            res = self[n:m]
+            n = m - n
+        if n > 0:
+            res.show_n = n
+        return res
+
 
 class SeqExprMain(object):
     """
@@ -249,10 +287,10 @@ class SeqExprMethods(object):
     def shiftright(self, n):
         pass
 
-    def factorialize(self):
+    def unfactorialize(self):
         pass
 
-    def unfactorialize(self):
+    def factorialize(self):
         pass
 
     def reverse(self):
@@ -318,10 +356,23 @@ class SeqSliced(SeqExpr):
     >>> pprint(c[2:5])
     [0, ..., 17, 24, 29, 36]
 
+    >>> c[2:5][4:10]
+    SeqSliced(SeqPer([0, oo), (1, 1))*SeqPer([0, oo), (5, 7)), [4, 5])
+
     """
-    def __new__(cls, original, mask_interval):
+    #TODO: better name-token for mask_interval.
+    def __new__(cls, original, mask):
         assert original.is_Sequence
-        obj = SeqExpr.__new__(cls, original, mask_interval)
+
+        if isinstance(original, SeqSliced):
+            # Absorb nested
+            mask = mask & original.mask
+            original = original.original
+
+        if isinstance(mask, EmptySet):
+            return S.EmptySequence
+
+        obj = SeqExpr.__new__(cls, original, mask)
         return obj
 
     @property
@@ -329,18 +380,15 @@ class SeqSliced(SeqExpr):
         return self._args[0]
 
     @property
-    def mask_interval(self):
+    def mask(self):
         return self._args[1]
 
     @property
     def interval(self):
-        return self.mask_interval & self.original.interval
+        return self.mask & self.original.interval
 
-    def __getitem__(self, i):
-        if self.is_out_of_range(i):
-            return S.Zero
-        else:
-            return  self.original[i]
+    def getitem_index(self, i):
+        return  self.original[i]
 
 ###########################
 #       Binary operations
@@ -571,6 +619,9 @@ class SeqMulEW(SeqExpr, Expr):
     """
     Element-wise multiplications of sequences.
 
+
+    it is analog of power series convolution (or Hadamard product), serconvol in PARI.
+
     Examples
     ========
     >>> from sympy import oo
@@ -600,9 +651,6 @@ class SeqMulEW(SeqExpr, Expr):
         for seq in self.args:
             res = res & seq.interval
         return res
-
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
 
     @cacheit
     def getitem_index(self, i):
@@ -715,9 +763,6 @@ class SeqCauchyMul(SeqExpr, Mul):
         res = Interval(start, stop)
         return res
 
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
-
     # TODO: use @cacheit_recurr
     @cacheit
     def getitem_index(self, i):
@@ -802,9 +847,6 @@ class SeqCauchyPow(SeqExpr, Pow):
             res = Interval(S.Zero, S.Infinity)
         return res
 
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
-
     @cacheit_recurr(0)
     def getitem_index(self, i):
         # TODO: implement generator
@@ -873,9 +915,6 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
     sympy.sequences.expr.SeqCauchyMul, sympy.series.taylor
 
     """
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
-
     #@cacheit_recurr(0)
     @cacheit
     def getitem_index(self, i):
@@ -925,11 +964,8 @@ class SeqExpCauchyPow(SeqCauchyPow):
     3rd ed., sec 4.7 "Manipulation of power series", p 526.
     .. [2] Faà di Bruno's Formula
     """
-
     # TODO: implement for various kind of Sequences.
     # TODO: use SeqCauchyPow: a_n = b_n/n!
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
 
     @cacheit_recurr(0)
     def getitem_index(self, i):
@@ -956,7 +992,7 @@ class SeqExpCauchyPow_Main(SeqCauchyPow):
     Power of sequences (exponential) for main sequence.
     """
     @cacheit_recurr(0)      #TODO: use fist_cached_index.
-    def __getitem__(self, i):
+    def getitem_index(self, i):
         if self.is_out_of_range(i):
             return S.Zero
         else:
@@ -1042,7 +1078,7 @@ class FaDeBruno(SeqExpr):
         return self.f.interval
 
     @cacheit
-    def __getitem__(self, i):
+    def getitem_index(self, i):
         if i == S.Zero:
             return self.g[0]
         s = S.Zero
@@ -1079,9 +1115,6 @@ class ReverseLangrange(SeqExpr):
     @property
     def interval(self):
         return Interval(S.Zero, S.Infinity)
-
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
 
     #@cacheit_recurr(0)
     @cacheit

@@ -131,14 +131,7 @@ class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     0
 
     """
-
-    # TODO: move common methods for Taylor and Power to SeriesAtom
-    def coeff(self, i):
-        return self.sequence[i]
-
-    def __getitem__(self, i):
-        return self.getitem_index(i)
-
+    pass
 
 class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
     """    """
@@ -163,7 +156,7 @@ class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
         return SeqAdd(*(s.sequence for s in self.args))
 
 class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
-    """A Product of Sequence Expressions."""
+    """A Product of series Expressions."""
 
     def __new__(cls, *args):
         # TODO: join with similar code of PowerSeriesMul, SeriesMul
@@ -245,10 +238,6 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
     def interval(self):
         return self.sequence.interval
 
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
-
-
 class TaylorSeriesNested(SeriesNested, TaylorSeries):
 
     @property
@@ -302,4 +291,4 @@ class Reverse(TaylorSeries):
 
     @property
     def sequence(self):
-        return self.original_seq.factorialize().reverse().unfactorialize()
+        return self.original_seq.unfactorialize().reverse().factorialize()

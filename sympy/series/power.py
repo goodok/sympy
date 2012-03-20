@@ -105,15 +105,14 @@ class PowerSeries(PowerSeriesExpr, SeriesAtom):
     >>> PowerSeries(x, periodical = (1, 0))
     1 + x**2 + x**4 + x**6 + x**8 + ...
 
-    """
 
-    def __getitem__(self, i):
-        if isinstance(i, slice):
-            # new seqence
-            sequence = self.sequence[i]
-            return PowerSeries(self.x, sequence=sequence)
-        else:
-            return self.getitem_index(i)
+    Notes
+    =====
+
+    Defining through the sequences is similar to Generating Function definition
+    and Discrete Laplace Tranform.
+    """
+    pass
 
 class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
     """
@@ -286,9 +285,6 @@ class PowerSeriesPow(PowerSeriesExpr, Pow):
     def interval(self):
         return self.sequence.interval
 
-    def __getitem__(self, i):
-        return self.getitem_dispatche(i)
-
 class PowerSeriesNested(SeriesNested, PowerSeries):
 
     @property
@@ -316,17 +312,17 @@ class FaDeBruno_powers(FaDeBruno):
 
     @property
     def _g(self):
-        return self.g.unfactorialize()
+        return self.g.factorialize()
 
     @property
     def _f(self):
-        return self.f.unfactorialize()
+        return self.f.factorialize()
 
 
     @property
     @cacheit
     def sequence_result(self):
-        return FaDeBruno(self._g, self._f).factorialize()
+        return FaDeBruno(self._g, self._f).unfactorialize()
 
     @cacheit
     def __getitem__(self, i):
