@@ -9,7 +9,7 @@ from sympy.core.sets import Interval
 
 from sympy.sequences.expr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow, FaDeBruno
 
-from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
+from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
 
 
 class TaylorSeriesExprOp(SeriesExpr):
@@ -69,6 +69,10 @@ class TaylorSeriesExprOp(SeriesExpr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
+
+class TaylorSeriesSliced(SeriesSliced, TaylorSeriesExprOp):
+    pass
+
 class TaylorSeriesExpr(TaylorSeriesExprOp):
 
     @cacheit
@@ -78,10 +82,14 @@ class TaylorSeriesExpr(TaylorSeriesExprOp):
             a = a / factorial(i) * Pow(self.x, i)
         return a
 
+    def getitem_slicing(self, i):
+        mask = self.calc_interval_from_slice(i)
+        return TaylorSeriesSliced(self, mask)
+
     def compose(self, other):
         return TaylorSeriesNested(self, other)
 
-    # abstract
+    # abstract (will be sertted in seriesupdate module)
     def to_power_series(self):
         pass
 

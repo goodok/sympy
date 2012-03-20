@@ -9,7 +9,7 @@ from sympy.core.cache import cacheit
 
 from sympy.abc import k
 
-from seriesexpr import SeriesExpr, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
+from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
 #from sympy.sequences import Sequence
 from sympy.sequences.expr import SeqAdd, SeqCauchyMul, SeqCauchyPow, FaDeBruno #SeqMulEW
 
@@ -69,12 +69,20 @@ class PowerSeriesExprOp(SeriesExpr):
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
+class PowerSeriesSliced(PowerSeriesExprOp, SeriesSliced):
+    # to maintain is_PowerSeries
+    pass
+
 class PowerSeriesExpr(PowerSeriesExprOp):
 
     @cacheit
     def getitem_index(self, i):
         c = self.sequence
         return c[i]*Pow(self.x, i)
+
+    def getitem_slicing(self, i):
+        mask = self.calc_interval_from_slice(i)
+        return PowerSeriesSliced(self, mask)
 
     def compose(self, other):
         return PowerSeriesNested(self, other)
