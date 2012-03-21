@@ -19,18 +19,17 @@ taylor.py       power.py
        this.file.
 """
 
-from taylor import TaylorSeries, TaylorSeriesExpr
 from power import PowerSeries, PowerSeriesExpr
-
+from power_e import PowerESeries, PowerESeriesExpr
 
 def to_power_series(self):
     return PowerSeries(self.x, sequence = self.sequence.unfactorialize())
 
-TaylorSeriesExpr.to_power_series = to_power_series
+PowerESeriesExpr.to_power_series = to_power_series
 
-def to_taylor_series(self):
-    return TaylorSeries(self.x, sequence = self.sequence.factorialize())
+def to_power_e_series(self):
+    return PowerESeries(self.x, sequence = self.sequence.factorialize())
 
-PowerSeriesExpr.to_taylor_series = to_taylor_series
+PowerSeriesExpr.to_power_e_series = to_power_e_series
 
 

@@ -28,7 +28,7 @@ class SeriesExprOp(Expr):
 
     is_Series = True
     is_Identity = False
-    is_TaylorSeries = False
+    is_PowerESeries = False
 
     show_n = 8
 

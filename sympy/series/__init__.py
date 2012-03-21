@@ -6,10 +6,10 @@ from gruntz import gruntz
 from series import series
 from residues import residue
 
-from taylor import TaylorSeries
+from power_e import PowerESeries
 from power import PowerSeries
 import seriesupdate
 
 O = Order
 
-__all__ = ['gruntz', 'limit', 'series', 'O', 'Order', 'Limit', 'residue', 'TaylorSeries', 'PowerSeries']
+__all__ = ['gruntz', 'limit', 'series', 'O', 'Order', 'Limit', 'residue', 'PowerESeries', 'PowerSeries']

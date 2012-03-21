@@ -9,7 +9,7 @@ from sympy.core.cache import clear_cache
 
 from sympy.sequences import Sequence
 
-from sympy.series import TaylorSeries, PowerSeries
+from sympy.series import PowerESeries, PowerSeries
 
 def test_powerseries_constructor():
     x = Symbol('x')
@@ -33,20 +33,20 @@ def test_powerseries_print():
 
 
 def test_types():
-    a = TaylorSeries(x, periodical=(0, 1))
-    b = TaylorSeries(x, periodical=(1, 0))
+    a = PowerESeries(x, periodical=(0, 1))
+    b = PowerESeries(x, periodical=(1, 0))
 
-    assert a.is_TaylorSeries
-    assert b.is_TaylorSeries
-    assert (a + b).is_TaylorSeries
-    assert (2*a + 3*b).is_TaylorSeries
-    assert a[1:5].is_TaylorSeries
-    assert (a[1:5] + b[2:7]).is_TaylorSeries
+    assert a.is_PowerESeries
+    assert b.is_PowerESeries
+    assert (a + b).is_PowerESeries
+    assert (2*a + 3*b).is_PowerESeries
+    assert a[1:5].is_PowerESeries
+    assert (a[1:5] + b[2:7]).is_PowerESeries
 
-    assert (a*b).is_TaylorSeries
-    assert (a**3).is_TaylorSeries
-    assert b.compose(a).is_TaylorSeries
-    assert a.reverse().is_TaylorSeries
+    assert (a*b).is_PowerESeries
+    assert (a**3).is_PowerESeries
+    assert b.compose(a).is_PowerESeries
+    assert a.reverse().is_PowerESeries
 
     c = PowerSeries(x, periodical=(0, 1))
     d = PowerSeries(x, periodical=(1, 0))
@@ -65,8 +65,8 @@ def test_types():
 
 
 def test_types_raises():
-    a = TaylorSeries(x, periodical=(0, 1))
-    b = TaylorSeries(x, periodical=(1, 0))
+    a = PowerESeries(x, periodical=(0, 1))
+    b = PowerESeries(x, periodical=(1, 0))
     c = PowerSeries(x, periodical=(0, 1))
     d = PowerSeries(x, periodical=(1, 0))
 
@@ -74,8 +74,8 @@ def test_types_raises():
 
 @XFAIL
 def test_types_raises_fails():
-    a = TaylorSeries(x, periodical=(0, 1))
-    b = TaylorSeries(x, periodical=(1, 0))
+    a = PowerESeries(x, periodical=(0, 1))
+    b = PowerESeries(x, periodical=(1, 0))
     c = PowerSeries(x, periodical=(0, 1))
     d = PowerSeries(x, periodical=(1, 0))
 
@@ -97,24 +97,24 @@ def test_powerseries_power():
     assert c[0] == 0
     assert c[4] == x**4*a[2]**2
 
-def test_taylorseries():
+def test_PowerESeries():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))
-    ts = TaylorSeries(x, sequence=seq)
+    ts = PowerESeries(x, sequence=seq)
     assert str(ts) == 'x**3/18 + x**4/96 + x**5/600 + x**6/4320 + x**7/35280 + x**8/322560 + x**9/3265920 + x**10/36288000 + x**11/439084800 + ...'
-    assert ts == TaylorSeries(x, sequence=seq)
+    assert ts == PowerESeries(x, sequence=seq)
 
-    a = TaylorSeries(x, periodical=(0, 1))
-    b = TaylorSeries(x, periodical=(1, 0))
+    a = PowerESeries(x, periodical=(0, 1))
+    b = PowerESeries(x, periodical=(1, 0))
     c = a + b
     d = 1 * c
 
 #related with flatten and canonicalization
-def test_taylorseries_coefficient():
-    from sympy.series.taylor import TaylorSeriesCoeffMul, TaylorSeriesMul
+def test_PowerESeries_coefficient():
+    from sympy.series.power_e import PowerESeriesCoeffMul, PowerESeriesMul
     x, y = symbols('x, y')
-    a = TaylorSeries(x, periodical=(0, 1))
-    b = TaylorSeries(x, periodical=(1, 0))
-    c = TaylorSeries(x, periodical=(1, 0))
+    a = PowerESeries(x, periodical=(0, 1))
+    b = PowerESeries(x, periodical=(1, 0))
+    c = PowerESeries(x, periodical=(1, 0))
 
     ts = (3*a)
     str(2*a)
@@ -128,20 +128,20 @@ def test_taylorseries_coefficient():
 
     abc = a*3*b*c
     assert abc == 3*a*b*c
-    assert isinstance(abc, TaylorSeriesCoeffMul)
+    assert isinstance(abc, PowerESeriesCoeffMul)
 
     abc = a*3*b*y*c
     assert abc == 3*y*a*b*c
-    assert isinstance(abc, TaylorSeriesCoeffMul)
+    assert isinstance(abc, PowerESeriesCoeffMul)
     assert abc.coefficient == 3*y
 
 
     # manual construction with internal coefficient of arguments
     # note that it can be temporary, and later automatical simplified to carry out common coefficient
     bc = 3*b*c
-    abc = TaylorSeriesMul(2*y*a, bc)
-    assert isinstance(abc, TaylorSeriesCoeffMul)
-    assert isinstance(abc.series, TaylorSeriesMul)
+    abc = PowerESeriesMul(2*y*a, bc)
+    assert isinstance(abc, PowerESeriesCoeffMul)
+    assert isinstance(abc.series, PowerESeriesMul)
     abc_series = abc.series
     assert len(abc_series.args) == 3
     assert abc_series == a*b*c

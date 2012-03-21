@@ -238,7 +238,7 @@ class SeqShiftLeftExp(SeqShiftLeft):
     """
     Shift sequence to the left exponentially.
 
-    This helper implimetation for the TaylorSeries.
+    This helper implimetation for the PowerESeries.
 
     Define sequence:
         1 + x**2/2 + x**4/4! + x**6/6! + x**8/8! + ...

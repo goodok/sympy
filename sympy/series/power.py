@@ -88,7 +88,7 @@ class PowerSeriesExpr(PowerSeriesExprOp):
         return PowerSeriesNested(self, other)
 
     # abstract
-    def to_taylor_series(self):
+    def to_power_e_series(self):
         pass
 
     def reverse(self):

@@ -12,47 +12,47 @@ from sympy.sequences.expr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow, FaDeB
 from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
 
 
-class TaylorSeriesExprOp(SeriesExpr):
-    is_TaylorSeries = True
+class PowerESeriesExprOp(SeriesExpr):
+    is_PowerESeries = True
 
     def __neg__(self):
-        return TaylorSeriesCoeffMul(S.NegativeOne, self)
+        return PowerESeriesCoeffMul(S.NegativeOne, self)
     def __abs__(self):
         raise NotImplementedError
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__radd__')
     def __add__(self, other):
-        return TaylorSeriesAdd(self, other)
+        return PowerESeriesAdd(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__add__')
     def __radd__(self, other):
-        return TaylorSeriesAdd(other, self)
+        return PowerESeriesAdd(other, self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rsub__')
     def __sub__(self, other):
-        return TaylorSeriesAdd(self, -other)
+        return PowerESeriesAdd(self, -other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__sub__')
     def __rsub__(self, other):
-        return TaylorSeriesAdd(other, -self)
+        return PowerESeriesAdd(other, -self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rmul__')
     def __mul__(self, other):
-        return TaylorSeriesMul(self, other)
+        return PowerESeriesMul(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__mul__')
     def __rmul__(self, other):
-        return TaylorSeriesMul(other, self)
+        return PowerESeriesMul(other, self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rpow__')
     def __pow__(self, other):
         #if other == -S.One:
         #    return Inverse(self)
-        return TaylorSeriesPow(self, other)
+        return PowerESeriesPow(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__pow__')
     def __rpow__(self, other):
@@ -60,7 +60,7 @@ class TaylorSeriesExprOp(SeriesExpr):
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rdiv__')
     def __div__(self, other):
-        return TaylorSeriesMul(self, other**S.NegativeOne)
+        return PowerESeriesMul(self, other**S.NegativeOne)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__div__')
     def __rdiv__(self, other):
@@ -70,10 +70,10 @@ class TaylorSeriesExprOp(SeriesExpr):
     __rtruediv__ = __rdiv__
 
 
-class TaylorSeriesSliced(SeriesSliced, TaylorSeriesExprOp):
+class PowerESeriesSliced(SeriesSliced, PowerESeriesExprOp):
     pass
 
-class TaylorSeriesExpr(TaylorSeriesExprOp):
+class PowerESeriesExpr(PowerESeriesExprOp):
 
     @cacheit
     def getitem_index(self, i):
@@ -84,10 +84,10 @@ class TaylorSeriesExpr(TaylorSeriesExprOp):
 
     def getitem_slicing(self, i):
         mask = self.calc_interval_from_slice(i)
-        return TaylorSeriesSliced(self, mask)
+        return PowerESeriesSliced(self, mask)
 
     def compose(self, other):
-        return TaylorSeriesNested(self, other)
+        return PowerESeriesNested(self, other)
 
     # abstract (will be sertted in seriesupdate module)
     def to_power_series(self):
@@ -96,14 +96,14 @@ class TaylorSeriesExpr(TaylorSeriesExprOp):
     def reverse(self):
         return Reverse(self)
 
-class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
+class PowerESeries(PowerESeriesExpr, SeriesAtom):
     """
-    Formal Taylor series.
+    Formal Power series with exponentional basis.
 
     Examples
     ========
 
-    >>> from sympy.series import TaylorSeries
+    >>> from sympy.series import PowerESeries
     >>> from sympy.sequences import Sequence
     >>> from sympy import S, oo
     >>> from sympy.abc import x, k
@@ -111,16 +111,16 @@ class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     >>> seq
     SeqFormula([1, oo), k, 1/k)
 
-    >>> TaylorSeries(x, sequence=seq)
+    >>> PowerESeries(x, sequence=seq)
     x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
 
     Define hyperbolic cos series with the help of sequence:
 
-    >>> tcosh = TaylorSeries(x, periodical = (1, 0))
+    >>> tcosh = PowerESeries(x, periodical = (1, 0))
     >>> tcosh
     1 + x**2/2 + x**4/24 + ...
 
-    >>> tsinh = TaylorSeries(x, periodical = (0, 1))
+    >>> tsinh = PowerESeries(x, periodical = (0, 1))
     >>> tsinh
     x + x**3/6 + x**5/120 + x**7/5040 + ...
 
@@ -141,7 +141,7 @@ class TaylorSeries(TaylorSeriesExpr, SeriesAtom):
     """
     pass
 
-class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
+class PowerESeriesAdd(PowerESeriesExpr, SeriesAdd):
     """    """
     def __new__(cls, *args):
 
@@ -149,13 +149,13 @@ class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
         args = [arg for arg in args if arg!=0]
 
         #TODO: create ScalAdd to keep scalar separatly
-        if not all(arg.is_TaylorSeries for arg in args):
-            raise ValueError("Mix of TaylorSeries and Scalar symbols")
+        if not all(arg.is_PowerESeries for arg in args):
+            raise ValueError("Mix of PowerESeries and Scalar symbols")
 
         expr = Add.__new__(cls, *args)
 
         if expr.is_Mul:
-            return TaylorSeriesMul(*expr.args)
+            return PowerESeriesMul(*expr.args)
         return expr
 
     @property
@@ -163,7 +163,7 @@ class TaylorSeriesAdd(TaylorSeriesExpr, SeriesAdd):
     def sequence(self):
         return SeqAdd(*(s.sequence for s in self.args))
 
-class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
+class PowerESeriesMul(PowerESeriesExpr, SeriesMul):
     """A Product of series Expressions."""
 
     def __new__(cls, *args):
@@ -186,27 +186,27 @@ class TaylorSeriesMul(TaylorSeriesExpr, SeriesMul):
         if coeff == S.One:
             return res
         else:
-            return TaylorSeriesCoeffMul(coeff, res)
+            return PowerESeriesCoeffMul(coeff, res)
 
     @property
     @cacheit
     def sequence(self):
         return SeqExpCauchyMul(*(s.sequence for s in self.args))
 
-class TaylorSeriesCoeffMul(TaylorSeriesExpr, SeriesCoeffMul):
+class PowerESeriesCoeffMul(PowerESeriesExpr, SeriesCoeffMul):
     # TODO: join with PowerSeries and use class method?
     def __getitem__(self, i):
         if isinstance(i, slice):
-            return TaylorSeriesCoeffMul(self.coefficient, self.ts[i])
+            return PowerESeriesCoeffMul(self.coefficient, self.ts[i])
         else:
             return self.coefficient * self.series[i]
 
-class TaylorSeriesPow(TaylorSeriesExpr, Pow):
+class PowerESeriesPow(PowerESeriesExpr, Pow):
     """
     Examples
     ========
 
-    >>> from sympy.series import TaylorSeries
+    >>> from sympy.series import PowerESeries
     >>> from sympy.sequences import Sequence
     >>> from sympy import S, oo
     >>> from sympy.abc import x, k
@@ -214,16 +214,16 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
     >>> seq
     SeqFormula([1, oo), k, 1/k)
 
-    >>> TaylorSeries(x, sequence=seq)
+    >>> PowerESeries(x, sequence=seq)
     x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
 
     Define hyperbolic cos series with the help of sequence:
 
-    >>> tcosh = TaylorSeries(x, periodical = (1, 0))
+    >>> tcosh = PowerESeries(x, periodical = (1, 0))
     >>> tcosh
     1 + x**2/2 + x**4/24 + ...
 
-    >>> tsinh = TaylorSeries(x, periodical = (0, 1))
+    >>> tsinh = PowerESeries(x, periodical = (0, 1))
     >>> tsinh
     x + x**3/6 + x**5/120 + x**7/5040 + ...
 
@@ -241,7 +241,7 @@ class TaylorSeriesPow(TaylorSeriesExpr, Pow):
     def sequence(self):
         return SeqExpCauchyPow(self.base.sequence, self.exp)
 
-class TaylorSeriesNested(SeriesNested, TaylorSeries):
+class PowerESeriesNested(SeriesNested, PowerESeries):
 
     @property
     @cacheit
@@ -249,7 +249,7 @@ class TaylorSeriesNested(SeriesNested, TaylorSeries):
         return FaDeBruno(self.g.sequence, self.f.sequence)
 
 
-class Reverse(TaylorSeries):
+class Reverse(PowerESeries):
     """
     Reversion of power series.
 

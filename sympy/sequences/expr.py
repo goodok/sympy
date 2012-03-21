@@ -912,7 +912,7 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
     See Also
     ========
 
-    sympy.sequences.expr.SeqCauchyMul, sympy.series.taylor
+    sympy.sequences.expr.SeqCauchyMul, sympy.series.power_e.PowerESeries
 
     """
     #@cacheit_recurr(0)
@@ -949,7 +949,7 @@ class SeqExpCauchyPow(SeqCauchyPow):
     >>> from sympy.sequences.expr import SeqExpCauchyPow
 
 
-    Consider coefficient of Taylor series of `sin(x)**2'
+    Consider coefficient of PowerE series of `sin(x)**2'
         x**2 + x**4/3 + 2*x**6/45  --> [0, 0, 2, 0, 8, 0, 32]
 
     >>> a = SeqPer((0, oo), (0, 1))
