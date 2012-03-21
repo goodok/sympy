@@ -189,6 +189,13 @@ class Basic(PicklableWithSlots):
         # relevant attributes as tuple.
         return self._args
 
+    @classmethod
+    def _hashable_content_before_creation(cls, args):
+        # If class defines additional attributes, like name in Symbol,
+        # then this method should be updated accordingly to return
+        # relevant attributes as tuple.
+        return args
+
     def compare(self, other):
         """
         Return -1, 0, 1 if the object is smaller, equal, or greater than other.

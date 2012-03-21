@@ -272,6 +272,7 @@ class LatticeOp(AssocOp):
 
     is_commutative = True
 
+    @cacheit
     def __new__(cls, *args, **options):
         args = (sympify(arg) for arg in args)
         try:

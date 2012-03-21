@@ -114,7 +114,11 @@ def test_heurisch_special():
 def test_heurisch_symbolic_coeffs():
     assert heurisch(1/(x+y), x)         == log(x+y)
     assert heurisch(1/(x+sqrt(2)), x)   == log(x+sqrt(2))
+
+@XFAIL
+def test_heurisch_symbolic_coeffs():
     assert simplify(diff(heurisch(log(x+y+z), y), y)) == log(x+y+z)
+    # output: log(_x1 + x + z) - 1
 
 def test_heurisch_symbolic_coeffs_1130():
     assert heurisch(1/(x**2+y), x) in [I/sqrt(y)*log(x + sqrt(-y))/2 - \

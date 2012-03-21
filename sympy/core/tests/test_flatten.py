@@ -1,4 +1,5 @@
 from sympy.utilities.pytest import XFAIL
+from sympy.core.cache import clear_cache
 
 def test_as_coeff_add():
     from sympy.abc import x
@@ -21,6 +22,9 @@ def test_add_flatten_nested_add():
     from sympy.core.mul import Mul
     from sympy.abc import x, y, z, a, b, c, d, e, f
 
+    # clear cache because we want to manage with args order
+    clear_cache()
+
     args = Add(z, e, Add(y, x, z), d, z**2, f).args
     assert args == (2*z, e, y, x, d, z**2, f)
 
@@ -31,6 +35,10 @@ def test_add_flatten_nested_mul():
     from sympy.core.add import Add
     from sympy.core.mul import Mul
     from sympy.abc import x, y, z, a, b, c, d, e, f
+
+    # clear cache because we want to manage with args order
+    clear_cache()
+
 
     args = Add(z, e, Mul(2, Add(y, x, z)), d, z**2, f).args
     assert args == (3*z, e, 2*y, 2*x, d, z**2, f)
@@ -45,7 +53,6 @@ def test_add_flatten_nested_mul():
     # Note: with the manually constructed Add(y, x, z) this was not necessary.
     # because it is flatten already.
 
-    from sympy.core.cache import clear_cache
     clear_cache()
 
     args = (z + e + 2*(y + x + z) + d + z**2 + f).args
@@ -56,11 +63,13 @@ def test_mul_flatten():
     from sympy.core.add import Add
     from sympy.core.mul import Mul
 
+    # clear cache because we want to manage with args order
+    clear_cache()
+
     args = Mul(2, y + x + z).args
     assert args == (2*y, 2*x, 2*z)   # it is related with Add.flatten only
 
     # See the comment above
-    from sympy.core.cache import clear_cache
     clear_cache()
 
     args = (2*(y + x + z)).args

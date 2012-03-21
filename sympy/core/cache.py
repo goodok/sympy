@@ -76,18 +76,26 @@ def __cacheit(func):
         """
         Assemble the args and kw_args to compute the hash.
         """
+        cls = args[0]
+        seq = list(args[1:])
+        if hasattr(cls, "_hashable_content_before_creation"):
+            flatten_args = tuple(cls._hashable_content_before_creation(seq))
+            flatten_args = (cls,) + flatten_args
+        else:
+             flatten_args = args
         if kw_args:
             keys = kw_args.keys()
             keys.sort()
             items = [(k+'=', kw_args[k]) for k in keys]
-            k = args + tuple(items)
+            k = flatten_args + tuple(items)
         else:
-            k = args
+            k = flatten_args
         k = k + tuple(map(lambda x: type(x), k))
         try:
             return func_cache_it_cache[k]
         except KeyError:
             pass
+        # TODO: use flatten_args
         func_cache_it_cache[k] = r = func(*args, **kw_args)
         return r
     return wrapper
