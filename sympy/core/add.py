@@ -837,6 +837,8 @@ class Add(AssocOp):
             c = terms.pop(0)
         else:
             c = None
+        import random
+        random.shuffle(terms)
         if c:
             terms.insert(0, c)
         return Rational(ngcd, dlcm), self._new_rawargs(*terms)
