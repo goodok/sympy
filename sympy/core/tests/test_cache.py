@@ -59,17 +59,5 @@ def test_And():
     assert a == b
     assert a == c
 
-    #assert a is b
-    #assert a is c
-
-@XFAIL
-def test_And_failed_1():
-    clear_cache()
-    x, y = symbols("x, y")
-    assert And(x, y) is And(x, y)
-
-@XFAIL
-def test_And_failed_2():
-    clear_cache()
-    x, y = symbols("x, y")
-    assert And(x, y) is And(y, x)
+    assert a is b
+    assert a is c
