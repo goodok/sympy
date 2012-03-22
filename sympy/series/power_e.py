@@ -86,6 +86,25 @@ class PowerESeriesExpr(PowerESeriesExprOp):
         mask = self.calc_interval_from_slice(i)
         return PowerESeriesSliced(self, mask)
 
+
+    def shift(self, n):
+        """
+        >>> from sympy.series import PowerESeries
+        >>> from sympy.abc import x
+        >>> from sympy.printing.repr import srepr
+        >>> ps = PowerESeries(x, periodical=(1, 2, 3, 4, 5, 6, 7))
+        >>> ps
+         1 + 2*x + 3*x**2/2 + 2*x**3/3 + 5*x**4/24 + x**5/20 + ...
+         >>> srepr(ps)
+         "PowerESeries(Symbol('x'), SeqPer(Interval(Integer(0), oo, False, True), (1, 2, 3, 4, 5, 6, 7)))"
+
+        >>> ps << 2
+        3/2 + 2*x/3 + 5*x**2/24 + x**3/20 + ...
+        """
+        new_seq = self.sequence.shift_exp(n)
+        return self._from_args(self.x, new_seq)
+
+
     def compose(self, other):
         return PowerESeriesNested(self, other)
 

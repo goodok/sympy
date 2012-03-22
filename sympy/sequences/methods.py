@@ -39,6 +39,13 @@ def shift(self, n):
         return self
     return SeqShiftRight(self, n)
 
+def shift_exp(self, n):
+    if (n < S.Zero):
+        return SeqShiftLeftExp(self, -n)
+    elif n == S.Zero:
+        return self
+    return SeqShiftRightExp(self, n)
+
 def shiftleft_exp(self, n):
     return SeqShiftLeftExp(self, n)
 
@@ -54,15 +61,16 @@ def factorialize(self):
 def compose(self, other):
     return FaDeBruno(self.factorialize(), other.factorialize()).unfactorialize()
 
-SeqExprMethods.reverse = reverse
+SeqExprMethods.shift = shift
 SeqExprMethods.shiftleft = shiftleft
 SeqExprMethods.shiftright = shiftright
-SeqExprMethods.shift = shift
+SeqExprMethods.shift_exp = shift_exp
 SeqExprMethods.shiftleft_exp = shiftleft_exp
 SeqExprMethods.shiftright_exp = shiftright_exp
 SeqExprMethods.unfactorialize = unfactorialize
 SeqExprMethods.factorialize = factorialize
 SeqExprMethods.compose = compose
+SeqExprMethods.reverse = reverse
 
 class SeqShiftLeft(SeqExpr):
     """

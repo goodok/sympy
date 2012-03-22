@@ -98,11 +98,9 @@ class SeqExprOp(Expr):
     def __rdiv__(self, other):
         raise NotImplementedError()
 
-
     def __lshift__(self, other):
         "Overloading for <<"
         return self.shiftleft(other)
-
     def __rshift__(self, other):
         "Overloading for >>"
         return self.shiftright(other)

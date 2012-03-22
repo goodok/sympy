@@ -83,6 +83,14 @@ class SeriesExprOp(Expr):
     def __rdiv__(self, other):
         raise NotImplementedError()
 
+    def __lshift__(self, other):
+        "Overloading for <<"
+        return self.shift(-other)
+
+    def __rshift__(self, other):
+        "Overloading for >>"
+        return self.shift(other)
+
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
 
@@ -137,6 +145,10 @@ class SeriesExprPrint(SeqExprPrint):
             else:
                 r = printer._print_Basic(self, *args)
             return r
+
+    def _sympyrepr(self, printer, *args):
+        r = printer.emptyPrinter(self)
+        return r
 
     def _pretty(self, printer, *args):
         from sympy.printing.pretty.stringpict import prettyForm, stringPict
@@ -207,6 +219,26 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
         # TODO: the name-token override `Expr.coeff`
         return self.sequence[i]
 
+    def shift(self, n):
+        """
+        >>> from sympy.series import PowerSeries
+        >>> from sympy.abc import x
+        >>> from sympy.printing.repr import srepr
+        >>> ps = PowerSeries(x, periodical=(1, 2, 3, 4, 5, 6, 7))
+        >>> ps
+        1 + 2*x + 3*x**2 + 4*x**3 + 5*x**4 + 6*x**5 + 7*x**6 + x**7 + ...
+        >>> srepr(ps)
+        "PowerSeries(Symbol('x'), SeqPer(Interval(Integer(0), oo, False, True), (1, 2, 3, 4, 5, 6, 7)))"
+
+        >>> ps.shift(-2)
+        3 + 4*x + 5*x**2 + 6*x**3 + 7*x**4 + x**5 + 2*x**6 + 3*x**7 + 4*x**8 + ...
+        >>> srepr(ps.shift(-2))
+        "PowerSeries(Symbol('x'), SeqShiftLeft(SeqPer(Interval(Integer(0), oo, False, True), (1, 2, 3, 4, 5, 6, 7)), 2))"
+
+        """
+        new_seq = self.sequence.shift(n)
+        return self._from_args(self.x, new_seq)
+
 class SeriesAtom(SeriesExpr):
     def __new__(self, x, sequence_name=None, **kwargs):
         if sequence_name:
@@ -218,6 +250,10 @@ class SeriesAtom(SeriesExpr):
         obj = SeriesExpr.__new__(self, x, sequence)
         return obj
 
+    @classmethod
+    def _from_args(cls, x, sequence):
+        return cls.__new__(cls, x, sequence=sequence)
+
     @property
     def x(self):
         return self._args[0]
@@ -225,9 +261,6 @@ class SeriesAtom(SeriesExpr):
     @property
     def sequence(self):
         return self._args[1]
-
-    def coeff(self, i):
-        return self.sequence[i]
 
 
 class SeriesSliced(SeriesExpr, SeqSliced):
