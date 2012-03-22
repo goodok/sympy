@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from sympy import Expr, Symbol, Eq, Mul, Add, Pow, expand, sympify, Tuple
+from sympy.functions import Min
 from sympy.core.basic import Basic
 from sympy.core.operations import AssocOp
 
@@ -16,15 +17,14 @@ from sympy.functions.combinatorial.numbers import bell
 ################################################################################
 
 class SeqExprOp(Expr):
-    """ Sequence Expression Class
-    Sequence Expressions subclass SymPy Expr's so that
-    SeqAdd inherits from Add
-    SeqMul inherits from Mul
+    """Sequence Expression Class to embede in core.
 
     They use _op_priority to gain control with binary operations (+, *, -, **)
     are used
 
-    They implement operations specific to Sequence Algebra.
+    Sequence Expressions subclass SymPy Expr's so that
+    SeqAdd inherits from Add
+    SeqMul inherits from Mul
     """
 
     _op_priority = 12.0
@@ -109,6 +109,11 @@ class SeqExprOp(Expr):
     __rtruediv__ = __rdiv__
 
 class SeqExprInterval(object):
+    """Handle with indexing of sequences and maintainthe  interval of indexies.
+
+    """
+    # Note: it is an interface.
+
     @property
     def interval(self):
         # abstract property
@@ -129,29 +134,63 @@ class SeqExprInterval(object):
         >>> c.interval
         [0, 5] U [8, oo)
 
+        Notes
+        =====
+        It is not obligatory, that the value of element with index inside the
+        interval is non-zero indeed. It can has a zero value
         """
         return None
 
     @property
     @cacheit
     def start_index(self):
+        """
+        Return the left end of the interval on which sequence is defined.
+
+        Notes
+        =====
+        It is not obligatory, that the value of element with this index is
+        non-zero. It can be a zero as a result of calculations.
+        """
         return self.interval._inf
 
     @property
     @cacheit
     def stop_index(self):
+        """
+        Return the left end of the interval on which sequence is defined.
+        """
         return self.interval._sup
 
     @property
     @cacheit
     def is_infinite(self):
+        """
+        Determine whether the sequence has infinite number of (non-zero)
+        elemets or not.
+
+        Note
+        ====
+        This property can be intelegent and derived not only from interval, but
+        and from real calculations (not implmented althou).
+        """
         return self.stop_index == S.Infinity
 
     @property
     def length(self):
+        """
+        Return the number of elements in the seqencence.
+        """
         return self.stop_index - self.start_index + 1
 
     def is_out_of_range(self, i):
+        """
+        Helper function to check if the index "i" beyond the interval or not.
+
+
+        Return True if beyond, False if index in interval, and None
+        if it not known.
+        """
         if isinstance(i, Symbol):
             return None
         if i < self.start_index:
@@ -163,6 +202,11 @@ class SeqExprInterval(object):
         return False
 
     def calc_interval_from_slice(self, slc):
+        """
+        Helper function for slicing.
+
+        Return Interval of the intersection of [m:n] and oridinal interval.
+        """
         slc_start = slc.start
         if slc_start == None:
             slc_start = S.Zero
@@ -175,6 +219,13 @@ class SeqExprInterval(object):
         return self.getitem_dispatche(i)
 
     def getitem_dispatche(self, i):
+        """
+        This function separate cases of sliced and scalar index.
+
+        Usually sliced case is an common case and create SeqSliced obejct.
+        while returning scalar index is specific method for the cocrete class of
+        sequence.
+        """
         if isinstance(i, slice):
             return self.getitem_slicing(i)
         elif self.is_out_of_range(i):
@@ -188,6 +239,9 @@ class SeqExprInterval(object):
 
 
 class SeqExprPrint(object):
+    """
+    Implementation methods for printing of sequences.
+    """
     show_n = 7
     def _sympystr(self, printer, *args):
         if printer._settings["list_sequences"]:
@@ -241,17 +295,22 @@ class SeqExprPrint(object):
 
 class SeqExprMain(object):
     """
-    Interface for aligned to non zero sequence.
+    Interface for aligned sequence, which leading term is not zero.
     """
     @property
     @cacheit
-    def first_nonzero_n(self):
-        # or maybe main_offset, or `order`
+    def order(self):
         """
-        get first non zero index
+        Smallest index of element which is nonzero.
+
+
+        This definition readily extends to Laurent series (with negative
+        indexes).
+        This is calculated property, and in common case, it is not impossible to
+        calculate it.
         """
         # TODO:
-        # This is rough, because the zero-test problem, and cycle.
+        # This is rough implementation, because the zero-test problem, and cycle.
         # - Embed it to the primitive, and analize its interval
         # - Embed it to the operation Add (minimum), Mul (summation)
 
@@ -267,32 +326,21 @@ class SeqExprMain(object):
     @property
     @cacheit
     def main(self):
-        return self.shiftleft(self.first_nonzero_n)
+        return self.shiftleft(self.order)
 
+    #TODO remove it from here.
     @property
     @cacheit
     def mainexp(self):
-        return self.shiftleft_exp(self.first_nonzero_n)
+        return self.shiftleft_exp(self.order)
 
 
 class SeqExprMethods(object):
     """
     Short methods for unitary operations.
     """
-    def shiftleft(self, n):
-        pass
-
-    def shiftright(self, n):
-        pass
-
-    def unfactorialize(self):
-        pass
-
-    def factorialize(self):
-        pass
-
-    def reverse(self):
-        pass
+    # the methods linked to thi class at the method.py files.
+    pass
 
 class SeqExpr(SeqExprOp, SeqExprInterval, SeqExprPrint, SeqExprMethods, SeqExprMain):
 
@@ -460,6 +508,11 @@ class SeqAdd(SeqExpr, Add):
         else:
             return Add(*(seq[i] for seq in self.args))
 
+    @property
+    @cacheit
+    def order(self):
+        return Min(*(seq.order for seq in self.args))
+
     def _sympystr(self, printer, *args):
         if printer._settings["list_sequences"]:
             return SeqExpr._sympystr(self, printer, *args)
@@ -545,6 +598,11 @@ class SeqCoeffMul(SeqExpr, Mul):
 class SeqMul(SeqExpr, Mul):
     """
     Dispatcher of multiplication of sequences.
+
+    When we construct expression inveloving sequences, then "*" can treated as
+    scalar*sequence  or sequence*sequence, or their mixes.
+    The former we convert to SeqCoeffMul and the latter we treat as Cauchy
+    product of two sequences.
     """
 
     def __new__(cls, *args):
@@ -591,6 +649,7 @@ class SeqMul(SeqExpr, Mul):
         else:
             return SeqCoeffMul(coeff, res)
 
+
     # is it needed?
     @classmethod
     def flatten(cls, args_seq):
@@ -599,12 +658,19 @@ class SeqMul(SeqExpr, Mul):
     def as_ordered_terms(self, order=None):
         return self.args
 
+    # as SeqMul is an dipatcher, so it dosn't return SeqMul object
+    # then those methods are not valid
     @property
     def interval(self):
         start = Add(*(s.start_index for s in self.args))
         stop = Add(*(s.stop_index for s in self.args))
         res = Interval(start, stop)
         return res
+
+    @property
+    @cacheit
+    def order(self):
+        return Add(*(seq.order for seq in self.args))
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_sequences"]:
@@ -615,10 +681,9 @@ class SeqMul(SeqExpr, Mul):
 
 class SeqMulEW(SeqExpr, Expr):
     """
-    Element-wise multiplications of sequences.
+    Element-wise multiplications of sequences (Hadamard product).
 
-
-    it is analog of power series convolution (or Hadamard product), serconvol in PARI.
+    it is analog of power series convolution, serconvol in PARI.
 
     Examples
     ========
@@ -643,12 +708,18 @@ class SeqMulEW(SeqExpr, Expr):
     sympy.sequences.expr.SeqCauchyMul
 
     """
+    # TODO: use '\circ' in representation.
     @property
     def interval(self):
         res = self.args[0].interval
         for seq in self.args:
             res = res & seq.interval
         return res
+
+    @property
+    @cacheit
+    def order(self):
+        return Add(*(seq.order for seq in self.args))
 
     @cacheit
     def getitem_index(self, i):
@@ -659,7 +730,6 @@ class SeqMulEW(SeqExpr, Expr):
             return SeqExpr._sympystr(self, printer, *args)
         else:
             return printer._print_Basic(self, *args)
-
 
 
 class SeqCauchyMul(SeqExpr, Mul):
@@ -761,6 +831,11 @@ class SeqCauchyMul(SeqExpr, Mul):
         res = Interval(start, stop)
         return res
 
+    @property
+    @cacheit
+    def order(self):
+        return Add(*(seq.order for seq in self.args))
+
     # TODO: use @cacheit_recurr
     @cacheit
     def getitem_index(self, i):
@@ -772,12 +847,14 @@ class SeqCauchyMul(SeqExpr, Mul):
             a = self.args[0]
             # recurrsion
             b = SeqCauchyMul(*self.args[1:])
+
         # TODO: optimize the range (if a.start_index > 0)
         # TODO: optimize k is integer or Expression
         for k in xrange(0, i+1):
             k = S(k)
             c.append(a[k]*b[i-k])
         return Add(*tuple(c))
+
 
     def _sympystr(self, printer, *args):
         if printer._settings["list_sequences"]:
@@ -855,7 +932,7 @@ class SeqCauchyPow(SeqExpr, Pow):
         else:
             w = base.main
             # TODO: optimize k is integer or Expression
-            iw = i - S(self.first_nonzero_n)
+            iw = i - S(self.order)
             if iw < 0:
                 return S.Zero
             elif iw == 0:
@@ -868,8 +945,8 @@ class SeqCauchyPow(SeqExpr, Pow):
             return (Add(*tuple(c))/iw/w[S.Zero]).cancel()
 
     @property
-    def first_nonzero_n(self):
-        return self.base.first_nonzero_n * self.exp;
+    def order(self):
+        return self.base.order * self.exp;
 
     def _sympystr(self, printer, *args):
         return printer._print_Pow(self)
@@ -983,7 +1060,7 @@ class SeqExpCauchyPow(SeqCauchyPow):
     @property
     @cacheit
     def mainright(self):
-        return self.main.shiftright_exp(self.first_nonzero_n)
+        return self.main.shiftright_exp(self.order)
 
 class SeqExpCauchyPow_Main(SeqCauchyPow):
     """
@@ -1000,7 +1077,7 @@ class SeqExpCauchyPow_Main(SeqCauchyPow):
                 return Pow(base[i], exp)
             else:
                 # TODO: optimize k is integer or Expression
-                assert self.base.first_nonzero_n == 0
+                assert self.base.order == 0
                 #w = base.mainexp
                 w = base
                 if i < 0:

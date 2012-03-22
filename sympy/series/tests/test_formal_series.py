@@ -91,7 +91,7 @@ def test_powerseries_power():
 
     ps = PowerSeries(x, sequence=Sequence((2, oo), 'a'))
     a = ps.sequence
-    assert ps.sequence.first_nonzero_n == 2
+    assert ps.sequence.order == 2
     c = ps**2
 
     assert c[0] == 0

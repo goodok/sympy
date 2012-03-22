@@ -6,71 +6,83 @@ from sympy.core.singleton import (Singleton, S)
 from sympy.functions.combinatorial.factorials import factorial
 
 from expr import SeqExpr, SeqExprMethods, SeqCauchyPow, FaDeBruno
-from kinds import Sequence
 
-
-def reverse(self):
-    return ReverseLangrange(self)
-
-def shiftleft(self, n):
+class _SeqExprMethods(object):
     """
-    Returns this sequence shifted to the left.
+    Short names for unitary operations constructors.
     """
-    return SeqShiftLeft(self, n)
+    def shiftleft(self, n):
+        """
+        Returns this sequence shifted to the left.
+        """
+        return SeqShiftLeft(self, n)
 
-def shiftright(self, n):
-    """
-    Returns this sequence shifted to the right.
-    """
-    return SeqShiftRight(self, n)
+    def shiftright(self, n):
+        """
+        Returns this sequence shifted to the right.
+        """
+        return SeqShiftRight(self, n)
 
-def shift(self, n):
-    """
-    Returns this sequence shifted to the right.
+    def shift(self, n):
+        """
+        Returns this sequence shifted to the right.
 
-    If n is negative, sequence will be shifted to the left, and elemets below n
-    will be discarded.
+        If n is negative, sequence will be shifted to the left, and elemets below n
+        will be discarded.
 
-    Does not change this sequence.
-    """
-    if (n < S.Zero):
-        return SeqShiftLeft(self, -n)
-    elif n == S.Zero:
-        return self
-    return SeqShiftRight(self, n)
+        Does not change this sequence.
+        """
+        if (n < S.Zero):
+            return SeqShiftLeft(self, -n)
+        elif n == S.Zero:
+            return self
+        return SeqShiftRight(self, n)
 
-def shift_exp(self, n):
-    if (n < S.Zero):
-        return SeqShiftLeftExp(self, -n)
-    elif n == S.Zero:
-        return self
-    return SeqShiftRightExp(self, n)
+    def shift_exp(self, n):
+        if (n < S.Zero):
+            return SeqShiftLeftExp(self, -n)
+        elif n == S.Zero:
+            return self
+        return SeqShiftRightExp(self, n)
 
-def shiftleft_exp(self, n):
-    return SeqShiftLeftExp(self, n)
+    def shiftleft_exp(self, n):
+        return SeqShiftLeftExp(self, n)
 
-def shiftright_exp(self, n):
-    return SeqShiftRightExp(self, n)
+    def shiftright_exp(self, n):
+        return SeqShiftRightExp(self, n)
 
-def unfactorialize(self):
-    return UnFactorialize(self)
+    def factorialize(self):
+        return Factorialize(self)
 
-def factorialize(self):
-    return Factorialize(self)
+    def unfactorialize(self):
+        return UnFactorialize(self)
 
-def compose(self, other):
-    return FaDeBruno(self.factorialize(), other.factorialize()).unfactorialize()
+    def compose(self, other):
+        return FaDeBruno(self.factorialize(), other.factorialize()).unfactorialize()
 
-SeqExprMethods.shift = shift
-SeqExprMethods.shiftleft = shiftleft
-SeqExprMethods.shiftright = shiftright
-SeqExprMethods.shift_exp = shift_exp
-SeqExprMethods.shiftleft_exp = shiftleft_exp
-SeqExprMethods.shiftright_exp = shiftright_exp
-SeqExprMethods.unfactorialize = unfactorialize
-SeqExprMethods.factorialize = factorialize
-SeqExprMethods.compose = compose
-SeqExprMethods.reverse = reverse
+    def reverse(self):
+        return ReverseLangrange(self)
+
+
+# TODO: think about hierahy to avoid this.
+# Now
+#  SeqExp is common object
+#  Methods must present in any SeqExpr object
+#  But methods uses another SeqExpr objects.
+#  so those two modules (expr.py and methods.py) uses each other.
+
+SeqExprMethods.shift = _SeqExprMethods.shift.im_func
+SeqExprMethods.shiftleft = _SeqExprMethods.shiftleft.im_func
+SeqExprMethods.shiftright = _SeqExprMethods.shiftright.im_func
+SeqExprMethods.shift_exp = _SeqExprMethods.shift_exp.im_func
+SeqExprMethods.shiftleft_exp = _SeqExprMethods.shiftleft_exp.im_func
+SeqExprMethods.shiftright_exp = _SeqExprMethods.shiftright_exp.im_func
+
+SeqExprMethods.factorialize = _SeqExprMethods.factorialize.im_func
+SeqExprMethods.unfactorialize = _SeqExprMethods.unfactorialize.im_func
+SeqExprMethods.compose = _SeqExprMethods.compose.im_func
+SeqExprMethods.reverse = _SeqExprMethods.reverse.im_func
+
 
 class SeqShiftLeft(SeqExpr):
     """
