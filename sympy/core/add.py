@@ -27,14 +27,6 @@ class Add(AssocOp):
     @classmethod
     @cacheit
     def _hashable_content_before_creation(cls, args):
-        # TODO: Must we analyse "**kwargs" it seems that "cacheit" wrapper do it
-        # itself.
-
-        # TODO:
-        # Notes:  args contains not Basic object but int and so on.
-        # but "cls.flatten" assumes in some places that they all are converted
-        # to the SymPy expression. There is why these lines are commented:
-
         args = cls.flatten_simple(args)
         return tuple(sorted(args, key=hash))
 
