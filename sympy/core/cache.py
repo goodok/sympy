@@ -76,29 +76,48 @@ def __cacheit(func):
         """
         Assemble the args and kw_args to compute the hash.
         """
-
-        cls = args[0]
-        seq = args[1:]
-        if hasattr(cls, "_hashable_content_before_creation") and \
-                    func.__name__ != "_hashable_content_before_creation":
-            flatten_args = cls._hashable_content_before_creation(seq)
-            flatten_args = (cls,) + flatten_args
-        else:
-             flatten_args = args
         if kw_args:
             keys = kw_args.keys()
             keys.sort()
             items = [(k+'=', kw_args[k]) for k in keys]
-            k = flatten_args + tuple(items)
+            kw_args_sorted = tuple(items)
         else:
-            k = flatten_args
+            kw_args_sorted = ()
+
+        # try get from cache without unflatten (that is row args)
+        k = args + kw_args_sorted
         k = k + tuple(map(lambda x: type(x), k))
+        synonym = k
         try:
             return func_cache_it_cache[k]
         except KeyError:
             pass
-        # TODO: use flatten_args
-        func_cache_it_cache[k] = r = func(*args, **kw_args)
+
+        # try flatten args, that is caconical order of args
+        cls = args[0]
+        # we check existens of method of "hashable_content_before_creation"
+        # course this method can accept not only SymPy expression, but and
+        # e.g. pythonic ints.
+        # we check func.__name__ != ... because we allow to use "cacheit" and
+        # for this function itself, but must avoid infinity recoursive.
+        if hasattr(cls, "_hashable_content_before_creation") and \
+                    func.__name__ != "_hashable_content_before_creation":
+            seq = args[1:]
+            flatten_args = cls._hashable_content_before_creation(seq)
+            flatten_args = (cls,) + flatten_args
+
+            k = flatten_args + kw_args_sorted
+            k = k + tuple(map(lambda x: type(x), k))
+            try:
+                r = func_cache_it_cache[k]
+                func_cache_it_cache[synonym] = r
+                return r
+            except KeyError:
+                pass
+
+        r = func(*args, **kw_args)
+        func_cache_it_cache[k] = r
+        func_cache_it_cache[synonym] = r
         return r
     return wrapper
 

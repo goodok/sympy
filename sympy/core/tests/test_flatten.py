@@ -11,6 +11,7 @@ def test_flatten_sort():
     from sympy.abc import x, y, z
     e = Add(x, z, y)
     assert e.args == (x, z, y)
+    clear_cache()
     assert (x + y + z).args == (x, y, z)
     e = Add(x, z)
     assert e.args == (x, z)
@@ -43,6 +44,7 @@ def test_add_flatten_nested_mul():
     args = Add(z, e, Mul(2, Add(y, x, z)), d, z**2, f).args
     assert args == (3*z, e, 2*y, 2*x, d, z**2, f)
 
+    clear_cache()
     # in case Add(y, x), whose cache is equal to Add(x, y), is already hashed
     # we clear the cache to make sure that this test is independent of cache.
     # Note: the string `(y + x + z)` is parsing with sequential creation of
@@ -52,8 +54,6 @@ def test_add_flatten_nested_mul():
     # incorrectly.
     # Note: with the manually constructed Add(y, x, z) this was not necessary.
     # because it is flatten already.
-
-    clear_cache()
 
     args = (z + e + 2*(y + x + z) + d + z**2 + f).args
     assert args == (3*z, e, 2*y, 2*x, d, z**2, f)
@@ -69,7 +69,7 @@ def test_mul_flatten():
     args = Mul(2, y + x + z).args
     assert args == (2*y, 2*x, 2*z)   # it is related with Add.flatten only
 
-    # See the comment above
+    # See the comment in the above function
     clear_cache()
 
     args = (2*(y + x + z)).args

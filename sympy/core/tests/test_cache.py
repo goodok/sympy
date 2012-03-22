@@ -35,15 +35,23 @@ def test_Add_collect():
     r = collect(a*x**2 + b*x**2 + a*x - b*x + c, x)
     assert r == c + x**2*(a + b) + x*(a - b)
 
-def test_assumtion_Add_assumtion():
+def test_Add_assumtion():
     clear_cache()
     x, y = symbols("x, y")
     a = Add(x, y)
 
     x = Symbol("x", real=True)
     b = Add(x, y)
-
     assert a is not b
+
+def test_Add_nested():
+    clear_cache()
+    x, y, z = symbols("x, y, z")
+    a = Add(x, Add(y, z))
+    b = Add(x, y, z)
+
+    assert a is b
+
 
 
 # logic.boolalg
