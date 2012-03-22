@@ -38,6 +38,8 @@ class Add(AssocOp):
         sympy.core.mul.Mul.flatten
 
         """
+        import random
+        random.shuffle(seq)
         rv = None
         if len(seq) == 2:
             a, b = seq
@@ -837,8 +839,6 @@ class Add(AssocOp):
             c = terms.pop(0)
         else:
             c = None
-        import random
-        random.shuffle(terms)
         if c:
             terms.insert(0, c)
         return Rational(ngcd, dlcm), self._new_rawargs(*terms)
