@@ -25,25 +25,32 @@ class Add(AssocOp):
         return self._hashable_tuple_cached
 
     @classmethod
+    @cacheit
     def _hashable_content_before_creation(cls, args):
         # TODO: Do we sort often, can we cache this function?
-        # TODO: Must we analyse "**kwargs" it seems that "chachit" wrapper do it
+
+        # TODO: Must we analyse "**kwargs" it seems that "cacheit" wrapper do it
         # itself.
 
         # TODO:
         # Notes:  args contains not Basic object but int and so on.
         # but "cls.flatten" assumes in some places that they all are converted
         # to the SymPy expression. There is why these lines are commented:
-
-        # cp, nc, orders = cls.flatten(args)
-        #if nc:
-        #    return args
-        #else:
-        #    return tuple(sorted(args, key=hash))
-
-        # TODO:for simple classes it is valid, but not for non-commutative cases
-        # we must use "cls.flatten" as written above
         return tuple(sorted(args, key=hash))
+
+        cp, nc, orders = cls.flatten(list(args))
+        if nc:
+            return args
+        else:
+            return tuple(sorted(args, key=hash))
+
+    @classmethod
+    def flatten_simple(cls, args):
+        """
+        Takes the sequence "seq" of nested Adds and returns a flatten tuple.
+
+        Only flattens.
+        """
 
     @classmethod
     def flatten(cls, seq):

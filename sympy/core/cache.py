@@ -76,10 +76,12 @@ def __cacheit(func):
         """
         Assemble the args and kw_args to compute the hash.
         """
+
         cls = args[0]
-        seq = list(args[1:])
-        if hasattr(cls, "_hashable_content_before_creation"):
-            flatten_args = tuple(cls._hashable_content_before_creation(seq))
+        seq = args[1:]
+        if hasattr(cls, "_hashable_content_before_creation") and \
+                    func.__name__ != "_hashable_content_before_creation":
+            flatten_args = cls._hashable_content_before_creation(seq)
             flatten_args = (cls,) + flatten_args
         else:
              flatten_args = args
