@@ -7,67 +7,51 @@ from sympy.functions.combinatorial.factorials import factorial
 from sympy.core.cache import cacheit
 from sympy.core.sets import Interval
 
-from sympy.sequences.expr import SeqAdd, SeqExpCauchyMul, SeqExpCauchyPow, FaDeBruno
+from sympy.sequences.expr import SeqExpCauchyMul, SeqExpCauchyPow, FaDeBruno
 
 from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
+from power import Reverse as _Reverse
 
 
 class PowerESeriesExprOp(SeriesExpr):
     is_PowerESeries = True
 
-    def __neg__(self):
-        return PowerESeriesCoeffMul(S.NegativeOne, self)
-    def __abs__(self):
-        raise NotImplementedError
+    _type_must = "PowerESeries"
+    _type_is = "PowerESeries"
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__radd__')
-    def __add__(self, other):
-        return PowerESeriesAdd(self, other)
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__add__')
-    def __radd__(self, other):
-        return PowerESeriesAdd(other, self)
+    @property
+    def _SeriesAdd(self): return PowerESeriesAdd
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__rsub__')
-    def __sub__(self, other):
-        return PowerESeriesAdd(self, -other)
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__sub__')
-    def __rsub__(self, other):
-        return PowerESeriesAdd(other, -self)
+    @property
+    def _SeriesMul(self): return PowerESeriesMul
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__rmul__')
-    def __mul__(self, other):
-        return PowerESeriesMul(self, other)
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__mul__')
-    def __rmul__(self, other):
-        return PowerESeriesMul(other, self)
+    @property
+    def _SeriesPow(self): return PowerESeriesPow
 
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__rpow__')
-    def __pow__(self, other):
-        #if other == -S.One:
-        #    return Inverse(self)
-        return PowerESeriesPow(self, other)
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__pow__')
-    def __rpow__(self, other):
-        raise NotImplementedError("Sequence Power not defined")
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__rdiv__')
-    def __div__(self, other):
-        return PowerESeriesMul(self, other**S.NegativeOne)
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__div__')
-    def __rdiv__(self, other):
-        raise NotImplementedError()
+    @property
+    def _SeriesSliced(self): return PowerESeriesSliced
 
-    __truediv__ = __div__
-    __rtruediv__ = __rdiv__
+    @property
+    def _SeriesExpr(self): return PowerESeriesExpr
+
+    @property
+    def _SeriesNested(self): return PowerESeriesNested
+
+    @property
+    def _Reverse(self): return Reverse
+
+    @property
+    def _SeriesMul(self): return PowerESeriesMul
+
+    @property
+    def _SeriesCoeffMul(self): return PowerESeriesCoeffMul
+
+    @classmethod
+    def _cls_SeriesCoeffMul(cls): return PowerESeriesCoeffMul
+
+    @classmethod
+    def _cls_SeriesMul(cls): return PowerESeriesMul
+
 
 
 class PowerESeriesSliced(SeriesSliced, PowerESeriesExprOp):
@@ -81,11 +65,6 @@ class PowerESeriesExpr(PowerESeriesExprOp):
         if (a != S.Zero) and (i != 0):
             a = a / factorial(i) * Pow(self.x, i)
         return a
-
-    def getitem_slicing(self, i):
-        mask = self.calc_interval_from_slice(i)
-        return PowerESeriesSliced(self, mask)
-
 
     def shift(self, n):
         """
@@ -174,13 +153,9 @@ class PowerESeriesAdd(PowerESeriesExpr, SeriesAdd):
         expr = Add.__new__(cls, *args)
 
         if expr.is_Mul:
+            # TODO: use _SeriesMul
             return PowerESeriesMul(*expr.args)
         return expr
-
-    @property
-    @cacheit
-    def sequence(self):
-        return SeqAdd(*(s.sequence for s in self.args))
 
 class PowerESeriesMul(PowerESeriesExpr, SeriesMul):
     """A Product of series Expressions."""
@@ -205,6 +180,7 @@ class PowerESeriesMul(PowerESeriesExpr, SeriesMul):
         if coeff == S.One:
             return res
         else:
+            # TODO: use self._SeriesCoeffMul
             return PowerESeriesCoeffMul(coeff, res)
 
     @property
@@ -214,11 +190,7 @@ class PowerESeriesMul(PowerESeriesExpr, SeriesMul):
 
 class PowerESeriesCoeffMul(PowerESeriesExpr, SeriesCoeffMul):
     # TODO: join with PowerSeries and use class method?
-    def __getitem__(self, i):
-        if isinstance(i, slice):
-            return PowerESeriesCoeffMul(self.coefficient, self.ts[i])
-        else:
-            return self.coefficient * self.series[i]
+    pass
 
 class PowerESeriesPow(PowerESeriesExpr, Pow):
     """
@@ -268,45 +240,8 @@ class PowerESeriesNested(SeriesNested, PowerESeries):
         return FaDeBruno(self.g.sequence, self.f.sequence)
 
 
-class Reverse(PowerESeries):
-    """
-    Reversion of power series.
-
-
-    See Also:
-
-    References
-    ==========
-
-    .. [1] Donald E. "Knuth Art of Computer Programming, Volume 2: Seminumerical Algorithms",
-    3rd ed., sec 4.7 "Manipulation of power series", p 526.
-    .. [2] http://en.wikipedia.org/wiki/Lagrange_inversion_theorem
-    .. [3] Fredrik Johansson, A fast algorithm for reversion of power series
-    .. [4] Faà di Bruno's Formula
-
-    """
-    # Note
-    # we use power series
-    def __new__(cls, original):
-        assert original.is_Series
-        original_seq = original.sequence
-        assert original_seq[0] == S.Zero
-        assert original_seq[1] <> S.Zero
-        obj = SeriesExpr.__new__(cls, original)
-        return obj
-
-    @property
-    def x(self):
-        return self.original.x
-
-    @property
-    def original(self):
-        return self._args[0]
-
-    @property
-    def original_seq(self):
-        return self.original.sequence
-
+class Reverse(PowerESeries, _Reverse):
+    # Note: we use power series algorithm
     @property
     def sequence(self):
         return self.original_seq.unfactorialize().reverse().factorialize()

@@ -33,6 +33,7 @@ def test_powerseries_print():
 
 
 def test_types():
+    # PowerESeries
     a = PowerESeries(x, periodical=(0, 1))
     b = PowerESeries(x, periodical=(1, 0))
 
@@ -51,6 +52,7 @@ def test_types():
     c = PowerSeries(x, periodical=(0, 1))
     d = PowerSeries(x, periodical=(1, 0))
 
+    # PowerSeries
     assert c.is_PowerSeries
     assert d.is_PowerSeries
     assert (c + d).is_PowerSeries
@@ -78,7 +80,6 @@ def test_types_raises_fails():
     b = PowerESeries(x, periodical=(1, 0))
     c = PowerSeries(x, periodical=(0, 1))
     d = PowerSeries(x, periodical=(1, 0))
-
     raises(ValueError, '(a*c)')
     raises(ValueError, 'b.compose(c)')
 
@@ -107,6 +108,15 @@ def test_PowerESeries():
     b = PowerESeries(x, periodical=(1, 0))
     c = a + b
     d = 1 * c
+
+    tcosh = PowerESeries(x, periodical = (1, 0))
+    tsinh = PowerESeries(x, periodical = (0, 1))
+    a = tcosh**2
+    b = tsinh**2
+    c = a - b
+    assert c[0] == 1
+    assert c[1] == 0
+    assert c[2] == 0
 
 #related with flatten and canonicalization
 def test_PowerESeries_coefficient():

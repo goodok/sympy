@@ -379,11 +379,7 @@ class ReverseLangrange(SeqExpr):
     def original_prepared(self):
         """
         Return prepeared original series.
-
-        if original sequence is {0, a1, a2, a3...}
-        then prepared sequence is {1, 0, a2, a3...}
         """
-        #TODO: more convenient way to prepare
         r = self.original.shiftleft(1)
         return r
 

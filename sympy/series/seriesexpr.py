@@ -5,7 +5,8 @@ from sympy.core.cache import cacheit
 from sympy.core.sets import Interval, EmptySet
 
 from sympy.sequences import Sequence, SequenceSymbol
-from sympy.sequences.expr import SeqExprInterval, SeqExprPrint, SeqSliced, SeqCoeffMul
+from sympy.sequences.expr import (SeqAdd, SeqExprInterval, SeqExprPrint,
+                        SeqSliced, SeqCoeffMul)
 
 
 """
@@ -30,54 +31,57 @@ class SeriesExprOp(Expr):
     is_Identity = False
     is_PowerESeries = False
 
+    _type_must = "Series"
+    _type_is = "Series"
+
+
     show_n = 8
 
     def __neg__(self):
-        return SeriesCoeffMul(S.NegativeOne, self)
+        return self._SeriesCoeffMul(S.NegativeOne, self)
     def __abs__(self):
         raise NotImplementedError
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__radd__')
     def __add__(self, other):
-        return SeriesAdd(self, other)
+        return self._SeriesAdd(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__add__')
     def __radd__(self, other):
-        return SeriesAdd(other, self)
+        return self._SeriesAdd(other, self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rsub__')
     def __sub__(self, other):
-        return SeriesAdd(self, -other)
+        return self._SeriesAdd(self, -other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__sub__')
     def __rsub__(self, other):
-        return SeriesAdd(other, -self)
+        return self._SeriesAdd(other, -self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rmul__')
     def __mul__(self, other):
-        return SeriesMul(self, other)
+        return self._SeriesMul(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__mul__')
     def __rmul__(self, other):
-        return SeriesMul(other, self)
+        return self._SeriesMul(other, self)
 
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rpow__')
     def __pow__(self, other):
-        if other == -S.One:
-            return Inverse(self)
-        return SeriesPow(self, other)
+        # if other == -S.One: return PowerSeriesInverse(self)
+        return self._SeriesPow(self, other)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__pow__')
     def __rpow__(self, other):
-        raise NotImplementedError("Sequence Power not defined")
+        raise NotImplementedError("Series Power not defined")
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rdiv__')
     def __div__(self, other):
-        return SeriesMul(self, other**S.NegativeOne)
+        return self._SeriesMul(self, other**S.NegativeOne)
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__div__')
     def __rdiv__(self, other):
@@ -93,6 +97,38 @@ class SeriesExprOp(Expr):
 
     __truediv__ = __div__
     __rtruediv__ = __rdiv__
+
+
+    @property
+    def _SeriesAdd(self): return SeriesAdd
+
+    @property
+    def _SeriesMul(self): return SeriesMul
+
+    @property
+    def _SeriesPow(self): return SeriesPow
+
+    @property
+    def _SeriesSliced(self): return SeriesSliced
+
+    @property
+    def _SeriesExpr(self): return SeriesExpr
+
+    @property
+    def _SeriesNested(self): return SeriesNested
+
+    @property
+    def _SeriesMul(self): return SeriesMul
+
+    @property
+    def _SeriesCoeffMul(self): return SeriesCoeffMul
+
+    @classmethod
+    def _cls_SeriesCoeffMul(cls): return SeriesCoeffMul
+
+    @classmethod
+    def _cls_SeriesMul(cls): return SeriesMul
+
 
 
 class SeriesExprInterval(SeqExprInterval):
@@ -219,6 +255,16 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
         # TODO: the name-token override `Expr.coeff`
         return self.sequence[i]
 
+    def getitem_slicing(self, i):
+        mask = self.calc_interval_from_slice(i)
+        return self._SeriesSliced(self, mask)
+
+    def compose(self, other):
+        return self._SeriesNested(self, other)
+
+    def reverse(self):
+        return self._Reverse(self)
+
     def shift(self, n):
         """
         >>> from sympy.series import PowerSeries
@@ -327,6 +373,21 @@ class SeriesSliced(SeriesExpr, SeqSliced):
 
 class SeriesAdd(SeriesExpr, Add):
 
+    def __new__(cls, *args):
+
+        #TODO: is it correct, to check arg!=0? args must be Expr type
+        args = [arg for arg in args if arg!=0]
+
+        #TODO: create ScalAdd to keep scalar separatly
+        if not all(arg._type_is == cls._type_must for arg in args):
+            raise ValueError("Mix of Series and Scalar symbols")
+
+        expr = Add.__new__(cls, *args)
+
+        if expr.is_Mul:
+            return cls._cls_SeriesMul()(*expr.args)
+        return expr
+
     def _hashable_content(self):
         return tuple(sorted(self._args, key=hash))
 
@@ -351,6 +412,11 @@ class SeriesAdd(SeriesExpr, Add):
     def getitem_index(self, i):
         return Add(*(ts[i] for ts in self.args))
 
+    @property
+    @cacheit
+    def sequence(self):
+        return SeqAdd(*(s.sequence for s in self.args))
+
     def _sympystr(self, printer, *args):
         if printer._settings["list_series"]:
             return SeriesExprPrint._sympystr(self, printer, *args)
@@ -359,6 +425,27 @@ class SeriesAdd(SeriesExpr, Add):
 
 
 class SeriesMul(SeriesExpr, Mul):
+
+    def __new__(cls, *args):
+        if cls.check_zero(args):
+            return S.Zero
+
+        coeff, sers = cls.carry_out_coeff(args)
+
+        # if only one seqs then return it
+        if len(sers)==1:
+            res = sers[0]
+        else:
+            # form product
+            nc, sers, order_symbol = cls.flatten(sers)
+            res = Mul.__new__(cls, *sers)
+
+        # wrap with coefficient
+        if coeff == S.One:
+            return res
+        else:
+            return cls._cls_SeriesCoeffMul()(coeff, res)
+
     def _hashable_content(self):
         return tuple(sorted(self._args, key=hash))
 
