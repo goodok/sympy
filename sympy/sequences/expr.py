@@ -946,6 +946,7 @@ class SeqCauchyPow(SeqExpr, Pow):
 
     @property
     def order(self):
+        #TODO: this is valid only if "self.exp" is the natural number.
         return self.base.order * self.exp;
 
     def _sympystr(self, printer, *args):
