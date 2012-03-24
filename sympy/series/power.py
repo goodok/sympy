@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+Formal power series near zero.
+
+It is based on:
+    a_n*x**n
+
+"""
+
 from sympy.core import (Basic, Expr, Add, Mul, Pow)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.singleton import (Singleton, S)

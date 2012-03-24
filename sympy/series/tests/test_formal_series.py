@@ -32,6 +32,15 @@ def test_powerseries_print():
     assert s == '3*x**11 + x**12 + ...'
 
 
+def test_powerseries_print_latex():
+    from sympy.printing.latex import latex
+    from sympy.series.power import PowerSeries
+    seq = Sequence((0, oo), periodical=(1, -2, 3))
+    ps = PowerSeries(x, sequence=seq)
+    must = r"1 - 2 x + 3 x^{2} + x^{3} - 2 x^{4} + 3 x^{5} + x^{6}" + \
+            " - 2 x^{7} + 3 x^{8} + \dotsb"
+    assert latex(ps) == must
+
 def test_types():
     # PowerESeries
     a = PowerESeries(x, periodical=(0, 1))

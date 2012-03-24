@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+"""
+Formal power series near zero.
+
+It is the same as PowerSeries (power.py) but with internal bases in form
+    a_n*x**n/n!
+"""
+
 from sympy.core import (Basic, Expr, Add, Mul, Pow)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.singleton import (Singleton, S)
@@ -189,7 +196,6 @@ class PowerESeriesMul(PowerESeriesExpr, SeriesMul):
         return SeqExpCauchyMul(*(s.sequence for s in self.args))
 
 class PowerESeriesCoeffMul(PowerESeriesExpr, SeriesCoeffMul):
-    # TODO: join with PowerSeries and use class method?
     pass
 
 class PowerESeriesPow(PowerESeriesExpr, Pow):

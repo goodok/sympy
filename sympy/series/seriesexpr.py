@@ -10,7 +10,7 @@ from sympy.sequences.expr import (SeqAdd, SeqExprInterval, SeqExprPrint,
 
 
 """
-The helper module for Formal power series and Formal Taylor series.
+The helper module for formal power series.
 
 It contains common classes and metrhods for them.
 """
@@ -28,6 +28,7 @@ class SeriesExprOp(Expr):
     _op_priority = 13.0
 
     is_Series = True
+    is_SeriesAtom = False
     is_Identity = False
     is_PowerESeries = False
 
@@ -245,6 +246,20 @@ class SeriesExprPrint(SeqExprPrint):
         else:
             return printer._print_Basic(self, *args)
 
+    def _latex(self, printer):
+        l = [self[i] for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
+        terms = [i for i in l if i != S.Zero]
+
+        tex = printer._print(terms[0])
+        for term in terms[1:]:
+            coeff = term.as_coeff_mul()[0]
+            if coeff >= 0:
+                tex += " +"
+            tex += " " + printer._print(term)
+
+        tex += " + \dotsb"
+        return tex
+
 
 
 class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
@@ -258,6 +273,13 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
     def getitem_slicing(self, i):
         mask = self.calc_interval_from_slice(i)
         return self._SeriesSliced(self, mask)
+
+    #TODO: if uncommented then exception
+    #@cacheit
+    #def getitem_index(self, i):
+        # abstract
+        #c = self.sequence
+        #return c[i]*Pow(self.x, i)
 
     def compose(self, other):
         return self._SeriesNested(self, other)
@@ -286,6 +308,7 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
         return self._from_args(self.x, new_seq)
 
 class SeriesAtom(SeriesExpr):
+    is_SeriesAtom = True
     def __new__(self, x, sequence_name=None, **kwargs):
         if sequence_name:
             sequence = Sequence(sequence_name, **kwargs)
@@ -309,7 +332,7 @@ class SeriesAtom(SeriesExpr):
         return self._args[1]
 
 
-class SeriesSliced(SeriesExpr, SeqSliced):
+class SeriesSliced(SeqSliced, SeriesExpr):
     """
     Return sliced series.
 

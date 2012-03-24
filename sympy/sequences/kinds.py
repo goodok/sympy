@@ -221,6 +221,20 @@ class IndexedSequenceSymbol(Expr):
         base = p._print_Symbol(self.base)
         return "%s[%s]" % (base, l)
 
+    def _latex(self, p):
+        """
+        >>> from sympy.sequences import Sequence
+        >>> from sympy.printing.latex import print_latex
+        >>> a = Sequence('a')
+        >>> print_latex(a[7], mode="plain")
+        a_{7}
+        
+        """
+        indices = map(p._print, self.indices)
+        l = ", ".join(indices)
+        base = p._print_Symbol(self.base)
+        return "%s_{%s}" % (base, l)
+
 def abstract_sequences(names):
     """
     Transform strings into instances of :class:`SequenceSymbol` class.
@@ -264,6 +278,7 @@ class SeqPer(SequenceBase):
         """
         if not isinstance(baselist, tuple) and baselist is not None:
             baselist = tuple((baselist,))
+        baselist = tuple(S(i) for i in baselist)
         obj = SequenceBase.__new__(cls, interval, baselist)
         return obj
 
