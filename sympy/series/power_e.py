@@ -21,6 +21,9 @@ from power import Reverse as _Reverse
 
 
 class PowerESeriesExprOp(SeriesExpr):
+
+    _op_priority = 14.0
+
     is_PowerESeries = True
 
     _type_must = "PowerESeries"
@@ -64,8 +67,8 @@ class PowerESeriesExprOp(SeriesExpr):
 class PowerESeriesSliced(SeriesSliced, PowerESeriesExprOp):
     pass
 
-class PowerESeriesExpr(PowerESeriesExprOp):
 
+class PowerESeriesExpr(PowerESeriesExprOp):
     @cacheit
     def getitem_index(self, i):
         a =  self.sequence[i]
@@ -80,9 +83,7 @@ class PowerESeriesExpr(PowerESeriesExprOp):
         >>> from sympy.printing.repr import srepr
         >>> ps = PowerESeries(x, periodical=(1, 2, 3, 4, 5, 6, 7))
         >>> ps
-         1 + 2*x + 3*x**2/2 + 2*x**3/3 + 5*x**4/24 + x**5/20 + ...
-         >>> srepr(ps)
-         "PowerESeries(Symbol('x'), SeqPer(Interval(Integer(0), oo, False, True), (1, 2, 3, 4, 5, 6, 7)))"
+        1 + 2*x + 3*x**2/2 + 2*x**3/3 + 5*x**4/24 + x**5/20 + ...
 
         >>> ps << 2
         3/2 + 2*x/3 + 5*x**2/24 + x**3/20 + ...
@@ -146,8 +147,9 @@ class PowerESeries(PowerESeriesExpr, SeriesAtom):
     """
     pass
 
-class PowerESeriesAdd(PowerESeriesExpr, SeriesAdd):
+class PowerESeriesAdd(SeriesAdd, PowerESeriesExpr):
     """    """
+    _op_priority = 14.0
     def __new__(cls, *args):
 
         #TODO: is it correct, to check arg!=0? args must be Expr type
@@ -157,7 +159,7 @@ class PowerESeriesAdd(PowerESeriesExpr, SeriesAdd):
         if not all(arg.is_PowerESeries for arg in args):
             raise ValueError("Mix of PowerESeries and Scalar symbols")
 
-        expr = Add.__new__(cls, *args)
+        expr = SeriesAdd.__new__(cls, *args)
 
         if expr.is_Mul:
             # TODO: use _SeriesMul

@@ -30,7 +30,10 @@ class SeriesExprOp(Expr):
     is_Series = True
     is_SeriesAtom = False
     is_Identity = False
+
+    is_PowerSeries = False
     is_PowerESeries = False
+
 
     _type_must = "Series"
     _type_is = "Series"
@@ -140,12 +143,6 @@ class SeriesExprInterval(SeqExprInterval):
     @cacheit
     def interval(self):
         return self.sequence.interval
-
-    def getitem_slicing(self, i):
-        # abstract
-        pass
-        mask = self.calc_interval_from_slice(i)
-        return SeriesSliced(self, mask)
 
 class SeriesExprPrint(SeqExprPrint):
     """
@@ -266,11 +263,9 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
     def _hashable_content(self):
         return tuple(self._args)
 
-    def coeff(self, i):
-        # TODO: the name-token override `Expr.coeff`
-        return self.sequence[i]
-
     def getitem_slicing(self, i):
+        # abstract
+        pass
         mask = self.calc_interval_from_slice(i)
         return self._SeriesSliced(self, mask)
 
@@ -280,6 +275,10 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
         # abstract
         #c = self.sequence
         #return c[i]*Pow(self.x, i)
+
+    def coeff(self, i):
+        # TODO: the name-token override `Expr.coeff`
+        return self.sequence[i]
 
     def compose(self, other):
         return self._SeriesNested(self, other)
@@ -295,13 +294,9 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
         >>> ps = PowerSeries(x, periodical=(1, 2, 3, 4, 5, 6, 7))
         >>> ps
         1 + 2*x + 3*x**2 + 4*x**3 + 5*x**4 + 6*x**5 + 7*x**6 + x**7 + ...
-        >>> srepr(ps)
-        "PowerSeries(Symbol('x'), SeqPer(Interval(Integer(0), oo, False, True), (1, 2, 3, 4, 5, 6, 7)))"
 
         >>> ps.shift(-2)
         3 + 4*x + 5*x**2 + 6*x**3 + 7*x**4 + x**5 + 2*x**6 + 3*x**7 + 4*x**8 + ...
-        >>> srepr(ps.shift(-2))
-        "PowerSeries(Symbol('x'), SeqShiftLeft(SeqPer(Interval(Integer(0), oo, False, True), (1, 2, 3, 4, 5, 6, 7)), 2))"
 
         """
         new_seq = self.sequence.shift(n)
@@ -332,7 +327,7 @@ class SeriesAtom(SeriesExpr):
         return self._args[1]
 
 
-class SeriesSliced(SeqSliced, SeriesExpr):
+class SeriesSliced(SeriesExpr, SeqSliced):
     """
     Return sliced series.
 
@@ -395,7 +390,6 @@ class SeriesSliced(SeqSliced, SeriesExpr):
 ################################################################################
 
 class SeriesAdd(SeriesExpr, Add):
-
     def __new__(cls, *args):
 
         #TODO: is it correct, to check arg!=0? args must be Expr type

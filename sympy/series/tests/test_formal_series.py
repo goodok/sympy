@@ -1,11 +1,23 @@
+# -*- coding: utf-8 -*-
+
 from sympy import S, oo
 from sympy.abc import x, y, k
 from sympy.utilities.pytest import XFAIL, SKIP, raises
 from sympy.printing.pretty import pprint
-from sympy.printing.pretty import pretty
+from sympy.printing.pretty import pretty as xpretty
 from sympy.core.sets import Interval
 from sympy.core.symbol import Symbol, symbols
 from sympy.core.cache import clear_cache
+
+
+def pretty(expr, order=None):
+    """ASCII pretty-printing"""
+    return xpretty(expr, order=order, use_unicode=False, wrap_line=False)
+
+
+def upretty(expr, order=None):
+    """Unicode pretty-printing"""
+    return xpretty(expr, order=order, use_unicode=True, wrap_line=False)
 
 from sympy.sequences import Sequence
 
@@ -31,6 +43,21 @@ def test_powerseries_print():
     s = str(ps2)
     assert s == '3*x**11 + x**12 + ...'
 
+    ps = PowerSeries(x, periodical=(1, 2, 3))
+    s = str(ps)
+    assert s == '1 + 2*x + 3*x**2 + x**3 + 2*x**4 + 3*x**5 + x**6 + 2*x**7 + 3*x**8 + ...'
+
+    assert upretty(ps) == \
+u"""\
+             2    3      4      5    6      7      8      \n\
+1 + 2⋅x + 3⋅x  + x  + 2⋅x  + 3⋅x  + x  + 2⋅x  + 3⋅x  + ...\
+"""
+    assert pretty(ps) ==\
+"""\
+             2    3      4      5    6      7      8      \n\
+1 + 2*x + 3*x  + x  + 2*x  + 3*x  + x  + 2*x  + 3*x  + ...\
+"""
+
 
 def test_powerseries_print_latex():
     from sympy.printing.latex import latex
@@ -51,6 +78,17 @@ def test_types():
     assert (a + b).is_PowerESeries
     assert (2*a + 3*b).is_PowerESeries
     assert a[1:5].is_PowerESeries
+    a_ = a[1:5]
+    b_ = b[2:7]
+    c = a + b
+    assert c.is_PowerESeries
+
+    from sympy.series.power_e import PowerESeriesSliced
+    a_ = PowerESeriesSliced(a, Interval(1, 5))
+    assert a_._op_priority >= 13.0
+    a_ = a[1:5]
+    assert a_._op_priority >= 13.0
+    assert a[1:5]._op_priority >= 13.0
     assert (a[1:5] + b[2:7]).is_PowerESeries
 
     assert (a*b).is_PowerESeries

@@ -228,7 +228,7 @@ class IndexedSequenceSymbol(Expr):
         >>> a = Sequence('a')
         >>> print_latex(a[7], mode="plain")
         a_{7}
-        
+
         """
         indices = map(p._print, self.indices)
         l = ", ".join(indices)
