@@ -33,6 +33,7 @@ class SeriesExprOp(Expr):
 
     is_PowerSeries = False
     is_PowerESeries = False
+    is_PowerXSeries = False
 
 
     _type_must = "Series"

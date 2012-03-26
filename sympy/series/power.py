@@ -15,11 +15,8 @@ from sympy.functions.combinatorial.factorials import factorial
 from sympy.core.sets import Interval
 from sympy.core.cache import cacheit
 
-from sympy.abc import k
-
 from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
-#from sympy.sequences import Sequence
-from sympy.sequences.expr import SeqCauchyMul, SeqCauchyPow, FaDeBruno #SeqMulEW
+from sympy.sequences.expr import SeqCauchyMul, SeqCauchyPow, FaDeBruno
 
 class PowerSeriesExprOp(SeriesExpr):
     is_PowerSeries = True
