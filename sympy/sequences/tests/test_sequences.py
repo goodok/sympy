@@ -163,7 +163,7 @@ def test_mul_print():
 
     abc = a*b*c
     s = str(abc)
-    assert s == 'a*b*c'
+    assert s == '{a}*{b}*{c}'
 
 @XFAIL
 def test_coeffmul_print():
@@ -171,7 +171,7 @@ def test_coeffmul_print():
 
     abc = a*b*3*c
     s = str(abc)    # '3*(a*b*c)' now
-    assert s == '3*a*b*c'
+    assert s == '3*{a}*{b}*{c}'
 
 def test_symbol():
     a = SequenceSymbol((0, 3), 'a')

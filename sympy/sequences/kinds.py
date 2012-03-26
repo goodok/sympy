@@ -139,7 +139,7 @@ class SequenceSymbol(SequenceBase, Symbol):
 
     >>> a = SequenceSymbol((0, 10), 'a')
     >>> a
-    a
+    {a}
     >>> pprint(a)
     [a[0], a[1], a[2], a[3], a[4], a[5], a[6], ...]
 
@@ -149,7 +149,7 @@ class SequenceSymbol(SequenceBase, Symbol):
 
     >>> b = SequenceSymbol((0, 3), 'b')
     >>> a + b
-    a + b
+    {a} + {b}
     >>> pprint(a + b)
     [a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4], a[5], a[6], ...]
 
@@ -198,7 +198,7 @@ class SequenceSymbol(SequenceBase, Symbol):
         if printer._settings["list_sequences"]:
             return SeqExpr._sympystr(self, printer)
         else:
-            return printer._print_Symbol(self)
+            return "{" + printer._print_Symbol(self) + "}"
 
 class IndexedSequenceSymbol(Expr):
 

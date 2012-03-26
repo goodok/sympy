@@ -692,8 +692,8 @@ class SeqMulEW(SeqExpr, Expr):
     >>> from sympy.sequences.expr import SeqMulEW
     >>> from sympy.printing.pretty.pretty import pprint
 
-    >>> a = Sequence((0, oo), periodical = (1, 2))
-    >>> b = Sequence((0, oo), periodical = (3, 4, 5))
+    >>> a = Sequence(periodical = (1, 2))
+    >>> b = Sequence(periodical = (3, 4, 5))
     >>> c = SeqMulEW(a, b)
 
     >>> c
@@ -814,7 +814,7 @@ class SeqCauchyMul(SeqExpr, Mul):
         >>> b = Sequence((0, oo), 'b')
         >>> c = a*b
         >>> c
-        a*b
+        {a}*{b}
         >>> type(c)
         <class 'sympy.sequences.expr.SeqCauchyMul'>
 
@@ -975,7 +975,7 @@ class SeqExpCauchyMul(SeqCauchyMul, Mul):
     >>> b = Sequence((0, oo), 'b')
     >>> c = SeqExpCauchyMul(a, b)
     >>> c
-    a*b
+    {a}*{b}
     >>> c[0]
     a[0]*b[0]
     >>> c[1]
