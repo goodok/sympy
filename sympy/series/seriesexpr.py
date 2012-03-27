@@ -305,19 +305,21 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
 
 class SeriesAtom(SeriesExpr):
     is_SeriesAtom = True
-    def __new__(self, x, sequence_name=None, **kwargs):
+    def __new__(cls, x=None, sequence_name=None, **kwargs):
         if sequence_name:
             sequence = Sequence(sequence_name, **kwargs)
         else:
-            sequence = kwargs.get("sequence", None)
-            if sequence==None:
-                sequence = Sequence(**kwargs)
-        obj = SeriesExpr.__new__(self, x, sequence)
+            poly = kwargs.get("poly", None)
+            if poly:
+                return cls._from_poly(poly) # recur
+            else:
+                sequence = kwargs.get("sequence", None)
+                if sequence==None:
+                    sequence = Sequence(**kwargs)
+        assert x
+        assert sequence
+        obj = SeriesExpr.__new__(cls, x, sequence)
         return obj
-
-    @classmethod
-    def _from_args(cls, x, sequence):
-        return cls.__new__(cls, x, sequence=sequence)
 
     @property
     def x(self):
@@ -327,6 +329,22 @@ class SeriesAtom(SeriesExpr):
     def sequence(self):
         return self._args[1]
 
+    @classmethod
+    def _from_args(cls, x, sequence, **kwargs):
+        return cls.__new__(cls, x, sequence=sequence, **kwargs)
+
+    @classmethod
+    def _from_poly(cls, poly, **kwargs):
+        assert poly.is_Poly
+        assert poly.is_univariate
+        x = poly.gen
+        end = poly.degree()
+        start = poly.monoms()[-1][0]
+        finitlist = poly.all_coeffs()[:-start]
+        finitlist.reverse()
+        finitlist = tuple(finitlist)
+        sequence = Sequence(Interval(start, end), finitlist=finitlist)
+        return cls.__new__(cls, x, sequence=sequence)
 
 class SeriesSliced(SeriesExpr, SeqSliced):
     """

@@ -1126,6 +1126,33 @@ class FaDeBruno(SeqExpr):
     [2] http://en.wikipedia.org/wiki/Formal_power_series#Composition_of_series
     [3] R P. Brent , H T Kung, "Fast Algorithms for Manipulating Formal Power Series"
 
+
+    [4]Miloud Mihoubi, "Bell polynomials and binomial type sequences"
+    Original Research Article
+    Discrete Mathematics, Volume 308, Issue 12, 28 June 2008, Pages 2450-2459
+    
+
+    [4] Djurdje Cvijović,
+    "New identities for the partial Bell polynomials"
+    Original Research Article, Applied Mathematics Letters, Volume 24, Issue 9,
+    September 2011, Pages 1544-1547
+
+    [5] Christopher S. Withers, Saralees Nadarajah, Multivariate,
+    "Bell polynomials and their applications to powers and fractionary iterates
+    of vector power series and to partial derivatives of composite vector
+    functions"
+    Applied Mathematics and Computation, Volume 206, Issue 2, 15 December 2008,
+    Pages 997-1004
+
+    [6] Robert A. Van Gorder, "Computation of certain infinite series of the
+    form for arbitrary real-valued k", Original Research Article
+    Applied Mathematics and Computation, Volume 215, Issue 3, 1 October 2009,
+    Pages 1209-1216
+
+    [8] Weiping Wang, Tianming Wang,
+    "General identities on Bell polynomials", Original Research Article
+    Computers & Mathematics with Applications, Volume 58, Issue 1, July 2009,
+    Pages 104-118
     """
     # TODO:
     # It is work only of the leading items of both sequences are not zero.

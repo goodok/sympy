@@ -14,6 +14,7 @@ from sympy.functions.combinatorial.factorials import factorial
 from sympy.core.cache import cacheit
 from sympy.core.sets import Interval
 
+from sympy.sequences import Sequence
 from sympy.sequences.expr import SeqExpCauchyMul, SeqExpCauchyPow, FaDeBruno
 
 from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
@@ -145,7 +146,19 @@ class PowerESeries(PowerESeriesExpr, SeriesAtom):
     0
 
     """
-    pass
+    @classmethod
+    def _from_poly(cls, poly, **kwargs):
+        assert poly.is_Poly
+        assert poly.is_univariate
+        x = poly.gen
+        end = poly.degree()
+        start = poly.monoms()[-1][0]
+        finitlist = poly.all_coeffs()[:-start]
+        finitlist.reverse()
+        finitlist = tuple(finitlist)
+        sequence = Sequence(Interval(start, end), finitlist=finitlist)
+        return cls.__new__(cls, x, sequence=sequence.factorialize())
+
 
 class PowerESeriesAdd(SeriesAdd, PowerESeriesExpr):
     """    """

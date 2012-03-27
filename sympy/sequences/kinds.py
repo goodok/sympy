@@ -200,6 +200,10 @@ class SequenceSymbol(SequenceBase, Symbol):
         else:
             return "{" + printer._print_Symbol(self) + "}"
 
+    def _latex(self, p):
+        base = p._print_Symbol(self)
+        return r"\left\{ %s \right\}" % (base)
+
 class IndexedSequenceSymbol(Expr):
 
     is_commutative = True
