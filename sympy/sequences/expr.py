@@ -1130,7 +1130,7 @@ class FaDeBruno(SeqExpr):
     [4]Miloud Mihoubi, "Bell polynomials and binomial type sequences"
     Original Research Article
     Discrete Mathematics, Volume 308, Issue 12, 28 June 2008, Pages 2450-2459
-    
+
 
     [4] Djurdje Cvijović,
     "New identities for the partial Bell polynomials"

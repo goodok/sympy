@@ -18,58 +18,58 @@ from sympy.sequences import Sequence
 from sympy.sequences.expr import SeqExpCauchyMul, SeqExpCauchyPow, FaDeBruno
 
 from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
-from power import Reverse as _Reverse
+from power_0 import Reverse as _Reverse
 
 
-class PowerESeriesExprOp(SeriesExpr):
+class PowerSeries_0E_ExprOp(SeriesExpr):
 
     _op_priority = 14.0
 
-    is_PowerESeries = True
+    is_PowerSeries_0E = True
 
-    _type_must = "PowerESeries"
-    _type_is = "PowerESeries"
-
-    @property
-    def _SeriesAdd(self): return PowerESeriesAdd
+    _type_must = "PowerSeries_0E"
+    _type_is = "PowerSeries_0E"
 
     @property
-    def _SeriesMul(self): return PowerESeriesMul
+    def _SeriesAdd(self): return PowerSeries_0E_Add
 
     @property
-    def _SeriesPow(self): return PowerESeriesPow
+    def _SeriesMul(self): return PowerSeries_0E_Mul
 
     @property
-    def _SeriesSliced(self): return PowerESeriesSliced
+    def _SeriesPow(self): return PowerSeries_0E_Pow
 
     @property
-    def _SeriesExpr(self): return PowerESeriesExpr
+    def _SeriesSliced(self): return PowerSeries_0E_Sliced
 
     @property
-    def _SeriesNested(self): return PowerESeriesNested
+    def _SeriesExpr(self): return PowerSeries_0E_Expr
+
+    @property
+    def _SeriesNested(self): return PowerSeries_0E_Nested
 
     @property
     def _Reverse(self): return Reverse
 
     @property
-    def _SeriesMul(self): return PowerESeriesMul
+    def _SeriesMul(self): return PowerSeries_0E_Mul
 
     @property
-    def _SeriesCoeffMul(self): return PowerESeriesCoeffMul
+    def _SeriesCoeffMul(self): return PowerSeries_0E_CoeffMul
 
     @classmethod
-    def _cls_SeriesCoeffMul(cls): return PowerESeriesCoeffMul
+    def _cls_SeriesCoeffMul(cls): return PowerSeries_0E_CoeffMul
 
     @classmethod
-    def _cls_SeriesMul(cls): return PowerESeriesMul
+    def _cls_SeriesMul(cls): return PowerSeries_0E_Mul
 
 
 
-class PowerESeriesSliced(SeriesSliced, PowerESeriesExprOp):
+class PowerSeries_0E_Sliced(SeriesSliced, PowerSeries_0E_ExprOp):
     pass
 
 
-class PowerESeriesExpr(PowerESeriesExprOp):
+class PowerSeries_0E_Expr(PowerSeries_0E_ExprOp):
     @cacheit
     def getitem_index(self, i):
         a =  self.sequence[i]
@@ -79,10 +79,10 @@ class PowerESeriesExpr(PowerESeriesExprOp):
 
     def shift(self, n):
         """
-        >>> from sympy.series import PowerESeries
+        >>> from sympy.series import PowerSeries_0E
         >>> from sympy.abc import x
         >>> from sympy.printing.repr import srepr
-        >>> ps = PowerESeries(x, periodical=(1, 2, 3, 4, 5, 6, 7))
+        >>> ps = PowerSeries_0E(x, periodical=(1, 2, 3, 4, 5, 6, 7))
         >>> ps
         1 + 2*x + 3*x**2/2 + 2*x**3/3 + 5*x**4/24 + x**5/20 + ...
 
@@ -94,7 +94,7 @@ class PowerESeriesExpr(PowerESeriesExprOp):
 
 
     def compose(self, other):
-        return PowerESeriesNested(self, other)
+        return PowerSeries_0E_Nested(self, other)
 
     # abstract (will be sertted in seriesupdate module)
     def to_power_series(self):
@@ -103,14 +103,14 @@ class PowerESeriesExpr(PowerESeriesExprOp):
     def reverse(self):
         return Reverse(self)
 
-class PowerESeries(PowerESeriesExpr, SeriesAtom):
+class PowerSeries_0E(PowerSeries_0E_Expr, SeriesAtom):
     """
     Formal Power series with exponentional basis.
 
     Examples
     ========
 
-    >>> from sympy.series import PowerESeries
+    >>> from sympy.series import PowerSeries_0E
     >>> from sympy.sequences import Sequence
     >>> from sympy import S, oo
     >>> from sympy.abc import x, k
@@ -118,16 +118,16 @@ class PowerESeries(PowerESeriesExpr, SeriesAtom):
     >>> seq
     SeqFormula([1, oo), k, 1/k)
 
-    >>> PowerESeries(x, sequence=seq)
+    >>> PowerSeries_0E(x, sequence=seq)
     x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
 
     Define hyperbolic cos series with the help of sequence:
 
-    >>> tcosh = PowerESeries(x, periodical = (1, 0))
+    >>> tcosh = PowerSeries_0E(x, periodical = (1, 0))
     >>> tcosh
     1 + x**2/2 + x**4/24 + ...
 
-    >>> tsinh = PowerESeries(x, periodical = (0, 1))
+    >>> tsinh = PowerSeries_0E(x, periodical = (0, 1))
     >>> tsinh
     x + x**3/6 + x**5/120 + x**7/5040 + ...
 
@@ -160,7 +160,7 @@ class PowerESeries(PowerESeriesExpr, SeriesAtom):
         return cls.__new__(cls, x, sequence=sequence.factorialize())
 
 
-class PowerESeriesAdd(SeriesAdd, PowerESeriesExpr):
+class PowerSeries_0E_Add(SeriesAdd, PowerSeries_0E_Expr):
     """    """
     _op_priority = 14.0
     def __new__(cls, *args):
@@ -169,17 +169,17 @@ class PowerESeriesAdd(SeriesAdd, PowerESeriesExpr):
         args = [arg for arg in args if arg!=0]
 
         #TODO: create ScalAdd to keep scalar separatly
-        if not all(arg.is_PowerESeries for arg in args):
-            raise ValueError("Mix of PowerESeries and Scalar symbols")
+        if not all(arg.is_PowerSeries_0E for arg in args):
+            raise ValueError("Mix of PowerSeries_0E and Scalar symbols")
 
         expr = SeriesAdd.__new__(cls, *args)
 
         if expr.is_Mul:
             # TODO: use _SeriesMul
-            return PowerESeriesMul(*expr.args)
+            return PowerSeries_0E_Mul(*expr.args)
         return expr
 
-class PowerESeriesMul(PowerESeriesExpr, SeriesMul):
+class PowerSeries_0E_Mul(PowerSeries_0E_Expr, SeriesMul):
     """A Product of series Expressions."""
 
     def __new__(cls, *args):
@@ -203,22 +203,22 @@ class PowerESeriesMul(PowerESeriesExpr, SeriesMul):
             return res
         else:
             # TODO: use self._SeriesCoeffMul
-            return PowerESeriesCoeffMul(coeff, res)
+            return PowerSeries_0E_CoeffMul(coeff, res)
 
     @property
     @cacheit
     def sequence(self):
         return SeqExpCauchyMul(*(s.sequence for s in self.args))
 
-class PowerESeriesCoeffMul(PowerESeriesExpr, SeriesCoeffMul):
+class PowerSeries_0E_CoeffMul(PowerSeries_0E_Expr, SeriesCoeffMul):
     pass
 
-class PowerESeriesPow(PowerESeriesExpr, Pow):
+class PowerSeries_0E_Pow(PowerSeries_0E_Expr, Pow):
     """
     Examples
     ========
 
-    >>> from sympy.series import PowerESeries
+    >>> from sympy.series import PowerSeries_0E
     >>> from sympy.sequences import Sequence
     >>> from sympy import S, oo
     >>> from sympy.abc import x, k
@@ -226,16 +226,16 @@ class PowerESeriesPow(PowerESeriesExpr, Pow):
     >>> seq
     SeqFormula([1, oo), k, 1/k)
 
-    >>> PowerESeries(x, sequence=seq)
+    >>> PowerSeries_0E(x, sequence=seq)
     x + x**2/4 + x**3/18 + x**4/96 + x**5/600 + ...
 
     Define hyperbolic cos series with the help of sequence:
 
-    >>> tcosh = PowerESeries(x, periodical = (1, 0))
+    >>> tcosh = PowerSeries_0E(x, periodical = (1, 0))
     >>> tcosh
     1 + x**2/2 + x**4/24 + ...
 
-    >>> tsinh = PowerESeries(x, periodical = (0, 1))
+    >>> tsinh = PowerSeries_0E(x, periodical = (0, 1))
     >>> tsinh
     x + x**3/6 + x**5/120 + x**7/5040 + ...
 
@@ -253,7 +253,7 @@ class PowerESeriesPow(PowerESeriesExpr, Pow):
     def sequence(self):
         return SeqExpCauchyPow(self.base.sequence, self.exp)
 
-class PowerESeriesNested(SeriesNested, PowerESeries):
+class PowerSeries_0E_Nested(SeriesNested, PowerSeries_0E):
 
     @property
     @cacheit
@@ -261,7 +261,7 @@ class PowerESeriesNested(SeriesNested, PowerESeries):
         return FaDeBruno(self.g.sequence, self.f.sequence)
 
 
-class Reverse(PowerESeries, _Reverse):
+class Reverse(PowerSeries_0E, _Reverse):
     # Note: we use power series algorithm
     @property
     def sequence(self):

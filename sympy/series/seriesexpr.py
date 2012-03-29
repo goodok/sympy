@@ -32,8 +32,8 @@ class SeriesExprOp(Expr):
     is_Identity = False
 
     is_PowerSeries = False
-    is_PowerESeries = False
-    is_PowerXSeries = False
+    is_PowerSeries_0E = False
+    is_PowerSeries0 = False
 
 
     _type_must = "Series"
@@ -340,11 +340,11 @@ class SeriesAtom(SeriesExpr):
         x = poly.gen
         end = poly.degree()
         start = poly.monoms()[-1][0]
-        finitlist = poly.all_coeffs()[:-start]
-        finitlist.reverse()
-        finitlist = tuple(finitlist)
-        sequence = Sequence(Interval(start, end), finitlist=finitlist)
-        return cls.__new__(cls, x, sequence=sequence)
+        coeffs = poly.all_coeffs()
+        coeffs.reverse()
+        coeffs = tuple(coeffs[start:])
+        sequence = Sequence(Interval(start, end), finitlist=coeffs)
+        return cls.__new__(cls, x, sequence=sequence, **kwargs)
 
 class SeriesSliced(SeriesExpr, SeqSliced):
     """
@@ -401,8 +401,13 @@ class SeriesSliced(SeriesExpr, SeqSliced):
         return obj
 
     @property
-    def sequnence(self):
-        return SeqSliced(self.original.sequence, self.mask_interval)
+    def x(self):
+        return self.original.x
+
+
+    @property
+    def sequence(self):
+        return SeqSliced(self.original.sequence, self.mask)
 
 ################################################################################
 #                             Operations                                       #

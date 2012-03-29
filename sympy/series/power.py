@@ -1,26 +1,30 @@
 # -*- coding: utf-8 -*-
 """
-Formal power series near zero.
+Formal power series near some point.
 
 It is based on:
     a_n*x**n
 
 """
 
-from sympy.core import (Basic, Expr, Add, Mul, Pow)
+from sympy.core import (Basic, Expr, Add, Mul, Pow, sympify)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.singleton import (Singleton, S)
 from sympy.core import (Pow)
 from sympy.functions.combinatorial.factorials import factorial
 from sympy.core.sets import Interval
 from sympy.core.cache import cacheit
+from sympy.polys.polytools import Poly
 
-from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
+from sympy.sequences import Sequence
 from sympy.sequences.expr import SeqCauchyMul, SeqCauchyPow, FaDeBruno
+from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
 
-class PowerSeriesExprOp(SeriesExpr):
+from power_0 import PowerSeries0Expr, PowerSeries0, PowerSeries0Mul, PowerSeries0Pow, PowerSeries0Pow, PowerSeries0Nested
+
+class PowerSeriesExprOp(PowerSeries0Expr):
     is_PowerSeries = True
-
+    is_PowerSeries0 = False
     _type_must = "PowerSeries"
     _type_is = "PowerSeries"
 
@@ -64,19 +68,34 @@ class PowerSeriesExpr(PowerSeriesExprOp):
     @cacheit
     def getitem_index(self, i):
         c = self.sequence
-        return c[i]*Pow(self.x, i)
+        return c[i]*Pow(self.x - self.point, i)
 
     # abstract
     def to_power_e_series(self):
         pass
 
+    def shift(self, n):
+        """
+        >>> from sympy.series import PowerSeries
+        >>> from sympy.abc import x
+        >>> from sympy.printing.repr import srepr
+        >>> ps = PowerSeries(x, periodical=(1, 2, 3, 4, 5, 6, 7))
+        >>> ps
+        1 + 2*x + 3*x**2 + 4*x**3 + 5*x**4 + 6*x**5 + 7*x**6 + x**7 + ...
+
+        >>> ps.shift(-2)
+        3 + 4*x + 5*x**2 + 6*x**3 + 7*x**4 + x**5 + 2*x**6 + 3*x**7 + 4*x**8 + ...
+
+        """
+        new_seq = self.sequence.shift(n)
+        return self._from_args(self.x, new_seq, self.point)
 
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """
     Examples:
 
     >>> from sympy import S, oo
-    >>> from sympy.abc import x, k
+    >>> from sympy.abc import x, k, a
     >>> from sympy.sequences import Sequence
     >>> from sympy.series.power import PowerSeries
 
@@ -84,11 +103,11 @@ class PowerSeries(PowerSeriesExpr, SeriesAtom):
     >>> seq
     SeqFormula([1, oo), k, 1/k)
 
-    >>> PowerSeries(x, sequence=seq)
-    x + x**2/2 + x**3/3 + x**4/4 + x**5/5 + x**6/6 + x**7/7 + x**8/8 + ...
+    >>> PowerSeries(x, sequence=seq, point=1)
+    x - 1 + (x - 1)**2/2 + (x - 1)**3/3 + (x - 1)**4/4 + (x - 1)**5/5 + ...
 
-    >>> PowerSeries(x, periodical = (1, 0))
-    1 + x**2 + x**4 + x**6 + x**8 + ...
+    >>> PowerSeries(x, periodical = (1, -1), point=a)
+    1 + a - x + (-a + x)**2 - (-a + x)**3 + (-a + x)**4 - (-a + x)**5 + ...
 
 
     Notes
@@ -97,7 +116,50 @@ class PowerSeries(PowerSeriesExpr, SeriesAtom):
     Defining through the sequences is similar to Generating Function definition
     and Discrete Laplace Tranform.
     """
-    pass
+    def __new__(cls, x=None, sequence_name=None, **kwargs):
+        if sequence_name:
+            sequence = Sequence(sequence_name, **kwargs)
+        else:
+            poly = kwargs.pop("poly", None)
+            if poly:
+                return cls._from_poly(poly, **kwargs) # recur
+            else:
+                sequence = kwargs.get("sequence", None)
+                if sequence==None:
+                    sequence = Sequence(**kwargs)
+        point =  kwargs.get("point", S.Zero)
+        point = sympify(point)
+        assert x
+        assert sequence
+        obj = SeriesExpr.__new__(cls, x, sequence, point)
+        return obj
+
+    @property
+    def point(self):
+        return self._args[2]
+
+    @classmethod
+    def _from_args(cls, x, sequence, point):
+        return cls.__new__(cls, x, sequence=sequence, point=point)
+
+    @classmethod
+    def _from_poly(cls, poly, **kwargs):
+        assert poly.is_Poly
+        assert poly.is_univariate
+        x = poly.gen
+
+        point =  kwargs.get("point", S.Zero)
+        if point is not S.Zero:
+            poly = Poly(poly.as_expr().subs(x, x + point), x)
+
+        end = poly.degree()
+        start = poly.monoms()[-1][0]
+        coeffs = poly.all_coeffs()
+        coeffs.reverse()
+        coeffs = tuple(coeffs[start:])
+        sequence = Sequence(Interval(start, end), finitlist=coeffs)
+        return cls.__new__(cls, x, sequence=sequence, **kwargs)
+
 
 class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
     """
@@ -110,27 +172,30 @@ class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
     >>> from sympy.abc import x
     >>> from sympy.series.power import PowerSeries
 
-    >>> a = PowerSeries(x, 'a')
-    >>> b = PowerSeries(x, 'b')
+    >>> a = PowerSeries(x, 'a', point=1)
+    >>> b = PowerSeries(x, 'b', point=1)
     >>> a
-    a[0] + x*a[1] + x**2*a[2] + x**3*a[3] + x**4*a[4] + x**5*a[5] + x**6*a[6] + ...
+    a[0] + (x - 1)*a[1] + (x - 1)**2*a[2] + (x - 1)**3*a[3] + ...
     >>> b
-    b[0] + x*b[1] + x**2*b[2] + x**3*b[3] + x**4*b[4] + x**5*b[5] + x**6*b[6] + ...
+    b[0] + (x - 1)*b[1] + (x - 1)**2*b[2] + (x - 1)**3*b[3] + ...
 
     >>> a + b
-    a[0] + b[0] + x*(a[1] + b[1]) + x**2*(a[2] + b[2]) + ...
+    a[0] + b[0] + (x - 1)*(a[1] + b[1]) + (x - 1)**2*(a[2] + b[2]) + ...
 
     >>> (a + b)[3]
-    x**3*(a[3] + b[3])
+    (x - 1)**3*(a[3] + b[3])
 
     >>> (a + b).coeff(3)
     a[3] + b[3]
 
     """
-    pass
+    #TODO: consider the case of different points
+    @property
+    def point(self):
+        return self._args[0].point
 
 
-class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
+class PowerSeriesMul(PowerSeriesExpr, PowerSeries0Mul):
     """
     A product of power series Expressions.
 
@@ -142,26 +207,25 @@ class PowerSeriesMul(PowerSeriesExpr, SeriesMul):
     >>> from sympy.series.power import PowerSeries
     >>> from sympy.sequences import Sequence
 
-    >>> a = PowerSeries(x, 'a')
-    >>> b = PowerSeries(x, 'b')
+    >>> a = PowerSeries(x, 'a', point=2)
+    >>> b = PowerSeries(x, 'b', point=2)
     >>> c = a*b
 
     >>> c[0]
     a[0]*b[0]
 
     >>> c[1]
-    x*(a[0]*b[1] + a[1]*b[0])
+    (x - 2)*(a[0]*b[1] + a[1]*b[0])
 
     >>> c[2]
-    x**2*(a[0]*b[2] + a[1]*b[1] + a[2]*b[0])
+    (x - 2)**2*(a[0]*b[2] + a[1]*b[1] + a[2]*b[0])
 
     """
-    pass
-
+    #TODO: consider the case of different points
     @property
-    @cacheit
-    def sequence(self):
-        return SeqCauchyMul(*(s.sequence for s in self.args))
+    def point(self):
+        return self._args[0].point
+
 
 class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
     """
@@ -175,132 +239,63 @@ class PowerSeriesCoeffMul(PowerSeriesExpr, SeriesCoeffMul):
     >>> from sympy.series.power import PowerSeries
     >>> from sympy.sequences import Sequence
 
-    >>> a = PowerSeries(x, 'a')
+    >>> a = PowerSeries(x, 'a', point=3)
     >>> 2*a
-    2*a[0] + 2*x*a[1] + 2*x**2*a[2] + 2*x**3*a[3] + ...
+    2*a[0] + 2*(x - 3)*a[1] + 2*(x - 3)**2*a[2] + 2*(x - 3)**3*a[3] + ...
 
     >>> (2*a).coefficient
     2
 
     >>> (2*a).series
-    a[0] + x*a[1] + x**2*a[2] + x**3*a[3] + x**4*a[4] + ...
+    a[0] + (x - 3)*a[1] + (x - 3)**2*a[2] + (x - 3)**3*a[3] + (x - 3)**4*a[4] + ...
 
     >>> (2*a).coeff(3)
     2*a[3]
 
     >>> (2*a)[3]
-    2*x**3*a[3]
+    2*(x - 3)**3*a[3]
 
     """
-    pass
+    @property
+    def point(self):
+        return self.series.point
 
-class PowerSeriesPow(PowerSeriesExpr, Pow):
+
+class PowerSeriesPow(PowerSeriesExpr, PowerSeries0Pow):
     """
     Power of formal power series.
 
     Example
     =======
     >>> from sympy import oo
-    >>> from sympy.abc import x
+    >>> from sympy.abc import x, z
     >>> from sympy.series.power import PowerSeries
 
-    >>> a = PowerSeries(x, 'a')
+    >>> a = PowerSeries(x, 'a', point=z)
     >>> c = a**2
     >>> c
-    a[0]**2 + 2*x*a[0]*a[1] + x**2*(2*a[0]*a[2] + a[1]**2) + ...
+    a[0]**2 + 2*(x - z)*a[0]*a[1] + (x - z)**2*(2*a[0]*a[2] + a[1]**2) + ...
 
     >>> c[4]
-    x**4*(2*a[0]*a[4] + 2*a[1]*a[3] + a[2]**2)
+    (x - z)**4*(2*a[0]*a[4] + 2*a[1]*a[3] + a[2]**2)
 
     """
-
     @property
-    def x(self):
-        return self.base.x
+    def point(self):
+        return self.base.point
 
+
+class PowerSeriesNested(PowerSeries0Nested, PowerSeries):
+    #TODO: consider what's going on if points defers.
     @property
-    @cacheit
-    def sequence(self):
-        return SeqCauchyPow(self.base.sequence, self.exp)
+    def point(self):
+        return self.f.point
 
-class PowerSeriesNested(SeriesNested, PowerSeries):
-
-    @property
-    @cacheit
-    def sequence(self):
-        return FaDeBruno_powers(self.f.sequence, self.g.sequence)
-
-class FaDeBruno_powers(FaDeBruno):
-    """
-    This is similar to SeqExp_FaDeBruno but for formal Power series.
-
-        g(x)=\sum_{n=1}^\infty {b_n} x^n
-        f(x)=\sum_{n=1}^\infty {a_n} x^n
-
-    That is without factorials.
-
-    """
-    # we use very rough method:
-    # substitute f and g sequences with g' = {g_n*n!} and f' = {f_n*n!}
-    # and use FaDeBruno
-    # then devide result by n!.
-
-    # TODO: implement exponenentionize method for sequences, whis can be used often
-    # `SeqMulEW(self.f, Sequence(formula=(k, factorial(k))))`
-
-    @property
-    def _g(self):
-        return self.g.factorialize()
-
-    @property
-    def _f(self):
-        return self.f.factorialize()
-
-
-    @property
-    @cacheit
-    def sequence_result(self):
-        return FaDeBruno(self._g, self._f).unfactorialize()
-
-    @cacheit
-    def __getitem__(self, i):
-        return self.sequence_result[i]
-
-
-class Reverse(PowerSeries):
+class Reverse(PowerSeries, PowerSeries0):
     """
     Reversion of power series.
-
-    References
-    ==========
-
-    .. [1] Donald E. "Knuth Art of Computer Programming, Volume 2: Seminumerical Algorithms",
-    3rd ed., sec 4.7 "Manipulation of power series", p 526.
-    .. [2] http://en.wikipedia.org/wiki/Lagrange_inversion_theorem
-    .. [3] Fredrik Johansson, A fast algorithm for reversion of power series
-    .. [4] Faà di Bruno's Formula
-
     """
-    def __new__(cls, original):
-        assert original.is_Series
-        original_seq = original.sequence
-        assert original_seq[0] == S.Zero
-        assert original_seq[1] <> S.Zero
-        obj = SeriesExpr.__new__(cls, original)
-        return obj
-
     @property
-    def x(self):
-        return self.original.x
+    def point(self):
+        return self.original.point
 
-    @property
-    def original(self):
-        return self._args[0]
-
-    @property
-    def original_seq(self):
-        return self.original.sequence
-
-    @property
-    def sequence(self):
-        return self.original_seq.reverse()
