@@ -138,28 +138,45 @@ class SeqShiftLeft(SeqExpr):
     """
     # TODO:
     # SeqShiftLeft(SeqPer([0, oo), (1, 2, 3)), 2) ---> SeqPer([0, oo), (3, 2, 1)
-    # seq.shiftright(2).shiftleft(2) --> seq
-    # seq.left(2).shiftright(2) --> seq, but with the first two items removed
 
     def __new__(cls, *args):
-        if (args[1]==0): return args[0]
+        original = args[0]
+        offset = args[1]
+        original, offset = cls.flatten(original, offset)
+
+        if offset==0: return original
+        elif offset < 0:
+            args = (original, -offset)
+            return SeqShiftRight(*args)
+        args = (original, offset)
         expr = Expr.__new__(cls, *args)
         return expr
+
+    @classmethod
+    def flatten(cls, original, offset):
+        if isinstance(original, SeqShiftRight):
+            offset = offset - original.offset
+            original = original.original
+        return original, offset
 
     @property
     def offset(self):
         return self.args[1]
 
+    @property
+    def original(self):
+        return self.args[0]
+
     def getitem_index(self, i):
         n = i + self.offset
-        return self.args[0][n]
+        return self.original[n]
 
     @property
     @cacheit
     def interval(self):
-        old = self.args[0].interval
-        left = old.inf - self.offset
-        right = old.sup - self.offset
+        original = self.original.interval
+        left = original.inf - self.offset
+        right = original.sup - self.offset
         # check that the new interval has no negative indexes.
         new = Interval(left, right) & Interval(S.Zero, S.Infinity)
         return new
@@ -188,9 +205,29 @@ class SeqShiftRight(SeqExpr):
     """
 
     def __new__(cls, *args):
-        if (args[1]==0): return args[0]
+        original = args[0]
+        offset = args[1]
+        original, offset = cls.flatten(original, offset)
+
+        if offset==0: return original
+        elif offset < 0:
+            args = (original, -offset)
+            return SeqShiftLeft(*args)
+        args = (original, offset)
         expr = Expr.__new__(cls, *args)
         return expr
+
+
+    @classmethod
+    def flatten(cls, original, offset):
+        if isinstance(original, SeqShiftLeft):
+            offset = offset - original.offset
+            original = original.original[original.offset:]
+        return original, offset
+
+    @property
+    def original(self):
+        return self.args[0]
 
     @property
     def offset(self):
@@ -220,7 +257,13 @@ class Factorialize(SeqExpr):
     And analog of "serlaplace" in PARI/GP.
     """
     #TODO:  name-token is laplace trasformation ?
-    #TODO: Factorialize(Factorialize(seq)) --> seq
+
+    def __new__(cls, *args):
+        original = args[0]
+        if isinstance(original, UnFactorialize):
+            return original.original
+        expr = Expr.__new__(cls, *args)
+        return expr
 
     @property
     def interval(self):
@@ -245,6 +288,13 @@ class UnFactorialize(Factorialize):
     Or as SeqMulEW(self, Sequence(formula(x, 1/x!)))
 
     """
+    def __new__(cls, *args):
+        original = args[0]
+        if isinstance(original, Factorialize):
+            return original.original
+        expr = Expr.__new__(cls, *args)
+        return expr
+
     @cacheit
     def getitem_index(self, i):
         return self.original[i]/factorial(i)

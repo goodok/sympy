@@ -1185,8 +1185,9 @@ class FaDeBruno(SeqExpr):
         if i == S.Zero:
             return self.g[0]
         s = S.Zero
+        fshifted = self.f.shift(-1)
         for k in xrange(1, i+1):
-            s += self.g[k] * bell(i, k, self.f)
+            s += self.g[k] * bell(i, k, fshifted)
         return s
 
 

@@ -629,6 +629,6 @@ class SeriesNested(SeriesExpr):
     @property
     @cacheit
     def interval(self):
-        return self.f.interval
+        return self.f.interval | self.g.interval
 
 

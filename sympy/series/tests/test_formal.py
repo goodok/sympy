@@ -8,7 +8,7 @@ from sympy.printing.pretty import pretty as xpretty
 from sympy.core.sets import Interval
 from sympy.core.symbol import Symbol, symbols
 from sympy.core.cache import clear_cache
-
+from sympy import Poly
 
 
 
@@ -280,7 +280,6 @@ def test_nested():
 
 
 def test_frompoly():
-    from sympy import Poly
 
     p = Poly(x**5 + 3*x**4 + 5*x**2, x)
     ps = PowerSeries0(poly=p)
@@ -294,4 +293,11 @@ def test_frompoly():
     assert ps[5] == (x-1)**5
     assert ps[4] == 5*(x-1)**4
 
+def test_compose():
+    #slow
+    p = Poly(x+x**2)
+    pp= PowerSeries0(poly=p)
+    psin = PowerSeries_0E(x, periodical=(0, 1)).to_power_series()
+    res = psin.compose(pp)
+    res[10]
 
