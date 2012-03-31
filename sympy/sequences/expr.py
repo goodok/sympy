@@ -584,6 +584,10 @@ class SeqCoeffMul(SeqExpr, Mul):
         else:
             return self.coefficient * self.seq[i]
 
+    def _eval_expand_mul(self, deep=True, **hints):
+        if isinstance(self.seq, SeqAdd):
+            return SeqAdd( *tuple(SeqCoeffMul(self.coefficient, seq) for seq in self.seq.args))
+        return self
 
     def _sympystr(self, printer, *args):
         if False:  # printer._settings["list_sequences"]:

@@ -43,4 +43,3 @@ def test_cacheit_recurr():
     assert b[5] == 8
     assert b[6] == 13
     assert b.__getitem__._cache_it_cache.items()[0][1] == [13]
-

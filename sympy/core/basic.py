@@ -151,7 +151,6 @@ class Basic(PicklableWithSlots):
 
         obj._mhash = None # will be set by __hash__ method.
         obj._args = args  # all items in args must be Basic objects
-        obj._hashable_tuple_chached = None # will be set by _hashable_content method
         return obj
 
 

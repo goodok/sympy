@@ -5,7 +5,6 @@ from sympy import bernoulli, Symbol, symbols, Sum, harmonic, Rational, oo, \
 
 from sympy.utilities.pytest import XFAIL
 
-from sympy.tensor import IndexedBase
 x = Symbol('x')
 
 def test_bernoulli():

@@ -129,7 +129,6 @@ def init_printing(pretty_print=True, order=None, use_unicode=None, wrap_line=Non
     x + y +
     x**2 + y**2
     """
-
     from sympy.printing.printer import Printer
 
     if pretty_print:
@@ -138,8 +137,7 @@ def init_printing(pretty_print=True, order=None, use_unicode=None, wrap_line=Non
         from sympy.printing import sstrrepr as stringify_func
 
     if not no_global:
-        Printer.set_global_settings(order=order, use_unicode=use_unicode,
-                wrap_line=wrap_line, num_columns=num_columns)
+        Printer.set_global_settings(order=order, use_unicode=use_unicode, wrap_line=wrap_line, num_columns=num_columns)
     else:
         _stringify_func = stringify_func
 
