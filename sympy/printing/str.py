@@ -19,8 +19,6 @@ class StrPrinter(Printer):
     _default_settings = {
         "order": None,
         "full_prec": "auto",
-        "list_sequences": False,
-        "list_series": True,
     }
 
     def parenthesize(self, item, level):

@@ -195,7 +195,7 @@ class SequenceSymbol(SequenceBase, Symbol):
         raise TypeError( "%s object is not callable"%self.__class__ )
 
     def _sympystr(self, printer):
-        if printer._settings["list_sequences"]:
+        if False: # printer._settings["list_sequences"]:
             return SeqExpr._sympystr(self, printer)
         else:
             return "{" + printer._print_Symbol(self) + "}"

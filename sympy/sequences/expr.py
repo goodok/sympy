@@ -244,7 +244,7 @@ class SeqExprPrint(object):
     """
     show_n = 7
     def _sympystr(self, printer, *args):
-        if printer._settings["list_sequences"]:
+        if False:    #printer._settings["list_sequences"]:
             printset =  self._get_printset()
             if self.is_infinite or (self.length > self.show_n):
                 printset.append("...")
@@ -514,7 +514,7 @@ class SeqAdd(SeqExpr, Add):
         return Min(*(seq.order for seq in self.args))
 
     def _sympystr(self, printer, *args):
-        if printer._settings["list_sequences"]:
+        if False:    # printer._settings["list_sequences"]:
             return SeqExpr._sympystr(self, printer, *args)
         else:
             return printer._print_Add(self)
@@ -586,7 +586,7 @@ class SeqCoeffMul(SeqExpr, Mul):
 
 
     def _sympystr(self, printer, *args):
-        if printer._settings["list_sequences"]:
+        if False:  # printer._settings["list_sequences"]:
             return SeqExpr._sympystr(self, printer, *args)
         else:
             #s = printer._print(self.coefficient, *args)
@@ -673,7 +673,7 @@ class SeqMul(SeqExpr, Mul):
         return Add(*(seq.order for seq in self.args))
 
     def _sympystr(self, printer, *args):
-        if printer._settings["list_sequences"]:
+        if False: # printer._settings["list_sequences"]:
             return SeqExpr._sympystr(self, printer, *args)
         else:
             return printer._print_Mul(self)
@@ -726,7 +726,7 @@ class SeqMulEW(SeqExpr, Expr):
         return self.args[0][i]*self.args[1][i]
 
     def _sympystr(self, printer, *args):
-        if printer._settings["list_sequences"]:
+        if False: #printer._settings["list_sequences"]:
             return SeqExpr._sympystr(self, printer, *args)
         else:
             return printer._print_Basic(self, *args)
@@ -857,7 +857,7 @@ class SeqCauchyMul(SeqExpr, Mul):
 
 
     def _sympystr(self, printer, *args):
-        if printer._settings["list_sequences"]:
+        if False: #printer._settings["list_sequences"]:
             return SeqExpr._sympystr(self, printer, *args)
         else:
             return printer._print_Mul(self)

@@ -134,6 +134,9 @@ class SeriesExprOp(Expr):
     @classmethod
     def _cls_SeriesMul(cls): return SeriesMul
 
+    def __repr__(self):
+        from sympy.printing import srepr
+        return srepr(self)
 
 
 class SeriesExprInterval(SeqExprInterval):
@@ -151,7 +154,8 @@ class SeriesExprPrint(SeqExprPrint):
     """
 
     def _sympystr(self, printer, *args):
-        if printer._settings["list_series"]:
+        #if printer._settings["list_series"]:
+        if True:
             l = [self[i] for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
             terms = [i for i in l if i != S.Zero]
 
@@ -187,7 +191,8 @@ class SeriesExprPrint(SeqExprPrint):
 
     def _pretty(self, printer, *args):
         from sympy.printing.pretty.stringpict import prettyForm, stringPict
-        if printer._settings["list_series"]:
+        #if printer._settings["list_series"]:
+        if True:
             # see pretty._print_Add()
             l = [self[i] for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
             terms = [i for i in l if i != S.Zero]
@@ -459,7 +464,7 @@ class SeriesAdd(SeriesExpr, Add):
         return SeqAdd(*(s.sequence for s in self.args))
 
     def _sympystr(self, printer, *args):
-        if printer._settings["list_series"]:
+        if True: #printer._settings["list_series"]:
             return SeriesExprPrint._sympystr(self, printer, *args)
         else:
             return printer._print_Add(self)
@@ -556,7 +561,7 @@ class SeriesMul(SeriesExpr, Mul):
         return res
 
     def _sympystr(self, printer, *args):
-        if printer._settings["list_series"]:
+        if True: #printer._settings["list_series"]:
             return SeriesExprPrint._sympystr(self, printer, *args)
         else:
             return printer._print_Mul(self)
@@ -598,7 +603,7 @@ class SeriesCoeffMul(SeriesExpr, Mul):
         return SeqCoeffMul(self.coefficient, self.series.sequence)
 
     def _sympystr(self, printer, *args):
-        if printer._settings["list_series"]:
+        if True: # printer._settings["list_series"]:
             return SeriesExprPrint._sympystr(self, printer, *args)
         else:
             return printer._print_Mul(self)

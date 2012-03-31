@@ -181,9 +181,6 @@ def test_symbol():
     assert a[0] != a[3]
     assert a[4] == S.Zero
 
-    from sympy.interactive.printing import init_printing
-    init_printing(list_sequences=True)
-
     s = str(a)
     s = str(a[i])
     s = str(a[0])
