@@ -284,6 +284,9 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
 
     def coeff(self, i):
         # TODO: the name-token override `Expr.coeff`
+        """
+        Return the i-th coefficient, that is near the term of i power.
+        """
         return self.sequence[i]
 
     def compose(self, other):

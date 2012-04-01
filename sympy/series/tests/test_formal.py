@@ -301,3 +301,15 @@ def test_compose():
     res = psin.compose(pp)
     res[10]
 
+
+def test_compose_2():
+    a = PowerSeries0(x, 'a')
+    b = PowerSeries0(x, 'b')[1:]
+    c = a.compose(b)
+    assert c[0] == a[0]
+    sa = a.sequence
+    sb = b.sequence
+    assert c.coeff(1) == sa[1]*sb[1]
+    assert c.coeff(2) == sa[1]*sb[2] + sa[2]*sb[1]**2
+    assert c.coeff(3) == sa[1]*sb[3] + 2*sa[2]*sb[1]*sb[2] + sa[3]*sb[1]**3
+

@@ -421,9 +421,9 @@ def pretty_symbol(symb_name):
     gG = greek.get(name.lower())
     if gG is not None:
         if name.islower():
-            greek_name = greek.get(name.lower())[0]
+            greek_name = gG[0]
         else:
-            greek_name = greek.get(name.lower())[1]
+            greek_name = gG[1]
         # some letters may not be available
         if greek_name is not None:
             name = greek_name

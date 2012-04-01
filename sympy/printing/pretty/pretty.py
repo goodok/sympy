@@ -58,6 +58,10 @@ class PrettyPrinter(Printer):
         symb = pretty_symbol(e.name)
         return prettyForm(symb)
 
+    def _print_Indexed(self, name, indices):
+        symb = pretty_symbol("%s%s" % (name, indices[0]))
+        return prettyForm(symb)
+
     def _print_Float(self, e):
         # we will use StrPrinter's Float printer, but we need to handle the
         # full_prec ourselves, according to the self._print_level

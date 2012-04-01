@@ -228,7 +228,7 @@ class PowerSeries0Nested(SeriesNested, PowerSeries0):
     @property
     @cacheit
     def sequence(self):
-        return FaDeBruno_powers(self.f.sequence, self.g.sequence)
+        return FaDeBruno_powers(self.g.sequence, self.f.sequence)
 
 class FaDeBruno_powers(FaDeBruno):
     """

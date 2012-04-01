@@ -1181,8 +1181,13 @@ class FaDeBruno(SeqExpr):
         return self.args[1]
 
     @property
+    @cacheit
     def interval(self):
-        return self.f.interval
+        gi = self.g.interval
+        fi = self.f.interval
+        start = gi._inf * fi._inf
+        stop = gi._sup * fi._sup
+        return Interval(start, stop)
 
     @cacheit
     def getitem_index(self, i):
@@ -1190,8 +1195,11 @@ class FaDeBruno(SeqExpr):
             return self.g[0]
         s = S.Zero
         fshifted = self.f.shift(-1)
+        g = self.g
         for k in xrange(1, i+1):
-            s += self.g[k] * bell(i, k, fshifted)
+            gk = g[k]
+            if gk is not S.Zero:
+                s += gk * bell(i, k, fshifted)
         return s
 
 

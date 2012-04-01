@@ -141,7 +141,7 @@ class SequenceSymbol(SequenceBase, Symbol):
     >>> a
     {a}
     >>> pprint(a)
-    [a[0], a[1], a[2], a[3], a[4], a[5], a[6], ...]
+    [a0, a1, a2, a3, a4, a5, a6, ...]
 
     >>> i = Symbol('i')
     >>> a[i]
@@ -151,7 +151,7 @@ class SequenceSymbol(SequenceBase, Symbol):
     >>> a + b
     {a} + {b}
     >>> pprint(a + b)
-    [a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3], a[4], a[5], a[6], ...]
+    [a0 + b0, a1 + b1, a2 + b2, a3 + b3, a4, a5, a6, ...]
 
     """
 
@@ -224,6 +224,9 @@ class IndexedSequenceSymbol(Expr):
         l = ", ".join(indices)
         base = p._print_Symbol(self.base)
         return "%s[%s]" % (base, l)
+
+    def _pretty(self, p):
+        return p._print_Indexed(self.base.name, self.indices)
 
     def _latex(self, p):
         """

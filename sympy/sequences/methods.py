@@ -106,30 +106,30 @@ class SeqShiftLeft(SeqExpr):
 
     >>> a = Sequence((0, oo), 'a')
     >>> pprint(a)
-    [a[0], a[1], a[2], a[3], a[4], a[5], a[6], ...]
+    [a0, a1, a2, a3, a4, a5, a6, ...]
 
     >>> pprint(SeqShiftLeft(a, 2))
-    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
+    [a2, a3, a4, a5, a6, a7, a8, ...]
 
 
     You can also use "shiftleft" function, or "shift" with negative argument:
 
     >>> pprint(a.shiftleft(2))
-    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
+    [a2, a3, a4, a5, a6, a7, a8, ...]
 
     >>> pprint(a.shift(-2))
-    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
+    [a2, a3, a4, a5, a6, a7, a8, ...]
 
     >>> pprint(a.shiftright(2))
-    [0, ..., a[0], a[1], a[2], a[3], a[4], ...]
+    [0, ..., a0, a1, a2, a3, a4, a5, a6, ...]
 
     You can also use "<<" operators:
 
     >>> pprint(a << 2)
-    [a[2], a[3], a[4], a[5], a[6], a[7], a[8], ...]
+    [a2, a3, a4, a5, a6, a7, a8, ...]
 
     >>> pprint(a >> 2)
-    [0, ..., a[0], a[1], a[2], a[3], a[4], ...]
+    [0, ..., a0, a1, a2, a3, a4, a5, a6, ...]
 
     See Also
     ========
@@ -196,7 +196,7 @@ class SeqShiftRight(SeqExpr):
 
     >>> a = Sequence('a')
     >>> pprint(a.shiftright(2))
-    [0, ..., a[0], a[1], a[2], a[3], a[4], ...]
+    [0, ..., a0, a1, a2, a3, a4, a5, a6, ...]
 
     See Also
     ========

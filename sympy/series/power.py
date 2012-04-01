@@ -60,8 +60,9 @@ class PowerSeriesExprOp(PowerSeries0Expr):
 
 
 class PowerSeriesSliced(PowerSeriesExprOp, SeriesSliced):
-    # to maintain is_PowerSeries
-    pass
+    @property
+    def point(self):
+        return self.original.point
 
 class PowerSeriesExpr(PowerSeriesExprOp):
 

@@ -1,9 +1,9 @@
-
+# -*- coding: utf-8 -*-
 from sympy import S, oo
 from sympy.abc import k
 from sympy.utilities.pytest import XFAIL, SKIP
 from sympy.printing.pretty import pprint
-from sympy.printing.pretty import pretty
+from sympy.printing.pretty import pretty as xpretty
 from sympy.core.sets import Interval
 from sympy.core.symbol import Symbol, symbols
 from sympy.core.cache import clear_cache
@@ -11,6 +11,15 @@ from sympy.core.cache import clear_cache
 from sympy.sequences import Sequence, SequenceSymbol, abstract_sequences
 from sympy.sequences.kinds import SeqPer, SeqFormula, SeqFunc
 from sympy.sequences.expr import SeqAdd, SeqCoeffMul, SeqCauchyMul
+
+def pretty(expr, order=None):
+    """ASCII pretty-printing"""
+    return xpretty(expr, order=order, use_unicode=False, wrap_line=False)
+
+
+def upretty(expr, order=None):
+    """Unicode pretty-printing"""
+    return xpretty(expr, order=order, use_unicode=True, wrap_line=False)
 
 def test_sequence_index():
     seq = Sequence(Interval(3, oo), formula=(k, S(1)/k))
@@ -191,6 +200,21 @@ def test_symbol():
     e1 = c[1].args[1].args[0] # a[0] - 0 is Symbol
     e2 = c[1].args[2].args[0] # a[0] - 0 is int
     assert e1 == e2
+
+def test_symbol_print():
+    a = Sequence('a')
+    e = a[0]*a[1]**2*a[2]
+    assert str(e) == 'a[0]*a[1]**2*a[2]'
+    assert pretty(e) == """\
+     2   \n\
+a0*a1 *a2\
+"""
+    assert upretty(e) == u"""\
+     2   \n\
+a₀⋅a₁ ⋅a₂\
+"""
+
+
 
 def test_sequence_CauchyPower():
     a = Sequence(periodical=(0, 1, 0, -1))
