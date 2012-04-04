@@ -15,7 +15,7 @@ def OrderedPartitions(n, k):
     This is the helper function.
 
       k:1      2          3             4
-    n 
+    n
     1: (1)
     2: (2)  (1, 1)
 
@@ -73,7 +73,7 @@ def OrderedPartitions(n, k):
 class PlainBellPoly_Splitted(object):
     """
       k:1      2          3             4
-    n 
+    n
     1: (1)
     2: (2)  (1, 1)
         b2   b1**2
