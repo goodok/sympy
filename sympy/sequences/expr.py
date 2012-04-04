@@ -11,6 +11,8 @@ from sympy.core.sets import Interval, EmptySet
 from sympy.functions.combinatorial.factorials import factorial, binomial
 from sympy.functions.combinatorial.numbers import bell
 
+from utilities import PlainBellPoly, PlainBellPoly_Zero
+
 
 ################################################################################
 #     Interfaces: expression operations, interval, printing, main sequence     #
@@ -1201,6 +1203,54 @@ class FaDeBruno(SeqExpr):
             if gk is not S.Zero:
                 s += gk * bell(i, k, fshifted)
         return s
+
+class PlainFaDeBruno(SeqExpr):
+    # TODO:
+    # It is work only of the leading items of both sequences are not zero.
+    def __new__(cls, *args):
+        # args = (a, b)
+        assert len(args)==2
+        assert all(arg.is_Sequence for arg in args)
+        assert args[1][0] == S.Zero
+        expr = Expr.__new__(cls, *args)
+        return expr
+
+    # TODO: remove this?
+    def _hashable_content(self):
+        return self._args
+
+    @property
+    def a(self):
+        return self.args[0]
+
+    @property
+    def b(self):
+        return self.args[1]
+
+    @property
+    @cacheit
+    def interval(self):
+        ai = self.a.interval
+        bi = self.b.interval
+        start = ai._inf * bi._inf
+        stop = ai._sup * bi._sup
+        return Interval(start, stop)
+
+    @cacheit
+    def getitem_index(self, i):
+        if i == S.Zero:
+            return self.a[0]
+        s = PlainBellPoly_Zero()
+        a = self.a
+        b = self.b
+        b_shifted = b.shift(-1)
+        for k in xrange(1, i+1):
+            ak = a[k]
+            if ak is not S.Zero:
+                # s += ak*PlainBellPoly(i, k, b_shifted, 0).value()
+                s = s.add_coeff(PlainBellPoly(i, k, b, 1), ak)
+        return s.value()
+
 
 
 class ReverseLangrange(SeqExpr):

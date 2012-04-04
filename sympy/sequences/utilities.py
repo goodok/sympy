@@ -114,10 +114,12 @@ class PlainBellPoly_Splitted(object):
         v = self.value()
         if v is not Zero:
             hli = {leading_index: v}
+        else:
+            hli = {}
         return PlainBellPoly_Splitted(self.values, hli)
 
     def add(self, other):
-        hli = self.hli
+        hli = self.hli.copy()
         for k, value in other.hli.items():
             if hli.has_key(k):
                 av = hli[k] + value
@@ -127,6 +129,21 @@ class PlainBellPoly_Splitted(object):
                     hli[k] = av
             else:
                 hli[k] = value
+        return PlainBellPoly_Splitted(self.values, hli)
+
+    def add_coeff(self, other, coeff):
+        if (coeff is Zero):
+            return self
+        hli = self.hli.copy()
+        for k, value in other.hli.items():
+            if hli.has_key(k):
+                av = hli[k] + value*coeff
+                if av is Zero:
+                    hli.pop(k)
+                else:
+                    hli[k] = av
+            else:
+                hli[k] = value*coeff
         return PlainBellPoly_Splitted(self.values, hli)
 
     def __len__(self):
@@ -147,6 +164,20 @@ class PlainBellPoly_Splitted(object):
             v += av
         return v
 
+class PlainBellPoly_Zero(object):
+    def __init__(self):
+        self.hli = {}
+
+    def add_coeff(self, other, coeff):
+        self.values = other.values
+        hli = {}
+        for k, value in other.hli.items():
+            hli[k] = value*coeff
+        return PlainBellPoly_Splitted(self.values, hli)
+
+    def value(self):
+        return Zero
+
 @cacheit
 def PlainBellPoly(n, k, values, delta_index=0):
 
@@ -159,9 +190,9 @@ def PlainBellPoly(n, k, values, delta_index=0):
         p = PlainBellPoly_Splitted(values, {n-1 + delta_index: One})
         return p
     if k>n: return ()
-    L = PlainBellPoly(n-1, k-1, values)
+    L = PlainBellPoly(n-1, k-1, values, delta_index)
     L = L.extend(delta_index)
-    M = PlainBellPoly(n-1, k, values)
+    M = PlainBellPoly(n-1, k, values, delta_index)
     if M is not ():
         M = M.inc()
         L = L.add(M)
@@ -202,7 +233,7 @@ class BellPoly_Splitted(object):
         return BellPoly_Splitted(self.values, hli, self.n + 1)
 
     def add(self, other):
-        hli = self.hli
+        hli = self.hli.copy()
         for k, monom in other.hli.items():
             if hli.has_key(k):
                 monom_old = hli[k]
@@ -244,9 +275,9 @@ def BellPoly(n, k, values, delta_index=0):
         p = BellPoly_Splitted(values, {n-1 + delta_index: (One, n-1, n-1)}, n-1)
         return p
     if k>n: return ()
-    L = BellPoly(n-1, k-1, values)
+    L = BellPoly(n-1, k-1, values, delta_index)
     L = L.extend(delta_index)
-    M = BellPoly(n-1, k, values)
+    M = BellPoly(n-1, k, values, delta_index)
     if M is not ():
         M = M.inc()
         L = L.add(M)

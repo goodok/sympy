@@ -16,7 +16,7 @@ from sympy.core.sets import Interval
 from sympy.core.cache import cacheit
 
 from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
-from sympy.sequences.expr import SeqCauchyMul, SeqCauchyPow, FaDeBruno
+from sympy.sequences.expr import SeqCauchyMul, SeqCauchyPow, PlainFaDeBruno
 
 class PowerSeries0ExprOp(SeriesExpr):
     is_PowerSeries0 = True
@@ -228,44 +228,7 @@ class PowerSeries0Nested(SeriesNested, PowerSeries0):
     @property
     @cacheit
     def sequence(self):
-        return FaDeBruno_powers(self.g.sequence, self.f.sequence)
-
-class FaDeBruno_powers(FaDeBruno):
-    """
-    This is similar to SeqExp_FaDeBruno but for formal Power series.
-
-        g(x)=\sum_{n=1}^\infty {b_n} x^n
-        f(x)=\sum_{n=1}^\infty {a_n} x^n
-
-    That is without factorials.
-
-    """
-    # we use very rough method:
-    # substitute f and g sequences with g' = {g_n*n!} and f' = {f_n*n!}
-    # and use FaDeBruno
-    # then devide result by n!.
-
-    # TODO: implement exponenentionize method for sequences, whis can be used often
-    # `SeqMulEW(self.f, Sequence(formula=(k, factorial(k))))`
-
-    @property
-    def _g(self):
-        return self.g.factorialize()
-
-    @property
-    def _f(self):
-        return self.f.factorialize()
-
-
-    @property
-    @cacheit
-    def sequence_result(self):
-        return FaDeBruno(self._g, self._f).unfactorialize()
-
-    @cacheit
-    def __getitem__(self, i):
-        return self.sequence_result[i]
-
+        return PlainFaDeBruno(self.a.sequence, self.b.sequence)
 
 class Reverse(PowerSeries0):
     """

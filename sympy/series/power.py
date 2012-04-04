@@ -290,7 +290,7 @@ class PowerSeriesNested(PowerSeries0Nested, PowerSeries):
     #TODO: consider what's going on if points defers.
     @property
     def point(self):
-        return self.f.point
+        return self.b.point
 
 class Reverse(PowerSeries, PowerSeries0):
     """

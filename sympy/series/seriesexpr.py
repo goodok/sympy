@@ -617,16 +617,16 @@ class SeriesNested(SeriesExpr):
         return expr
 
     @property
-    def g(self):
+    def a(self):
         return self.args[0]
 
     @property
-    def f(self):
+    def b(self):
         return self.args[1]
 
     @property
     def x(self):
-        return self.g.x
+        return self.a.x
 
     @property
     @cacheit
@@ -637,6 +637,9 @@ class SeriesNested(SeriesExpr):
     @property
     @cacheit
     def interval(self):
-        return self.f.interval | self.g.interval
-
+        ai = self.a.interval
+        bi = self.b.interval
+        start = ai._inf * bi._inf
+        stop = ai._sup * bi._sup
+        return Interval(start, stop)
 

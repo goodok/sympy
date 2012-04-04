@@ -280,7 +280,6 @@ def test_nested():
 
 
 def test_frompoly():
-
     p = Poly(x**5 + 3*x**4 + 5*x**2, x)
     ps = PowerSeries0(poly=p)
     assert ps[5] == x**5
@@ -294,7 +293,12 @@ def test_frompoly():
     assert ps[4] == 5*(x-1)**4
 
 def test_compose():
-    #slow
+    a = PowerSeries(x, 'a')
+    b = PowerSeries(x, 'b')[1:]
+    res = a.compose(b)
+    v = res[0]
+    v = res[1]
+
     p = Poly(x+x**2)
     pp= PowerSeries0(poly=p)
     psin = PowerSeries_0E(x, periodical=(0, 1)).to_power_series()
