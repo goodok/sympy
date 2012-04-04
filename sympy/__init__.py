@@ -69,7 +69,7 @@ from sequences import Sequence, abstract_sequences
 #from physics import units
 from plotting import Plot, textplot
 from printing import pretty, pretty_print, pprint, pprint_use_unicode, \
-    pprint_try_use_unicode, print_gtk, print_tree
+    pprint_try_use_unicode, print_gtk, print_tree, TableForm
 from printing import ccode, fcode, latex, preview
 from printing import python, print_python, srepr, sstr, sstrrepr
 from interactive import init_session, init_printing
