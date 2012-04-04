@@ -207,6 +207,7 @@ class SequenceSymbol(SequenceBase, Symbol):
 class IndexedSequenceSymbol(Expr):
 
     is_commutative = True
+    is_Atom = True  # for latex printer
 
     def __new__(cls, base, *args, **kw_args):
         return Expr.__new__(cls, base, *args, **kw_args)
