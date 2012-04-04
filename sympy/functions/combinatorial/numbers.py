@@ -21,6 +21,7 @@ def _product(a, b):
     return p
 
 from sympy.utilities.memoization import recurrence_memo
+from sympy.core.cache import cacheit
 
 
 # Dummy symbol used for computing polynomial sequences
@@ -365,6 +366,7 @@ class bell(Function):
 
     @staticmethod
     #@assoc_recurrence_memo([[S.One]])
+    @cacheit
     def _bell_incomplete_poly(n, k, symbols):
         r"""
         The second kind of Bell polynomials (incomplete Bell polynomials).
