@@ -4,6 +4,7 @@ from sympy.abc import k
 from sympy.utilities.pytest import XFAIL, SKIP
 from sympy.printing.pretty import pprint
 from sympy.printing.pretty import pretty as xpretty
+from sympy.printing.latex import latex
 from sympy.core.sets import Interval
 from sympy.core.symbol import Symbol, symbols
 from sympy.core.cache import clear_cache
@@ -213,7 +214,10 @@ a0*a1 *a2\
      2   \n\
 a₀⋅a₁ ⋅a₂\
 """
+    assert latex(e) == r'a_{0} a_{1}^{2} a_{2}'
 
+    e2 = (a[0]+a[3])*a[1]**2*a[2]
+    assert latex(e2) == r'\left(a_{0} + a_{3}\right) a_{1}^{2} a_{2}'
 
 
 def test_sequence_CauchyPower():
@@ -228,7 +232,7 @@ def test_sequence_CauchyPower_recurr():
     clear_cache()
     a = Sequence(periodical=(1, 0))
     c = a**2
-    r = c[200]
+    #r = c[200]
 
 def test_sequence_reverse():
     a = Sequence(periodical=(0, 1, 0, -1))
@@ -241,12 +245,66 @@ def test_sequence_reverse():
 
     ssin.reverse().compose(ssin)
 
-
-
 def test_sequences_expression_slicing():
     a, b, c = abstract_sequences('a:c')
     abc = a*b*c
     r = abc[2:5]
     assert r.interval == Interval(2, 5)
 
+def test_ordered_partitions():
+    from sympy.sequences.utilities import OrderedPartitions
+    assert OrderedPartitions(4, 1) == ((4,),)
+    assert OrderedPartitions(5, 3) == ((1, 1, 3), (1, 2, 2), (1, 3, 1),
+            (2, 1, 2), (2, 2, 1), (3, 1, 1))
 
+
+def test_plain_bell_poly():
+    from sympy.sequences.utilities import PlainBellPoly
+    B = symbols('b:10')
+    B_ = B[1:]
+    C = tuple([S(i) for i in range(100)])[1:]
+
+    r = PlainBellPoly(5, 2, B_).value()
+    assert r == 2*B[1]*B[4] + 2*B[2]*B[3]
+
+    r = PlainBellPoly(7, 4, B_).value()
+    assert r == 4*B[1]**3*B[4] + 12*B[1]**2*B[2]*B[3] + 4*B[1]*B[2]**3
+
+    r = PlainBellPoly(7, 4, C).value()
+    assert r == 120
+
+def test_bell():
+    from sympy.sequences.utilities import BellPoly
+    B = symbols('b:10')
+    B_ = B[1:]
+    C = tuple([S(i) for i in range(100)])
+    C = C[1:]
+
+    r = BellPoly(5, 2, B_).value()
+    assert r == 5*B[1]*B[4] + 10*B[2]*B[3]
+
+    r = BellPoly(7, 4, B_).value()
+    assert r == 35*B[1]**3*B[4] + 210*B[1]**2*B[2]*B[3] + 105*B[1]*B[2]**3
+
+    r = BellPoly(7, 4, C).value()
+    assert r == 2240
+
+
+def test_equevalence_to_bell():
+    from sympy.sequences.utilities import PlainBellPoly as bell_plain
+    from sympy.functions.combinatorial.factorials import factorial
+    from sympy.functions.combinatorial.numbers import bell
+    B = symbols('b:10')
+    D = tuple( [B[i]/factorial(i) for i in range(0, len(B))])
+    B = B[1:]
+    D = D[1:]
+
+    assert bell(4, 1, B) == 24*bell_plain(4, 1, D).value()  # 4!
+    assert bell(4, 2, B) == 12*bell_plain(4, 2, D).value()  # 4!/2
+    assert bell(4, 3, B) ==  4*bell_plain(4, 3, D).value()  # 4!/3!
+    assert bell(4, 4, B) ==    bell_plain(4, 4, D).value()  # 4!/4!
+
+    assert bell(5, 1, B) == 120*bell_plain(5, 1, D).value()  # 5!
+    assert bell(5, 2, B) ==  60*bell_plain(5, 2, D).value()  # 5!/2!
+    assert bell(5, 3, B) ==  20*bell_plain(5, 3, D).value()  # 5!/3!
+    assert bell(5, 4, B) ==   5*bell_plain(5, 4, D).value()  # 5!/4!
