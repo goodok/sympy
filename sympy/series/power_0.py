@@ -60,10 +60,6 @@ class PowerSeries0ExprOp(SeriesExpr):
     def _cls_SeriesMul(cls): return PowerSeries0Mul
 
 
-class PowerSeries0Sliced(PowerSeries0ExprOp, SeriesSliced):
-    # to maintain is_PowerSeries0
-    pass
-
 class PowerSeries0Expr(PowerSeries0ExprOp):
 
     @cacheit
@@ -105,12 +101,18 @@ class PowerSeries0Expr(PowerSeries0ExprOp):
             else:
                 return ps.compose(self)
 
+class PowerSeries0Sliced(PowerSeries0Expr, SeriesSliced):
+    # to maintain is_PowerSeries0
+    pass
 
 
 class PowerSeriesGen0(PowerSeries0Expr, SeriesGen):
-    # TODO: redefine
+    is_SeriesGen = True
     def __new__(cls, x, **kwargs):
-        return PowerSeries0(x, sequence=Sequence((1, 1), finitlist=(1,)) )
+        # TODO: redefine
+        res = PowerSeries0(x, sequence=Sequence((1, 1), finitlist=(1,)) )
+        res.is_SeriesGen = True
+        return res
 
 class PowerSeries0(PowerSeries0Expr, SeriesAtom):
     """

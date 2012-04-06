@@ -92,8 +92,9 @@ class PowerSeriesExpr(PowerSeriesExprOp):
         return self._from_args(self.x, new_seq, self.point)
 
 class PowerSeriesGen(PowerSeriesExpr, SeriesGen):
-    # TODO: redefine
+    is_SeriesGen = True
     def __new__(cls, x, **kwargs):
+        # TODO: redefine
         return PowerSeries(x, sequence=Sequence((1, 1), finitlist=(1,)) )
 
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
