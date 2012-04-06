@@ -287,6 +287,11 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
         mask = self.calc_interval_from_slice(i)
         return self._SeriesSliced(self, mask)
 
+    @classmethod
+    def _convert_from_scalar(cls, scalar, example):
+        res = SeriesAtom(example.x, sequence=Sequence((0, 0), finitlist=(scalar,)))
+        return res
+
     #TODO: if uncommented then exception
     #@cacheit
     #def getitem_index(self, i):
@@ -447,10 +452,17 @@ class SeriesAdd(SeriesExpr, Add):
         args = [arg for arg in args if arg!=0]
 
         #TODO: create ScalAdd to keep scalar separatly
-        if not all(arg._type_is == cls._type_must for arg in args):
+        scalars = (arg for arg in args if not arg.is_Series)
+        series = [arg for arg in args if arg.is_Series]
+        if not all(arg._type_is == cls._type_must for arg in series):
             raise ValueError("Mix of Series and Scalar symbols")
 
-        expr = Add.__new__(cls, *args)
+        scalar = Add(*tuple(scalars))
+        if scalar is not S.Zero:
+            scalar_series = cls._convert_from_scalar(scalar, series[0])
+            series[0:0] = [scalar_series]
+
+        expr = Add.__new__(cls, *tuple(series))
 
         if expr.is_Mul:
             return cls._cls_SeriesMul()(*expr.args)
@@ -464,8 +476,16 @@ class SeriesAdd(SeriesExpr, Add):
         return self._args[0].x
 
     @classmethod
-    def flatten(cls, args_seq):
-        return args_seq, [], None
+    def flatten(cls, args):
+        new_seq = []
+        while args:
+            o = args.pop()
+            if o.__class__ is cls: # classes must match exactly
+                args.extend(o.args)
+            else:
+                new_seq.append(o)
+        new_seq.reverse()
+        return new_seq, [], None
 
     def as_ordered_terms(self, order=None):
         return self.args
@@ -568,6 +588,7 @@ class SeriesMul(SeriesExpr, Mul):
             else:
                 new_seq.append(o)
         # c_part, nc_part, order_symbols
+        new_seq.reverse()
         return [], new_seq, None
 
     @property
@@ -641,6 +662,8 @@ class SeriesPow(SeriesExpr, Pow):
 
 class SeriesNested(SeriesExpr):
     def __new__(cls, *args):
+        if args[1].is_SeriesGen:
+            return args[0]
         expr = SeriesExpr.__new__(cls, *args)
         return expr
 

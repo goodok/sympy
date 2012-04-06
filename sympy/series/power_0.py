@@ -67,6 +67,12 @@ class PowerSeries0Expr(PowerSeries0ExprOp):
         c = self.sequence
         return c[i]*Pow(self.x, i)
 
+    @classmethod
+    def _convert_from_scalar(cls, scalar, example):
+        res = PowerSeries0(example.x, sequence=Sequence((0, 0), finitlist=(scalar,)))
+        return res
+
+
     # abstract
     def to_power_e_series(self):
         pass
@@ -95,10 +101,7 @@ class PowerSeries0Expr(PowerSeries0ExprOp):
             ps = PowerSeries0(self.x, sequence=seq)
 
         if ps:
-            if self.is_SeriesGen:
-                return ps
-            else:
-                return ps.compose(self)
+            return ps.compose(self)
 
 class PowerSeries0Sliced(PowerSeries0Expr, SeriesSliced):
     # to maintain is_PowerSeries0

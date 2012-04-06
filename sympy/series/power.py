@@ -22,6 +22,9 @@ from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoe
 
 from power_0 import PowerSeries0Expr, PowerSeries0, PowerSeries0Mul, PowerSeries0Pow, PowerSeries0Pow, PowerSeries0Nested
 
+from sympy.functions.elementary.trigonometric import sin, cos
+from sympy.functions.elementary.exponential import exp
+
 class PowerSeriesExprOp(PowerSeries0Expr):
     is_PowerSeries = True
     is_PowerSeries0 = False
@@ -68,6 +71,11 @@ class PowerSeriesExpr(PowerSeriesExprOp):
     def _print_unevualated_power(self, x, i):
         return Pow(Add(x, -self.point, do_not_sort_in_printing=True, evaluate=False), i)
 
+    @classmethod
+    def _convert_from_scalar(cls, scalar, example):
+        res = PowerSeries(example.x, sequence=Sequence((0, 0), finitlist=(scalar,)), point = example.point)
+        return res
+
     # abstract
     def to_power_e_series(self):
         pass
@@ -102,21 +110,35 @@ class PowerSeriesExpr(PowerSeriesExprOp):
     def _apply_function(self, func_cls):
         ps = None
         name = func_cls.__name__
+        point = self.point
         if name == "sin":
-            seq = Sequence(periodical=(0, 1, 0, -1)).unfactorialize()
-            ps = PowerSeries(self.x, sequence=seq, point=self.point)
-        elif name == "cos":
-            seq = Sequence(periodical=(1, 0, -1, 0)).unfactorialize()
-            ps = PowerSeries(self.x, sequence=seq, point=self.point)
-        elif name == "exp":
-            seq = Sequence(periodical=(1,)).unfactorialize()
-            ps = PowerSeries(self.x, sequence=seq, point=self.point)
-
-        if ps:
-            if self.is_SeriesGen:
-                return ps
-            else:
+            c0 = self.coeff(0)
+            if c0 is S.Zero:
+                seq = Sequence(periodical=(0, 1, 0, -1)).unfactorialize()
+                ps = PowerSeries(self.x, sequence=seq, point=self.point)
                 return ps.compose(self)
+            else:
+                ps_zero_free = self[1:]
+                return cos(c0)*sin(ps_zero_free) + sin(c0)*cos(ps_zero_free)
+        elif name == "cos":
+            c0 = self.coeff(0)
+            if c0 is S.Zero:
+                seq = Sequence(periodical=(1, 0, -1, 0)).unfactorialize()
+                ps = PowerSeries(self.x, sequence=seq, point=self.point)
+                return ps.compose(self)
+            else:
+                ps_zero_free = self[1:]
+                return cos(c0)*cos(ps_zero_free) - sin(c0)*sin(ps_zero_free)
+
+        elif name == "exp":
+            c0 = self.coeff(0)
+            if c0 is S.Zero:
+                seq = Sequence(periodical=(1,)).unfactorialize()
+                ps = PowerSeries(self.x, sequence=seq, point=self.point)
+                return ps.compose(self)
+            else:
+                ps_zero_free = self[1:]
+                return exp(c0)*func_cls(ps_zero_free)
 
 class PowerSeriesGen(PowerSeriesExpr, SeriesGen):
     is_SeriesGen = True

@@ -491,8 +491,17 @@ class SeqAdd(SeqExpr, Add):
         return expr
 
     @classmethod
-    def flatten(cls, args_seq):
-        return args_seq, [], None
+    def flatten(cls, args):
+        new_seq = []
+        i = 0
+        while args:
+            o = args.pop()
+            if o.__class__ is cls:
+                args.extend(o.args)
+            else:
+                new_seq.append(o)
+        new_seq.reverse()
+        return new_seq, [], None
 
     def as_ordered_terms(self, order=None):
         return self.args
@@ -801,6 +810,7 @@ class SeqCauchyMul(SeqExpr, Mul):
             else:
                 new_seq.append(o)
         # c_part, nc_part, order_symbols
+        new_seq.reverse()
         return new_seq, [], None
 
 

@@ -71,6 +71,13 @@ def test_powerseries_print_latex():
             " - 2 x^{7} + 3 x^{8} + \dotsb"
     assert latex(ps) == must
 
+
+def test_add():
+    from sympy.series.power import PowerSeriesGen
+    X = PowerSeriesGen(x, point=0)
+    e = 1 + X + X**2
+    assert len(e.args) == 3
+
 def test_types():
     # PowerSeries_0E
     a = PowerSeries_0E(x, periodical=(0, 1))
@@ -132,6 +139,8 @@ def test_types_raises_fails():
     d = PowerSeries0(x, periodical=(1, 0))
     raises(ValueError, '(a*c)')
     raises(ValueError, 'b.compose(c)')
+
+
 
 
 def test_powerseries_power():
@@ -323,3 +332,15 @@ def test_abstract():
     X = PowerSeriesGen0(x)
     f = Function('f')
     f(X)
+
+
+def test_sin_cos():
+    from sympy.functions.elementary.trigonometric import sin, cos
+    from sympy.functions.elementary.exponential import exp
+
+    from sympy.series.power import PowerSeriesGen
+    X = PowerSeriesGen(x)
+    sin(X)
+    a = 1+X
+    res = sin(a)
+
