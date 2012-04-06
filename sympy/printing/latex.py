@@ -103,7 +103,7 @@ class LatexPrinter(Printer):
         return not ((expr.is_Integer and expr.is_nonnegative)
                 or (expr.is_Atom and expr is not S.NegativeOne)
                 or (expr.is_Derivative and expr.expr.is_Function and
-                    self._settings['noargs'] and 
+                    self._settings['noargs'] and
                     (self._settings['diff_kind']=="indexed"))
                 )
 
@@ -146,7 +146,7 @@ class LatexPrinter(Printer):
             return expr
 
     def _print_Add(self, expr, order=None):
-        if self.order == 'none':
+        if self.order == 'none' or expr.do_not_sort_in_printing:
             terms = list(expr.args)
         else:
             terms = self._as_ordered_terms(expr, order=order)

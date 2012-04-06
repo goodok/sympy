@@ -22,15 +22,16 @@ class AssocOp(Expr):
 
     # for performance reason, we don't let is_commutative go to assumptions,
     # and keep it right here
-    __slots__ = ['is_commutative']
+    __slots__ = ['is_commutative', 'do_not_sort_in_printing']
 
     @cacheit
     def __new__(cls, *args, **options):
         args = map(_sympify, args)
         args = [a for a in args if a is not cls.identity]
 
+        do_not_sort_in_printing = options.pop('do_not_sort_in_printing', False)
         if not options.pop('evaluate', True):
-            return cls._from_args(args)
+            return cls._from_args(args, None, do_not_sort_in_printing)
 
         if len(args) == 0:
             return cls.identity
@@ -38,14 +39,14 @@ class AssocOp(Expr):
             return args[0]
 
         c_part, nc_part, order_symbols = cls.flatten(args)
-        obj = cls._from_args(c_part + nc_part, not nc_part)
+        obj = cls._from_args(c_part + nc_part, not nc_part, do_not_sort_in_printing)
 
         if order_symbols is not None:
             return C.Order(obj, *order_symbols)
         return obj
 
     @classmethod
-    def _from_args(cls, args, is_commutative=None):
+    def _from_args(cls, args, is_commutative=None, do_not_sort_in_printing=False):
         """Create new instance with already-processed args"""
         if len(args) == 0:
             return cls.identity
@@ -56,6 +57,7 @@ class AssocOp(Expr):
         if is_commutative is None:
             is_commutative = all(a.is_commutative for a in args)
         obj.is_commutative = is_commutative
+        obj.do_not_sort_in_printing = do_not_sort_in_printing
         return obj
 
     def _new_rawargs(self, *args, **kwargs):

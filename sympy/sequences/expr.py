@@ -35,7 +35,7 @@ class SeqExprOp(Expr):
     is_SequenceAtom = False
     is_Identity = False
     is_EmptySequence = False
-    # is_commutative = False ???
+    is_commutative = True
 
     # The following is adapted from the core Expr object
 
@@ -801,7 +801,7 @@ class SeqCauchyMul(SeqExpr, Mul):
             else:
                 new_seq.append(o)
         # c_part, nc_part, order_symbols
-        return [], new_seq, None
+        return new_seq, [], None
 
 
     # this is used in core in printer system, (sort_key), roots order.

@@ -42,7 +42,7 @@ class StrPrinter(Printer):
             return str(expr)
 
     def _print_Add(self, expr, order=None):
-        if self.order == 'none':
+        if self.order == 'none' or expr.do_not_sort_in_printing:
             terms = list(expr.args)
         else:
             terms = self._as_ordered_terms(expr, order=order)

@@ -58,18 +58,15 @@ class PowerSeriesExprOp(PowerSeries0Expr):
     @classmethod
     def _cls_SeriesMul(cls): return PowerSeriesMul
 
-
-class PowerSeriesSliced(PowerSeriesExprOp, SeriesSliced):
-    @property
-    def point(self):
-        return self.original.point
-
 class PowerSeriesExpr(PowerSeriesExprOp):
 
     @cacheit
     def getitem_index(self, i):
         c = self.sequence
         return c[i]*Pow(self.x - self.point, i)
+
+    def _print_unevualated_power(self, x, i):
+        return Pow(Add(x, -self.point, do_not_sort_in_printing=True, evaluate=False), i)
 
     # abstract
     def to_power_e_series(self):
@@ -121,7 +118,6 @@ class PowerSeriesExpr(PowerSeriesExprOp):
             else:
                 return ps.compose(self)
 
-
 class PowerSeriesGen(PowerSeriesExpr, SeriesGen):
     is_SeriesGen = True
     def __new__(cls, x, **kwargs):
@@ -130,6 +126,11 @@ class PowerSeriesGen(PowerSeriesExpr, SeriesGen):
         res = PowerSeries(x, sequence=Sequence((1, 1), finitlist=(1,)), point=point)
         res.is_SeriesGen = True
         return res
+
+class PowerSeriesSliced(PowerSeriesExpr, SeriesSliced):
+    @property
+    def point(self):
+        return self.original.point
 
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """
@@ -148,7 +149,7 @@ class PowerSeries(PowerSeriesExpr, SeriesAtom):
     x - 1 + (x - 1)**2/2 + (x - 1)**3/3 + (x - 1)**4/4 + (x - 1)**5/5 + ...
 
     >>> PowerSeries(x, periodical = (1, -1), point=a)
-    1 + a - x + (-a + x)**2 - (-a + x)**3 + (-a + x)**4 - (-a + x)**5 + ...
+     1 + a - x + (x - a)**2 - (x - a)**3 + (x - a)**4 - (x - a)**5 + ...
 
 
     Notes

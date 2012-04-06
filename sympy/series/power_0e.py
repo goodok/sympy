@@ -65,10 +65,6 @@ class PowerSeries_0E_ExprOp(SeriesExpr):
 
 
 
-class PowerSeries_0E_Sliced(SeriesSliced, PowerSeries_0E_ExprOp):
-    pass
-
-
 class PowerSeries_0E_Expr(PowerSeries_0E_ExprOp):
     @cacheit
     def getitem_index(self, i):
@@ -76,6 +72,9 @@ class PowerSeries_0E_Expr(PowerSeries_0E_ExprOp):
         if (a != S.Zero) and (i != 0):
             a = a / factorial(i) * Pow(self.x, i)
         return a
+
+    def _print_unevualated_power(self, x, i):
+        return S.One/factorial(i) * Pow(x, i)
 
     def shift(self, n):
         """
@@ -102,6 +101,11 @@ class PowerSeries_0E_Expr(PowerSeries_0E_ExprOp):
 
     def reverse(self):
         return Reverse(self)
+
+
+class PowerSeries_0E_Sliced(SeriesSliced, PowerSeries_0E_Expr):
+    pass
+
 
 class PowerSeries_0E(PowerSeries_0E_Expr, SeriesAtom):
     """

@@ -154,11 +154,17 @@ class SeriesExprPrint(SeqExprPrint):
     Interface with methods for printers.
     """
 
+    def _print_unevualated_power(self, x, i):
+        return Pow(x, i)
+
     def _sympystr(self, printer, *args):
         #if printer._settings["list_series"]:
         if True:
-            l = [self[i] for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
-            terms = [i for i in l if i != S.Zero]
+
+            s = self.sequence
+            l = [(s[i], i) for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
+            l = [(c, i) for (c, i) in l if c != S.Zero]
+            terms = [c* self._print_unevualated_power(self.x, i) for (c, i) in l]
 
             from sympy.printing.precedence import precedence
             PREC = 40
@@ -195,8 +201,11 @@ class SeriesExprPrint(SeqExprPrint):
         #if printer._settings["list_series"]:
         if True:
             # see pretty._print_Add()
-            l = [self[i] for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
-            terms = [i for i in l if i != S.Zero]
+
+            s = self.sequence
+            l = [(s[i], i) for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
+            l = [(c, i) for (c, i) in l if c != S.Zero]
+            terms = [c* self._print_unevualated_power(self.x, i) for (c, i) in l]
 
             def pretty_negative(pform, index):
                 """Prepend a minus sign to a pretty form. """
@@ -251,20 +260,22 @@ class SeriesExprPrint(SeqExprPrint):
             return printer._print_Basic(self, *args)
 
     def _latex(self, printer):
-        l = [self[i] for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
-        terms = [i for i in l if i != S.Zero]
+        # TODO: work out with sorting in better way
 
-        tex = printer._print(terms[0])
-        for term in terms[1:]:
-            coeff = term.as_coeff_mul()[0]
-            if coeff >= 0:
+        s = self.sequence
+        l = [(s[i], i) for i in xrange(self.start_index, self.start_index + self.show_n + 1)]
+        l = [(c, i) for (c, i) in l if c != S.Zero]
+
+        (c, i) = l[0]
+        term = c*self._print_unevualated_power(self.x, i)
+        tex = printer._print(term)
+        for (c, i) in l[1:]:
+            term = c*self._print_unevualated_power(self.x, i)
+            if c >= 0:
                 tex += " +"
             tex += " " + printer._print(term)
-
         tex += " + \dotsb"
         return tex
-
-
 
 class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
     def _hashable_content(self):
