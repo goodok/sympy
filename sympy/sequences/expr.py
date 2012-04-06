@@ -914,7 +914,7 @@ class SeqCauchyPow(SeqExpr, Pow):
     """
 
     def __new__(cls, *args):
-        expr = Pow.__new__(cls, *args)
+        expr = SeqExpr.__new__(cls, *args)
         return expr
 
     @property

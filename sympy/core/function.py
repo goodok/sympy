@@ -225,6 +225,10 @@ class Function(Application, Expr):
                     'given': n})
 
         args = map(sympify, args)
+
+        if (cls.nargs==1) and args[0].is_Series:
+            return args[0]._apply_function(cls)
+
         evaluate = options.pop('evaluate', True)
         if evaluate:
             evaluated = cls.eval(*args)
@@ -631,6 +635,8 @@ class AppliedUndef(Function):
         args = map(sympify, args)
         result = Expr.__new__(cls, *args, **options)
         result.nargs = len(args)
+        if (result.nargs==1) and args[0].is_Series:
+            return args[0]._apply_abstract_function(result)
         return result
 
 class UndefinedFunction(FunctionClass):

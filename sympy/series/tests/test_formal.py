@@ -317,3 +317,9 @@ def test_compose_2():
     assert c.coeff(2) == sa[1]*sb[2] + sa[2]*sb[1]**2
     assert c.coeff(3) == sa[1]*sb[3] + 2*sa[2]*sb[1]*sb[2] + sa[3]*sb[1]**3
 
+def test_abstract():
+    from sympy.series.power_0 import PowerSeriesGen0
+    from sympy import Function
+    X = PowerSeriesGen0(x)
+    f = Function('f')
+    f(X)

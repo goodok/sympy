@@ -11,11 +11,16 @@ from sympy.core import (Basic, Expr, Add, Mul, Pow)
 from sympy.core.decorators import _sympifyit, call_highest_priority
 from sympy.core.singleton import (Singleton, S)
 from sympy.core import (Pow)
+
+from sympy.core.function import AppliedUndef
+from sympy.abc import k
+
 from sympy.functions.combinatorial.factorials import factorial
 from sympy.core.sets import Interval
 from sympy.core.cache import cacheit
 
-from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
+from seriesexpr import SeriesExpr, SeriesGen, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesPow, SeriesAtom, SeriesNested
+from sympy.sequences import Sequence
 from sympy.sequences.expr import SeqCauchyMul, SeqCauchyPow, PlainFaDeBruno
 
 class PowerSeries0ExprOp(SeriesExpr):
@@ -70,6 +75,42 @@ class PowerSeries0Expr(PowerSeries0ExprOp):
     def to_power_e_series(self):
         pass
 
+    def _apply_abstract_function(self, func_cls):
+        f = func_cls.__class__
+        seq = Sequence(function=lambda k: f(S.Zero).diff(self.x, k, evaluate=False)).unfactorialize()
+        ps = PowerSeries0(self.x, sequence=seq)
+
+        if self.is_SeriesGen:
+            return ps
+        else:
+            return ps.compose(self)
+
+
+    def _apply_function(self, func_cls):
+        ps = None
+        name = func_cls.__name__
+        if name == "sin":
+            seq = Sequence(periodical=(0, 1, 0, -1)).unfactorialize()
+            ps = PowerSeries0(self.x, sequence=seq)
+        elif name == "cos":
+            seq = Sequence(periodical=(1, 0, -1, 0)).unfactorialize()
+            ps = PowerSeries0(self.x, sequence=seq)
+        elif name == "exp":
+            seq = Sequence(periodical=(1,)).unfactorialize()
+            ps = PowerSeries0(self.x, sequence=seq)
+
+        if ps:
+            if self.is_SeriesGen:
+                return ps
+            else:
+                return ps.compose(self)
+
+
+
+class PowerSeriesGen0(PowerSeries0Expr, SeriesGen):
+    # TODO: redefine
+    def __new__(cls, x, **kwargs):
+        return PowerSeries0(x, sequence=Sequence((1, 1), finitlist=(1,)) )
 
 class PowerSeries0(PowerSeries0Expr, SeriesAtom):
     """
@@ -97,7 +138,6 @@ class PowerSeries0(PowerSeries0Expr, SeriesAtom):
     Defining through the sequences is similar to Generating Function definition
     and Discrete Laplace Tranform.
     """
-    pass
 
 class PowerSeries0Add(PowerSeries0Expr, SeriesAdd):
     """
@@ -194,7 +234,7 @@ class PowerSeries0CoeffMul(PowerSeries0Expr, SeriesCoeffMul):
     """
     pass
 
-class PowerSeries0Pow(PowerSeries0Expr, Pow):
+class PowerSeries0Pow(PowerSeries0Expr, SeriesPow):
     """
     Power of formal power series.
 

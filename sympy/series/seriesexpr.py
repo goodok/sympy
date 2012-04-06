@@ -29,6 +29,7 @@ class SeriesExprOp(Expr):
 
     is_Series = True
     is_SeriesAtom = False
+    is_SeriesGen = False
     is_Identity = False
 
     is_PowerSeries = False
@@ -310,6 +311,13 @@ class SeriesExpr(SeriesExprOp, SeriesExprInterval, SeriesExprPrint):
         """
         new_seq = self.sequence.shift(n)
         return self._from_args(self.x, new_seq)
+
+class SeriesGen(SeriesExpr):
+    is_SeriesGen = True
+    # TODO: redefine
+    def __new__(cls, x, **kwargs):
+        return SeriesAtom(x, sequence=Sequence((1, 1), finitlist=(1,)) )
+
 
 class SeriesAtom(SeriesExpr):
     is_SeriesAtom = True
@@ -610,6 +618,15 @@ class SeriesCoeffMul(SeriesExpr, Mul):
             return SeriesExprPrint._sympystr(self, printer, *args)
         else:
             return printer._print_Mul(self)
+
+class SeriesPow(SeriesExpr, Pow):
+    def __new__(cls, b, e, evaluate=True):
+        obj = SeriesExpr.__new__(cls, b, e)
+        return obj
+
+    @property
+    def sequence(self):
+        SeqCauchyPow(self.base.sequence, self.exp)
 
 class SeriesNested(SeriesExpr):
     def __new__(cls, *args):

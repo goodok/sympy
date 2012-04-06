@@ -308,3 +308,11 @@ def test_equevalence_to_bell():
     assert bell(5, 2, B) ==  60*bell_plain(5, 2, D).value()  # 5!/2!
     assert bell(5, 3, B) ==  20*bell_plain(5, 3, D).value()  # 5!/3!
     assert bell(5, 4, B) ==   5*bell_plain(5, 4, D).value()  # 5!/4!
+
+def test_abstract():
+    from sympy import Function
+    from sympy.abc import x, k
+    f = Function('f')
+    seq = Sequence(function=lambda k: f(x).diff(x, k))
+    seq[0]
+    seq[1]

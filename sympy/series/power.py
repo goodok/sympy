@@ -18,7 +18,7 @@ from sympy.polys.polytools import Poly
 
 from sympy.sequences import Sequence
 from sympy.sequences.expr import SeqCauchyMul, SeqCauchyPow, FaDeBruno
-from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested
+from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested, SeriesGen
 
 from power_0 import PowerSeries0Expr, PowerSeries0, PowerSeries0Mul, PowerSeries0Pow, PowerSeries0Pow, PowerSeries0Nested
 
@@ -91,6 +91,11 @@ class PowerSeriesExpr(PowerSeriesExprOp):
         new_seq = self.sequence.shift(n)
         return self._from_args(self.x, new_seq, self.point)
 
+class PowerSeriesGen(PowerSeriesExpr, SeriesGen):
+    # TODO: redefine
+    def __new__(cls, x, **kwargs):
+        return PowerSeries(x, sequence=Sequence((1, 1), finitlist=(1,)) )
+
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """
     Examples:
@@ -160,7 +165,6 @@ class PowerSeries(PowerSeriesExpr, SeriesAtom):
         coeffs = tuple(coeffs[start:])
         sequence = Sequence(Interval(start, end), finitlist=coeffs)
         return cls.__new__(cls, x, sequence=sequence, **kwargs)
-
 
 class PowerSeriesAdd(PowerSeriesExpr, SeriesAdd):
     """
