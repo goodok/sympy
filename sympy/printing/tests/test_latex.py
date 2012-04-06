@@ -220,6 +220,25 @@ def test_latex_derivatives():
     assert latex(diff(sin(x)+x**2, x, evaluate=False)) == \
     r"\frac{\partial}{\partial x}\left(x^{2} + \sin{\left (x \right )}\right)"
 
+    f = Function('f')
+    e = (f(x).diff(x))**2
+    assert latex(e) == \
+    r"\left(\frac{\partial}{\partial x} \operatorname{f}{\left (x \right )}\right)^{2}"
+
+    assert latex(e, noargs=True) == \
+    r"\left(\frac{\partial}{\partial x} \operatorname{f}\right)^{2}"
+
+
+    assert latex(e, diff_kind="pdiff", noargs=True) == \
+    r"\left(\partial_x \operatorname{f}\right)^{2}"
+
+    assert latex(e, diff_kind="indexed") == \
+    r"\left(\operatorname{f}{\left (x \right )}_{x}\right)^{2}"
+
+    assert latex(e, diff_kind="indexed", noargs=True) == \
+    r"\operatorname{f}_{x}^{2}"
+
+
 def test_latex_integrals():
     assert latex(Integral(log(x), x)) == r"\int \log{\left (x \right )}\, dx"
     assert latex(Integral(x**2, (x,0,1))) == r"\int_{0}^{1} x^{2}\, dx"
