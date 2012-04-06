@@ -38,10 +38,13 @@ class LatexPrinter(Printer):
         "mat_delim": "[",
         "symbol_names": {},
         "diff_kind" : "frac",
-        # ([None, frac] | indexed | pdiff)
-        #       frac      - write as \frac{\partial}{\partial x}
-        #       indexed - write f_{x} insted of \partial_{x} f(x)
-        #       pdiff     - write \partial_{x}
+            # ([None, frac] | indexed | pdiff)
+            #       frac      - write as \frac{\partial}{\partial x}
+            #       indexed - write f_{x} insted of \partial_{x} f(x)
+            #       pdiff     - write \partial_{x}
+        "noargs" : False,
+            # do not print arguments of function
+
     }
 
     def __init__(self, settings=None):
@@ -496,20 +499,26 @@ class LatexPrinter(Printer):
                     # If the generic function name contains an underscore, handle it
                     name = r"\operatorname{%s}" % func.replace("_", r"\_")
 
-            if can_fold_brackets:
-                if func in accepted_latex_functions:
-                    # Wrap argument safely to avoid parse-time conflicts
-                    # with the function name itself
-                    name += r" {%s}"
+            noargs  = self._settings['noargs']
+            if not noargs:
+                if can_fold_brackets:
+                    if func in accepted_latex_functions:
+                        # Wrap argument safely to avoid parse-time conflicts
+                        # with the function name itself
+                        name += r" {%s}"
+                    else:
+                        name += r"%s"
                 else:
-                    name += r"%s"
-            else:
-                name += r"{\left (%s \right )}"
+                    name += r"{\left (%s \right )}"
 
             if inv_trig_power_case and exp is not None:
                 name += r"^{%s}" % exp
 
-            return name % ",".join(args)
+            if noargs:
+                res = name
+            else:
+                res = name % ",".join(args)
+            return res
 
     def _print_Lambda(self, expr):
         symbols, expr = expr.args
