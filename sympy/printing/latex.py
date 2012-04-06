@@ -37,6 +37,11 @@ class LatexPrinter(Printer):
         "mat_str": "smallmatrix",
         "mat_delim": "[",
         "symbol_names": {},
+        "diff_kind" : "frac",
+        # ([None, frac] | indexed | pdiff)
+        #       frac      - write as \frac{\partial}{\partial x}
+        #       indexed - write f_{x} insted of \partial_{x} f(x)
+        #       pdiff     - write \partial_{x}
     }
 
     def __init__(self, settings=None):
@@ -345,11 +350,16 @@ class LatexPrinter(Printer):
         return tex
 
     def _print_Derivative(self, expr):
+        diff_kind = self._settings['diff_kind']
         dim = len(expr.variables)
-
         if dim == 1:
-            tex = r"\frac{\partial}{\partial %s}" % \
-                self._print(expr.variables[0])
+            if diff_kind=="pdiff":
+                tex = r"\partial_%s" % self._print(expr.variables[0])
+            elif diff_kind =="indexed":
+                tex = r"%s" % self._print(expr.variables[0])
+            else:
+                tex = r"\frac{\partial}{\partial %s}" % \
+                    self._print(expr.variables[0])
         else:
             multiplicity, i, tex = [], 1, ""
             current = expr.variables[0]
@@ -365,16 +375,33 @@ class LatexPrinter(Printer):
 
             for x, i in multiplicity:
                 if i == 1:
-                    tex += r"\partial %s" % self._print(x)
+                    if diff_kind=="pdiff":
+                        tex += r"\partial_%s" % self._print(x)
+                    elif diff_kind =="indexed":
+                        tex += r"%s" % self._print(x)
+                    else:
+                        tex += r"\partial %s" % self._print(x)
                 else:
-                    tex += r"\partial^{%s} %s" % (i, self._print(x))
+                    if diff_kind=="pdiff":
+                        tex += r"\partial^{%s}_%s" % (i, self._print(x))
+                    elif diff_kind =="indexed":
+                        tex += i * (r"%s" % (self._print(x)))
+                    else:
+                        tex += r"\partial^{%s} %s" % (i, self._print(x))
 
-            tex = r"\frac{\partial^{%s}}{%s} " % (dim, tex)
+            if diff_kind =="frac":
+                tex = r"\frac{\partial^{%s}}{%s} " % (dim, tex)
 
-        if isinstance(expr.expr, C.AssocOp):
-            return r"%s\left(%s\right)" % (tex, self._print(expr.expr))
+        if diff_kind =="indexed":
+            if isinstance(expr.expr, C.AssocOp):
+                return r"\left(%s\right)_{%s}" % (self._print(expr.expr), tex)
+            else:
+                return r"%s_{%s}" % (self._print(expr.expr), tex)
         else:
-            return r"%s %s" % (tex, self._print(expr.expr))
+            if isinstance(expr.expr, C.AssocOp):
+                return r"%s\left(%s\right)" % (tex, self._print(expr.expr))
+            else:
+                return r"%s %s" % (tex, self._print(expr.expr))
 
     def _print_Integral(self, expr):
         tex, symbols = "", []
