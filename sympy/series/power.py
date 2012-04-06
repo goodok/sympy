@@ -91,11 +91,45 @@ class PowerSeriesExpr(PowerSeriesExprOp):
         new_seq = self.sequence.shift(n)
         return self._from_args(self.x, new_seq, self.point)
 
+    def _apply_abstract_function(self, func_cls):
+        f = func_cls.__class__
+        seq = Sequence(function=lambda k: f(S.Zero).diff(self.x, k, evaluate=False)).unfactorialize()
+        ps = PowerSeries(self.x, sequence=seq, point=self.point)
+
+        if self.is_SeriesGen:
+            return ps
+        else:
+            return ps.compose(self)
+
+
+    def _apply_function(self, func_cls):
+        ps = None
+        name = func_cls.__name__
+        if name == "sin":
+            seq = Sequence(periodical=(0, 1, 0, -1)).unfactorialize()
+            ps = PowerSeries(self.x, sequence=seq, point=self.point)
+        elif name == "cos":
+            seq = Sequence(periodical=(1, 0, -1, 0)).unfactorialize()
+            ps = PowerSeries(self.x, sequence=seq, point=self.point)
+        elif name == "exp":
+            seq = Sequence(periodical=(1,)).unfactorialize()
+            ps = PowerSeries(self.x, sequence=seq, point=self.point)
+
+        if ps:
+            if self.is_SeriesGen:
+                return ps
+            else:
+                return ps.compose(self)
+
+
 class PowerSeriesGen(PowerSeriesExpr, SeriesGen):
     is_SeriesGen = True
     def __new__(cls, x, **kwargs):
         # TODO: redefine
-        return PowerSeries(x, sequence=Sequence((1, 1), finitlist=(1,)) )
+        point = sympify(kwargs.get("point", S.Zero))
+        res = PowerSeries(x, sequence=Sequence((1, 1), finitlist=(1,)), point=point)
+        res.is_SeriesGen = True
+        return res
 
 class PowerSeries(PowerSeriesExpr, SeriesAtom):
     """

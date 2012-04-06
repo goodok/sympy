@@ -81,7 +81,6 @@ class PowerSeries0Expr(PowerSeries0ExprOp):
         else:
             return ps.compose(self)
 
-
     def _apply_function(self, func_cls):
         ps = None
         name = func_cls.__name__
