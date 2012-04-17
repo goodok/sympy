@@ -96,45 +96,42 @@ class PowerSeriesExpr(PowerSeriesExprOp):
         new_seq = self.sequence.shift(n)
         return self._from_args(self.x, new_seq, self.point)
 
+    def _from_sample(self, sequence):
+        return PowerSeries(self.x, sequence=sequence, point=self.point)
+
     def _apply_abstract_function(self, func_cls):
         f = func_cls.__class__
         seq = Sequence(function=lambda k: f(S.Zero).diff(self.x, k, evaluate=False)).unfactorialize()
-        ps = PowerSeries(self.x, sequence=seq, point=self.point)
-
-        if self.is_SeriesGen:
-            return ps
-        else:
-            return ps.compose(self)
+        ps = self._from_sample(sequence=seq)
+        return ps.compose(self)
 
 
     def _apply_function(self, func_cls):
         ps = None
         name = func_cls.__name__
         point = self.point
+        c0 = self.coeff(0)
         if name == "sin":
-            c0 = self.coeff(0)
             if c0 is S.Zero:
                 seq = Sequence(periodical=(0, 1, 0, -1)).unfactorialize()
-                ps = PowerSeries(self.x, sequence=seq, point=self.point)
+                ps = self._from_sample(sequence=seq)
                 return ps.compose(self)
             else:
                 ps_zero_free = self[1:]
                 return cos(c0)*sin(ps_zero_free) + sin(c0)*cos(ps_zero_free)
         elif name == "cos":
-            c0 = self.coeff(0)
             if c0 is S.Zero:
                 seq = Sequence(periodical=(1, 0, -1, 0)).unfactorialize()
-                ps = PowerSeries(self.x, sequence=seq, point=self.point)
+                ps = self._from_sample(sequence=seq)
                 return ps.compose(self)
             else:
                 ps_zero_free = self[1:]
                 return cos(c0)*cos(ps_zero_free) - sin(c0)*sin(ps_zero_free)
 
         elif name == "exp":
-            c0 = self.coeff(0)
             if c0 is S.Zero:
                 seq = Sequence(periodical=(1,)).unfactorialize()
-                ps = PowerSeries(self.x, sequence=seq, point=self.point)
+                ps = self._from_sample(sequence=seq)
                 return ps.compose(self)
             else:
                 ps_zero_free = self[1:]

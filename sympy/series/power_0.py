@@ -77,31 +77,46 @@ class PowerSeries0Expr(PowerSeries0ExprOp):
     def to_power_e_series(self):
         pass
 
+    def _from_sample(self, sequence):
+        return PowerSeries0(self.x, sequence=sequence)
+
     def _apply_abstract_function(self, func_cls):
         f = func_cls.__class__
         seq = Sequence(function=lambda k: f(S.Zero).diff(self.x, k, evaluate=False)).unfactorialize()
         ps = PowerSeries0(self.x, sequence=seq)
-
-        if self.is_SeriesGen:
-            return ps
-        else:
-            return ps.compose(self)
+        return ps.compose(self)
 
     def _apply_function(self, func_cls):
         ps = None
         name = func_cls.__name__
         if name == "sin":
-            seq = Sequence(periodical=(0, 1, 0, -1)).unfactorialize()
-            ps = PowerSeries0(self.x, sequence=seq)
+            c0 = self.coeff(0)
+            if c0 is S.Zero:
+                seq = Sequence(periodical=(0, 1, 0, -1)).unfactorialize()
+                ps = SC(self.x, sequence=seq)
+                return ps.compose(self)
+            else:
+                ps_zero_free = self[1:]
+                return cos(c0)*sin(ps_zero_free) + sin(c0)*cos(ps_zero_free)
         elif name == "cos":
-            seq = Sequence(periodical=(1, 0, -1, 0)).unfactorialize()
-            ps = PowerSeries0(self.x, sequence=seq)
-        elif name == "exp":
-            seq = Sequence(periodical=(1,)).unfactorialize()
-            ps = PowerSeries0(self.x, sequence=seq)
+            c0 = self.coeff(0)
+            if c0 is S.Zero:
+                seq = Sequence(periodical=(1, 0, -1, 0)).unfactorialize()
+                ps = SC(self.x, sequence=seq)
+                return ps.compose(self)
+            else:
+                ps_zero_free = self[1:]
+                return cos(c0)*cos(ps_zero_free) - sin(c0)*sin(ps_zero_free)
 
-        if ps:
-            return ps.compose(self)
+        elif name == "exp":
+            c0 = self.coeff(0)
+            if c0 is S.Zero:
+                seq = Sequence(periodical=(1,)).unfactorialize()
+                ps = SC(self.x, sequence=seq)
+                return ps.compose(self)
+            else:
+                ps_zero_free = self[1:]
+                return exp(c0)*func_cls(ps_zero_free)
 
 class PowerSeries0Sliced(PowerSeries0Expr, SeriesSliced):
     # to maintain is_PowerSeries0
