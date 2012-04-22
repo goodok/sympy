@@ -863,6 +863,33 @@ class Poly(Expr):
 
         return f.from_dict(terms, *(gens or f.gens), **args)
 
+    def truncate(f, maxdegree, *gens, **args):
+        """
+        Truncate.
+
+        Examples
+        ========
+
+        >>> from sympy import Poly
+        >>> from sympy.abc import x, y
+
+        >>> p.truncate(3)
+        Poly(x**3 + x**2*y + x**2 + x*y**2 + x*y + x, x, y, domain='ZZ')
+
+        >>> p.truncate(2)
+        Poly(x**2 + x*y + x, x, y, domain='ZZ')
+
+        """
+        terms = {}
+
+        for monom, coeff in f.terms():
+            degree = Add(*monom)
+            if degree <= maxdegree:
+                terms[monom] = coeff
+
+        return f.from_dict(terms, *(gens or f.gens), **args)
+
+
     def length(f):
         """
         Returns the number of non-zero terms in ``f``.
