@@ -14,6 +14,8 @@ from sympy.core.decorators import (
     _sympifyit,
 )
 
+from sympy.core.cache import cacheit
+
 from sympy.polys.polyclasses import DMP
 
 from sympy.polys.polyutils import (
@@ -748,6 +750,25 @@ class Poly(Expr):
         """
         return [ f.rep.dom.to_sympy(c) for c in f.rep.coeffs(order=order) ]
 
+    def coeff_monom(f, monom_expr):
+        """
+        Return coeff of expressioned monom.
+        
+        Examples
+        ========
+
+        >>> from sympy import Poly
+        >>> from sympy.abc import x, y
+
+        >>> p = Poly(5*x**2 + 7*x*y + 3*x + 2)
+        >>> p.coeff_monom(x*y)
+        7
+        """
+        p = Poly(monom_expr, f.gens)
+        monom = p.monoms()[0]
+        return f.as_dict()[monom]
+
+    @cacheit
     def monoms(f, order=None):
         """
         Returns all non-zero monomials from ``f`` in lex order.
@@ -863,6 +884,8 @@ class Poly(Expr):
 
         return f.from_dict(terms, *(gens or f.gens), **args)
 
+    apply_func = termwise
+
     def truncate(f, maxdegree, *gens, **args):
         """
         Truncate.
@@ -906,6 +929,7 @@ class Poly(Expr):
         """
         return len(f.as_dict())
 
+    @cacheit
     def as_dict(f, native=False, zero=False):
         """
         Switch to a ``dict`` representation.
