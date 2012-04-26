@@ -909,7 +909,8 @@ class Poly(Expr):
             degree = Add(*monom)
             if degree <= maxdegree:
                 terms[monom] = coeff
-
+        if len(terms.keys())==0:
+            return f.zero()
         return f.from_dict(terms, *(gens or f.gens), **args)
 
 
