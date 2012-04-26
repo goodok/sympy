@@ -105,6 +105,8 @@ class LatexPrinter(Printer):
                 or (expr.is_Derivative and expr.expr.is_Function and
                     self._settings['noargs'] and
                     (self._settings['diff_kind']=="indexed"))
+                or (hasattr(expr, "_needs_brackets") and
+                    not expr._needs_brackets())
                 )
 
     def _needs_function_brackets(self, expr):

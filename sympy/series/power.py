@@ -25,6 +25,8 @@ from power_0 import PowerSeries0Expr, PowerSeries0, PowerSeries0Mul, PowerSeries
 from sympy.functions.elementary.trigonometric import sin, cos
 from sympy.functions.elementary.exponential import exp
 
+from sympy.tensor.diff_operator import DiffOperatorExpr
+
 class PowerSeriesExprOp(PowerSeries0Expr):
     is_PowerSeries = True
     is_PowerSeries0 = False
@@ -96,10 +98,24 @@ class PowerSeriesExpr(PowerSeriesExprOp):
         new_seq = self.sequence.shift(n)
         return self._from_args(self.x, new_seq, self.point)
 
+    def __call__(self, arg):
+        if isinstance(self.x, DiffOperatorExpr):
+            c = self.sequence
+            s = 0
+            for i in range(c.start_index, 8):
+                s += c[i]*self.x**i
+            return s(arg)
+
     def _from_sample(self, sequence):
         return PowerSeries(self.x, sequence=sequence, point=self.point)
 
     def _apply_abstract_function(self, func_cls):
+        """
+        Apply abstract function as composition.
+
+        f(PowerSeries())
+
+        """
         f = func_cls.__class__
         seq = Sequence(function=lambda k: f(S.Zero).diff(self.x, k, evaluate=False)).unfactorialize()
         ps = self._from_sample(sequence=seq)
@@ -107,6 +123,11 @@ class PowerSeriesExpr(PowerSeriesExprOp):
 
 
     def _apply_function(self, func_cls):
+        """
+        Apply abstract function as composition.
+
+        sin(PowerSeries())
+        """
         ps = None
         name = func_cls.__name__
         point = self.point
