@@ -17,7 +17,7 @@ from sympy.core.cache import cacheit
 from sympy.polys.polytools import Poly
 
 from sympy.sequences import Sequence
-from sympy.sequences.expr import SeqCauchyMul, SeqCauchyPow, FaDeBruno
+from sympy.sequences.expr import SeqCauchyMul, SeqCauchyPow, FaDeBruno, SeqMulEW
 from seriesexpr import SeriesExpr, SeriesSliced, SeriesAdd, SeriesMul, SeriesCoeffMul, SeriesAtom, SeriesNested, SeriesGen
 
 from power_0 import PowerSeries0Expr, PowerSeries0, PowerSeries0Mul, PowerSeries0Pow, PowerSeries0Pow, PowerSeries0Nested
@@ -25,7 +25,7 @@ from power_0 import PowerSeries0Expr, PowerSeries0, PowerSeries0Mul, PowerSeries
 from sympy.functions.elementary.trigonometric import sin, cos
 from sympy.functions.elementary.exponential import exp
 
-from sympy.tensor.diff_operator import DiffOperatorExpr
+from sympy.tensor.diff_operator import DiffOperatorExpr, DOMul
 
 class PowerSeriesExprOp(PowerSeries0Expr):
     is_PowerSeries = True
@@ -100,11 +100,29 @@ class PowerSeriesExpr(PowerSeriesExprOp):
 
     def __call__(self, arg):
         if isinstance(self.x, DiffOperatorExpr):
-            c = self.sequence
-            s = 0
-            for i in range(c.start_index, 8):
-                s += c[i]*self.x**i
-            return s(arg)
+            if isinstance(self.x, DOMul):
+                # create new series
+                # split scalars and operators
+                d = ()
+                scal = ()
+                for i in self.x.args:
+                    if isinstance(i, DiffOperatorExpr):
+                        d += (i, )
+                    else:
+                        scal += (i, )
+                d = DOMul(*d)
+                new_x = Mul(*scal)
+                seq = Sequence(function=lambda k: (d**k)(arg))
+                seq = SeqMulEW(self.sequence, seq)
+                return PowerSeries(new_x, sequence=seq, point=self.point)
+            else:
+                # convert to ordinary expressioni
+                c = self.sequence
+                s = 0
+                for i in range(c.start_index, 8):
+                    s += c[i]*self.x**i
+                return s(arg)
+        raise AtributeError("Only series of operator are callable.")
 
     def _from_sample(self, sequence):
         return PowerSeries(self.x, sequence=sequence, point=self.point)

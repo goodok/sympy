@@ -271,9 +271,12 @@ class SeriesExprPrint(SeqExprPrint):
         tex = printer._print(term)
         for (c, i) in l[1:]:
             term = c*self._print_unevualated_power(self.x, i)
-            if c >= 0:
+            next = printer._print(term)
+            if next[0]=='-':
+                pass
+            else:
                 tex += " +"
-            tex += " " + printer._print(term)
+            tex += " " + next
         tex += " + \dotsb"
         return tex
 
