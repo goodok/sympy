@@ -215,5 +215,5 @@ class DOPow(DiffOperatorExpr, Pow):
             return diff(e, self.base.variable, self.exp)
 
     def _latex(self, p):
-        return "%s7^{%s}" % (self.base._latex(p), self.exp)
+        return "%s^{%s}" % (self.base._latex(p), self.exp)
 
