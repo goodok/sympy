@@ -84,18 +84,7 @@ class DiffOperatorExpr(Expr):
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__div__')
     def __rdiv__(self, other):
-        raise NotImplementedError()
-
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__div__')
-    def __rdiv__(self, other):
-        raise NotImplementedError()
-
-    @_sympifyit('other', NotImplemented)
-    @call_highest_priority('__div__')
-    def __rdiv__(self, other):
-        raise NotImplementedError()
-
+        return DOMul(other, self**S.NegativeOne)
 
 class DiffOperatorOne(DiffOperatorExpr):
     """
