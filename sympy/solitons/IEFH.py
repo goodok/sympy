@@ -71,7 +71,7 @@ class IEFH(Expr):
     
     def _latex(self, printer, *args):
         texargs = [r"%s" % printer._print(symbol, *args) for symbol in (self.i, self.e, self.f, self.h)]
-        return r"\left(%s\right)" % ", ".join(texargs)
+        return r"\left(\begin{matrix}%s\end{matrix}\right)" % "\\\\ ".join(texargs)
 
 
 
