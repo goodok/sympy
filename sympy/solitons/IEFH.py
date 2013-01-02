@@ -84,6 +84,13 @@ class IEFH(Expr):
         terms = tuple(terms)
         return self.__class__(*terms)
 
+    def T(self):
+        terms = (self.i, self.e, -self.f, self.h)
+        return self.__class__(*terms)
+
+    def as_matrix(self):
+        return I*self.i + E*self.e + F*self.f + self.h*H
+
 
     def __str__(self):
         return "(%s, %s, %s, %s)" % (self.i, self.e, self.f, self.h)

@@ -26,6 +26,7 @@ class PrettyPrinter(Printer):
         "use_unicode": None,
         "wrap_line": True,
         "num_columns": None,
+        "dont_print_hirota_matrix": False,
     }
 
     def __init__(self, settings=None):

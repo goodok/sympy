@@ -44,6 +44,7 @@ class LatexPrinter(Printer):
             #       pdiff     - write \partial_{x}
         "noargs" : False,
             # do not print arguments of function
+        "dont_print_hirota_matrix": False,
 
     }
 
