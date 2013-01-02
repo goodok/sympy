@@ -1,14 +1,37 @@
 from sympy import Expr
 from sympy.core.basic import Basic
+from sympy.core.symbol import Symbol
 from sympy import S
 from sympy.matrices import Matrix
 
 from sympy.core.function import diff
 
+
 I = Matrix([[1, 0], [0, 1]])
 E = Matrix([[0, 1], [1, 0]])
 F = Matrix([[0, 1], [-1, 0]])
 H = Matrix([[1, 0], [0, -1]])
+
+
+def as_symbol(m):
+    if m == I:
+        return Symbol("I")
+    elif m == -I:
+        return -Symbol("I")
+    elif m == H:
+        return Symbol("H")
+    elif m == - H:
+        return -Symbol("H")
+    elif m == E:
+        return Symbol("E")
+    elif m == -E:
+        return -Symbol("E")
+    elif m == F:
+        return Symbol("F")
+    elif m == - F:
+        return -Symbol("F")
+    else:
+        return m
 
 
 

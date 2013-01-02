@@ -6,9 +6,14 @@ from sympy.core.function import diff
 from sympy.core.add import Add
 from sympy.functions.combinatorial.factorials import binomial
 from sympy.matrices import Matrix
+from sympy.core.containers import Tuple
+
+from IEFH import I, E, F, H, as_symbol
 
 class Hirota(Expr):
     """
+    Direct calculation
+
     Examples:
     ---------
     >>> from sympy.abc import x
@@ -70,19 +75,39 @@ class HirotaR(Expr):
     ---------
     >>> from sympy.abc import x
     >>> from sympy.core.function import Function
-    >>> from sympy.solitons.hirota import Hirota
-
+    >>> from sympy.solitons.hirota import HirotaR
+    >>> from sympy.solitons.IEFH import I, E, F, H
     >>> f = Function("f")
     >>> g = Function("g")
-    >>> d = Hirota(f, g, (x, 1))
+
+    >>> d = HirotaR(f, g, ((x, 1), ))
     >>> d.eval()
     f(x)*Derivative(g(x), x) - g(x)*Derivative(f(x), x)
 
-    >>> Hirota(f, g, (x, 2)).eval()
+    >>> HirotaR(f, g, ((x, 2), )).eval()
     f(x)*Derivative(g(x), x, x) + g(x)*Derivative(f(x), x, x) - 2*Derivative(f(x), x)*Derivative(g(x), x)
+
+    >>> d = HirotaR(f, g, ((x, 0), ), -H)
+    >>> d.eval()
+    f(x)*g(x)
+
+    >>> d = HirotaR(f, g, ((x, 0), ), E)
+    >>> d.eval()
+    f(x)**2/2 - g(x)**2/2
+
+    >>> d = HirotaR(f, g, ((x, 2), ), E)
+    >>> d.eval()
+    f(x)*Derivative(f(x), x, x) - g(x)*Derivative(g(x), x, x) - Derivative(f(x), x)**2 + Derivative(g(x), x)**2
+
+
     """
+    #default matrix generator (default for standart Hirota operator)
+    _A = -Matrix([[1, 0], [0, -1]])
+
     def __new__(cls, *args, **assumptions):
         _args = args + ()
+        if len(_args)==3:
+            _args = _args + (cls._A, )
         obj = Expr.__new__(cls, *_args, **assumptions)
         obj._argset = _args
         return obj
@@ -95,13 +120,21 @@ class HirotaR(Expr):
     @property    
     def vals(self):
         return self._args[2]
+    @property
+    def A(self):
+        return self._args[3]
+
+    def subs(self, n, new_n):
+        vals = Tuple(*self.vals)
+        vals = vals.subs(n, new_n)
+        return HirotaR(self.f, self.g, vals._args, self.A)
 
     def eval(self):
         vals_x = tuple(v[0] for v in self.vals)
         f = self.f(*vals_x)
         g = self.g(*vals_x) 
         m = Matrix([[f, f], [g, g]])
-        hs = HS(m)
+        hs = HS(m, self.A)
         for (v, p) in self.vals:
             hs = hs.diff_n(v, p)
         return hs.det()
@@ -116,15 +149,23 @@ class HirotaR(Expr):
             if p == S.One:
                 sp = " "
             res += "D_{%s}%s" % (sx, sp)
-        return  r" %s %s \circ %s" % (res, f, g)
+        m = printer._print(as_symbol(self.A), *args)
+        return  r" %s |_{%s} %s  \circ %s" % (res, m, f, g)
 
 
 class HS(Expr):
+    """
+    Helper structure for Hirota operator
+    """
 
-    A = -Matrix([[1, 0], [0, -1]])
-    F = Matrix([[0, 1], [-1, 0]])
+
+    # default matrix as generator
+    _A = -Matrix([[1, 0], [0, -1]])
+    # F = Matrix([[0, 1], [-1, 0]])
     def __new__(cls, *args, **assumptions):
         _args = args + ()
+        if len(_args)==1:
+            _args = _args + (cls._A, )
         obj = Expr.__new__(cls, *_args, **assumptions)
         obj._argset = _args
         return obj
@@ -132,6 +173,10 @@ class HS(Expr):
     @property
     def m(self):
         return self._args[0]
+
+    @property
+    def A(self):
+        return self._args[1]
 
     def diff(self, x):
         m = self.m        
@@ -143,7 +188,7 @@ class HS(Expr):
         v1 = self.A*m.col(1).diff(x)
         m2 = self._create_matrix(v0, v1)
 
-        return  HS_Add(HS(m1), HS(m2))
+        return  HS_Add(HS(m1, self.A), HS(m2, self.A))
 
     def diff_n(self, x, n):
         res = self
@@ -163,6 +208,9 @@ class HS(Expr):
 
 
 class HS_Add(Expr):
+    """
+    The sum of helper structures
+    """
     def __new__(cls, *args, **assumptions):
         _args = args + ()
         obj = Expr.__new__(cls, *_args, **assumptions)
