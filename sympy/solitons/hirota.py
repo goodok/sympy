@@ -78,7 +78,6 @@ class HirotaExpr(Expr):
 
     _op_priority = 12.0
 
-    is_DiffOperator = True
     is_Identity = False
     is_zero = False
     is_commutative = True
@@ -153,7 +152,6 @@ class HirotaUnapplyedExpr(Expr):
 
     _op_priority = 12.0
 
-    is_DiffOperator = True
     is_Identity = False
     is_zero = False
     is_commutative = True
@@ -223,6 +221,7 @@ class HirotaUnapplyed(HirotaUnapplyedBase):
 
     def __new__(cls, *args, **assumptions):
         _args = args + ()
+        assert len(args)==1
         matrix = assumptions.pop("matrix", cls._A)
         dont_print_matrix = assumptions.pop("dont_print_matrix", False)
         _args = _args + (matrix, dont_print_matrix)
@@ -258,6 +257,11 @@ class HirotaUnapplyed(HirotaUnapplyedBase):
         hs = HS(m, matrix)
         hs = hs.diff(self.x)
         return hs.det()
+
+    def set_matrix(self, matrix):
+        return HirotaUnapplyed(self.x, matrix=matrix,
+            dont_print_matrix=self.dont_print_matrix)
+
 
     def _latex(self, printer, *args):
         """
@@ -348,7 +352,8 @@ class HU_Add(HirotaUnapplyedBase, Add):
         res = set()
         for d in self.args:
             if isinstance(d, HirotaUnapplyedBase):
-                res.update(d.all_vars)
+                all_vars = d.all_vars
+                res.update(all_vars)
         return res
 
     def eval(self, f, g, matrix, all_vars):
@@ -356,6 +361,17 @@ class HU_Add(HirotaUnapplyedBase, Add):
         for a in self.args:
             res += a.eval(f, g, matrix, all_vars)
         return res
+
+
+    def set_matrix(self, matrix):
+        new_args = ()
+        for a in self._args:
+            if isinstance(a, HirotaUnapplyedBase):
+                new_args += (a.set_matrix(matrix), )
+            else:
+                new_args += (a, )
+        return HU_Add(*new_args)
+
 
     def _latex(self, printer, *args):
         r"""
@@ -520,15 +536,25 @@ class HU_Mul(HirotaUnapplyedBase, Mul):
     def all_vars(self):
         res = set()
         for d in self.args:
-            if isinstance(d, HirotaUnapplyed):
+            if isinstance(d, HirotaUnapplyedBase):
                 res.update(d.all_vars)
         return res
+
+    def set_matrix(self, matrix):
+        new_args = ()
+        for a in self._args:
+            if isinstance(a, HirotaUnapplyedBase):
+                new_args += (a.set_matrix(matrix), )
+            else:
+                new_args += (a, )
+        return HU_Mul(*new_args)
+
 
     def eval(self, f, g, matrix, all_vars):
         coeff = S.One
         vars_powers = ()
         for o in self._args:
-            if not isinstance(o, HirotaUnapplyedExpr):
+            if not isinstance(o, HirotaUnapplyedBase):
                 coeff *= o
             elif isinstance(o, HU_Pow):
                 vars_powers += ((o.base.x, o.exp), )
@@ -643,6 +669,12 @@ class HU_Pow(HirotaUnapplyedBase, Pow):
         hs = hs.diff_n(self.base.x, self.exp)
         return hs.det()
 
+    def set_matrix(self, matrix):
+        new_args = ()
+        base = self.base.set_matrix(matrix)
+        return HU_Pow(base, self.exp)
+
+
     def _latex(self, printer, *args):
         """
         >>> from sympy.abc import x
@@ -702,7 +734,72 @@ class HU_Pow(HirotaUnapplyedBase, Pow):
 #######################
 
 
-class HirotaApplyed(Expr):
+class HirotaApplyedExpr(Expr):
+
+    _op_priority = 12.0
+
+    is_Identity = False
+    is_zero = False
+    is_commutative = True
+
+    # The following is adapted from the core Expr object
+
+    def __neg__(self):
+        return HA_Mul(S.NegativeOne, self)
+    def __abs__(self):
+        raise NotImplementedError
+
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__radd__')
+    def __add__(self, other):
+        return HA_Add(self, other)
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__add__')
+    def __radd__(self, other):
+        return HA_Add(other, self)
+
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__rsub__')
+    def __sub__(self, other):
+        return HA_Add(self, -other)
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__sub__')
+    def __rsub__(self, other):
+        return HA_Add(other, -self)
+
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__rmul__')
+    def __mul__(self, other):
+        return HA_Mul(self, other)
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__mul__')
+    def __rmul__(self, other):
+        return HA_Mul(other, self)
+
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__rpow__')
+    def __pow__(self, other):
+        return HA_Pow(self, other)
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__pow__')
+    def __rpow__(self, other):
+        raise NotImplementedError("Power of HirotaUnapplyed is not defined")
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__rdiv__')
+    def __div__(self, other):
+        raise NotImplementedError("Division of HirotaUnapplyed is not defined")
+    @_sympifyit('other', NotImplemented)
+    @call_highest_priority('__div__')
+    def __rdiv__(self, other):
+        raise NotImplementedError("Division of HirotaUnapplyed is not defined")
+
+
+class HirotaApplyedBase(HirotaApplyedExpr):
+    def _needs_brackets(self):
+        return False
+
+
+class HirotaApplyed(HirotaApplyedBase):
     def __new__(cls, *args):
         expr = Expr.__new__(cls, *args, evaluate=False)
         return expr
@@ -710,6 +807,14 @@ class HirotaApplyed(Expr):
     @property
     def operator(self):
         return self._args[0]
+
+    @property
+    def base_operator(self):
+        return self._args[0]
+
+    @property
+    def coeff(self):
+        return S.One
 
     @property
     def f(self):
@@ -727,7 +832,37 @@ class HirotaApplyed(Expr):
         return self.operator.all_vars
 
 
-    def eval(self, matrix=None):
+    def subs(self, n, new_n):
+        """
+        >>> from sympy.core.function import Function
+        >>> from sympy.core.symbol import Symbol
+        >>> from sympy.solitons.hirota import HirotaUnapplyed as D
+        >>> from sympy.abc import x, y
+        >>> n = Symbol("n")
+        >>> f = Function("f")
+        >>> g = Function("g")
+
+        >>> d = D(x)**2*D(y)
+        >>> d2 = D(x)**n*D(y)
+        >>> d2 = d2.subs(n, 2)
+
+        >>> d(f, g).eval() == d2(f, g).eval()
+        True
+        """
+        operator = self.operator.subs(n, new_n)
+        f = self.f
+        g = self.g
+        if n == f:
+            f = new_n
+        if n == g:
+            g = new_n
+        return HirotaApplyed(operator, f, g)
+
+    def set_matrix(self, matrix):
+        operator = self.operator.set_matrix(matrix)
+        return HirotaApplyed(operator, self.f, self.g)
+
+    def eval(self, matrix=None, all_vars=None):
         """
         >>> from sympy.abc import x, y
         >>> from sympy.core.function import Function
@@ -768,10 +903,11 @@ class HirotaApplyed(Expr):
         True
 
         """
-        
+        if all_vars==None:
+            all_vars = self.get_all_vars()
         if matrix==None:
             matrix = self.A
-        return self.operator.eval(self.f, self.g, matrix, self.get_all_vars())
+        return self.operator.eval(self.f, self.g, matrix, all_vars)
 
     def _latex(self, printer, *args):
         r"""
@@ -849,6 +985,326 @@ class HirotaApplyed(Expr):
             pform = prettyForm(*pform.right(" o "))
         pform = prettyForm(*pform.right(pg))
         return pform
+
+
+class HA_Add(HirotaApplyedBase, Add):
+    """
+    A Sum of the HirotaApplyed expressions.
+    """
+
+    def __new__(cls, *args):
+
+        expr = Add.__new__(cls, *args)
+
+        if expr.is_Mul:
+            return HA_Mul(*expr.args)
+        return expr
+
+    def _needs_brackets(self):
+        return self.dont_print_matrix
+
+    @property
+    def dont_print_matrix(self):
+        return any(h.dont_print_matrix for h in self._args)
+    @property
+    def A(self):
+        return self._args[0].A
+
+    @classmethod
+    def flatten(cls, args):
+        new_seq = []
+        i = 0
+        while args:
+            o = args.pop()
+            if o.__class__ is cls:
+                args.extend(o.args)
+            else:
+                new_seq.append(o)
+        new_seq.reverse()
+        return new_seq, [], None
+
+    def as_ordered_terms(self, order=None):
+        return self._args
+
+    def expand(self):
+        # see 'auto expand' in __new__
+        return self
+
+    def get_all_vars(self):
+        res = set()
+        for d in self.args:
+            if isinstance(d, HirotaApplyedBase):
+                res.update(d.get_all_vars())
+        return res
+
+    def eval(self, matrix=None, all_vars=None):
+        if matrix==None:
+            matrix = self.A
+        if all_vars==None:
+            all_vars = self.get_all_vars()
+        res = S.Zero
+        for a in self.args:
+            res += a.eval(matrix=matrix, all_vars=all_vars)
+        return res
+
+
+    def set_matrix(self, matrix):
+        new_args = ()
+        for a in self._args:
+            if isinstance(a, HirotaApplyed):
+                new_args += (a.set_matrix(matrix), )
+            else:
+                new_args += (a, )
+        return HA_Add(*new_args)
+
+
+    def _latex(self, printer, *args):
+        r"""
+        >>> from sympy.abc import x, y
+        >>> from sympy.core.function import Function
+        >>> from sympy.printing.latex import latex
+        >>> from sympy.solitons.hirota import HirotaUnapplyed as D
+
+        >>> f = Function("f")
+        >>> g = Function("g")
+
+        >>> d = D(x)*D(y)
+        >>> da = d(f, f) + d(g, g)
+        >>> latex(da)
+        'D_{x} D_{y} |_{- H} \\left( f \\circ f + g \\circ g \\right)'
+
+        >>> da = d(f, f) - d(g, g)
+        >>> latex(da)
+        'D_{x} D_{y} |_{- H} \\left( f \\circ f - g \\circ g \\right)'
+        """
+        args = self._args
+        if all(ha.base_operator == args[0].base_operator for ha in args):
+            tex = printer._print(args[0].base_operator)
+            l = []
+            for ha in args:
+                sf = printer._print(ha.f)
+                sg = printer._print(ha.g)
+                sfg = r"%s \circ %s" % (sf, sg)
+                if ha.coeff == S.One:
+                    coeff = ""
+                    sign = " + "
+                elif ha.coeff == -S.One:
+                    coeff = ""
+                    sign = " - "
+                else:
+                    coeff = printer._print(ha.coeff)
+                    if not _coeff_isneg(ha.coeff):
+                        sign = " + "
+                    else:
+                        sign = ""
+                l.append((sign, coeff, sfg))
+            s = []
+
+            (sign, coeff, sfg) = l[0]
+            s.append("%s%s"% (coeff, sfg))
+
+            for sign, coeff, sfg in l[1:]:
+                s.append("%s%s%s"% (sign, coeff, sfg))
+            tex = r"%s \left( %s \right)" % (tex, "".join(s))
+        else:
+            tex = printer._print_Add(self, "none")
+        return tex
+
+    def _pretty(self, printer, *args):
+        pform = printer._print_Add(self, "none")
+        return pform
+
+
+class HA_Mul(HirotaApplyedBase, Mul):
+    def __new__(cls, *args):
+
+
+        if any(arg.is_zero for arg in args):
+            return S.Zero
+
+        # auto expand
+        l = list(args)
+        for i in range(len(l)):
+            arg = l[i]
+            if isinstance(arg, HA_Add):
+                others = HA_Mul(*tuple(l[:i] + l[i+1:]))
+                return HA_Add(*(others*a for a in arg._args))
+
+        expr = Mul.__new__(cls, *args)
+        return expr
+
+    @property
+    def f(self):
+        applyed_operators = self.split_coeff_operators[1]
+        res =  None
+        if len(applyed_operators)==1:
+            res = applyed_operators[0].f
+        return res
+
+    @property
+    def g(self):
+        applyed_operators = self.split_coeff_operators[1]
+        res =  None
+        if len(applyed_operators)==1:
+            res = applyed_operators[0].g
+        return res
+
+    @property
+    def base_operator(self):
+        applyed_operators = self.split_coeff_operators[1]
+        res =  None
+        if len(applyed_operators)==1:
+            res = applyed_operators[0].operator
+        return res
+
+
+    @property
+    def coeff(self):
+        return self.split_coeff_operators[0]
+
+    @property
+    def split_coeff_operators(self):
+        coeff = S.One
+        base_operators = ()
+        for ha in self._args:
+            if isinstance(ha, HirotaApplyedBase):
+                base_operators += (ha, )
+            else:
+                coeff *= ha
+        return (coeff, base_operators)
+
+    @classmethod
+    def flatten(cls, args):
+        new_seq = []
+        i = 0
+        while args:
+            o = args.pop()
+            if o.__class__ is cls:
+                args.extend(o.args)
+            else:
+                new_seq.append(o)
+        new_seq.reverse()
+
+        new_seq = cls.auto_collect(new_seq)
+
+        return new_seq, [], None
+
+    @classmethod
+    def auto_collect(cls, args):
+        """
+        Collect similar terms and transform them to powers.
+        """
+        coeff = S.One       # standalone term
+                            # e.g. 3 * ...
+        powers = []
+        for o in args:
+            if not isinstance(o, HirotaApplyedExpr):
+                coeff *= o
+            elif isinstance(o, HA_Pow):
+                powers.append((o.base, o.exp))
+            else:
+                powers.append((o, S.One))
+
+        # gather powers
+        h_bases = {}
+        l_bases = []
+        
+        for b, e in powers:
+            if not h_bases.has_key(b):
+                h_bases[b] = e
+                l_bases.append(b)
+            else:
+                h_bases[b] += e
+
+        new_seq = []
+        if coeff != S.One:
+            new_seq.append(coeff)
+
+        for b in l_bases:
+            e = h_bases[b]
+            if e == S.One:
+                new_seq.append(b)
+            else:
+                new_seq.append(HU_Pow(b, e))
+        return new_seq
+
+    def as_ordered_terms(self, order=None):
+        return self.args
+
+    @property
+    def A(self):
+        for h in self.args:
+            if isinstance(h, HirotaApplyedExpr):
+                return h.A
+
+    @property
+    def dont_print_matrix(self):
+        for h in self._args:
+            if isinstance(h, HirotaApplyedExpr):
+                if h.dont_print_matrix:
+                    return True
+        return False
+
+    def expand(self):
+        # see 'auto expand' in __new__
+        return self
+
+    def set_matrix(self, matrix):
+        new_args = ()
+        for a in self._args:
+            if isinstance(a, HirotaApplyedBase):
+                new_args += (a.set_matrix(matrix), )
+            else:
+                new_args += (a, )
+        return HA_Mul(*new_args)
+
+    def get_all_vars(self):
+        res = set()
+        for d in self.args:
+            if isinstance(d, HirotaApplyedBase):
+                res.update(d.get_all_vars())
+        return res
+
+    def eval(self, matrix=None, all_vars=None):
+        """
+        >>> from sympy.abc import x, y
+        >>> from sympy.core.function import Function
+        >>> from sympy.printing.latex import latex
+        >>> from sympy.solitons.hirota import HirotaUnapplyed as D
+
+        >>> f = Function("f")
+        >>> g = Function("g")
+
+        >>> d = D(x)**4 - D(x)*D(y)**3
+        >>> dh = d(f, f) - d(g, g)
+        >>> dh.eval()
+        2*f(x, y)*Derivative(f(x, y), x, x, x, x) - 2*f(x, y)*Derivative(f(x, y), x, y, y, y) - 2*g(x, y)*Derivative(g(x, y), x, x, x, x) + 2*g(x, y)*Derivative(g(x, y), x, y, y, y) - 8*Derivative(f(x, y), x)*Derivative(f(x, y), x, x, x) + 2*Derivative(f(x, y), x)*Derivative(f(x, y), y, y, y) + 6*Derivative(f(x, y), y)*Derivative(f(x, y), x, y, y) + 8*Derivative(g(x, y), x)*Derivative(g(x, y), x, x, x) - 2*Derivative(g(x, y), x)*Derivative(g(x, y), y, y, y) - 6*Derivative(g(x, y), y)*Derivative(g(x, y), x, y, y) + 6*Derivative(f(x, y), x, x)**2 - 6*Derivative(f(x, y), x, y)*Derivative(f(x, y), y, y) - 6*Derivative(g(x, y), x, x)**2 + 6*Derivative(g(x, y), x, y)*Derivative(g(x, y), y, y)
+        """
+        if matrix==None:
+            matrix = self.A
+        if all_vars==None:
+            all_vars = self.get_all_vars()
+        coeff, operators = self.split_coeff_operators
+        res = coeff
+        for a in operators:
+            res *= a.eval(matrix=matrix, all_vars=all_vars)
+        return res
+
+
+    def _latex(self, printer, *args):
+        tex = printer._print_Mul(self)
+        return tex
+
+    def _pretty(self, printer, *args):
+        pform = printer._print_Mul(self)
+        return pform
+
+class HA_Pow(HirotaApplyedBase, Pow):
+    def __new__(cls, *args):
+        expr = Pow.__new__(cls, *args, evaluate=False)
+        return expr
+
+
 
 
 class HirotaR(HirotaExpr):
