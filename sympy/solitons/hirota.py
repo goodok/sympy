@@ -832,7 +832,7 @@ class HirotaApplyed(HirotaApplyedBase):
         return self.operator.all_vars
 
 
-    def subs(self, n, new_n):
+    def _subs(self, n, new_n):
         """
         >>> from sympy.core.function import Function
         >>> from sympy.core.symbol import Symbol

@@ -1,10 +1,13 @@
 
-from sympy.abc import x, y, z
+from sympy.abc import x, y, z, alpha
 from sympy.core.function import Function
 from sympy.core.function import diff
+from sympy.functions.elementary.exponential import exp
 from sympy.printing.latex import latex
 
 from sympy.solitons.hirota import Hirota, HirotaUnapplyed as D, HirotaR
+
+from sympy.solitons.IEFH import I as mI, E as mE, F as mF, H as mH
 
 from sympy import Derivative
 
@@ -67,6 +70,21 @@ def test_HirotaUnapplyed():
                       - 2*F.diff(z)**2 - 2*G.diff(z)**2
 
 
+
+def test_subs():
+    f = Function("f")
+    g = Function("g")
+    F = f(x)
+    G = g(x)
+
+    d = (D(x, matrix=mF)**2)(f, g)
+    a = (f(x)*exp(alpha*x/2))
+    b = (g(x)*exp(-alpha*x/2))
+    d3 = d.subs({f:a, g:b})
+
+    assert d3.eval() == \
+        F*F.diff(x, x)*exp(alpha*x) + G*G.diff(x, x)*exp(-alpha*x) \
+        - F.diff(x)**2*exp(alpha*x) - G.diff(x)**2*exp(-alpha*x)
 
 
 def test_hirota_latex():
