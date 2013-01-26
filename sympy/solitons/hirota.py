@@ -1307,6 +1307,7 @@ class HA_Pow(HirotaApplyedBase, Pow):
 
 
 
+# depricated
 class HirotaR(HirotaExpr):
     """
     Recoursive calculations
