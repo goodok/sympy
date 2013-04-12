@@ -344,7 +344,7 @@ class HU_Add(HirotaUnapplyedBase, Add):
         return self._args
 
     def expand(self):
-        # see 'auto expand' in __new__
+        # see 'auto expand' in HU_Mul.__new__
         return self
 
     @property

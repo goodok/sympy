@@ -1,22 +1,6 @@
 """
-
-    >>> d = DiffOperator(x)
-
-    >>> d + d
-    2*d
-
-    >>> d(f(x))
-    diff(f(x), x)
-
-    >>> d + d**2
-    d + d**2
-
-    >>> (d + d**2)(f(x))
-    diff(f(x), x) + diff(f(x), x, x)
-
-    >>> (d + d**2)(f(x))
+The module implemented diff operator.
 """
-
 from sympy import Expr, Symbol, Eq, Mul, Add, Pow, expand, sympify, Tuple
 from sympy.core.basic import Basic
 from sympy.core.operations import AssocOp
@@ -76,7 +60,7 @@ class DiffOperatorExpr(Expr):
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__pow__')
     def __rpow__(self, other):
-        raise NotImplementedError("Sequence Power not defined")
+        raise NotImplementedError("DiffOperator Power is not defined")
     @_sympifyit('other', NotImplemented)
     @call_highest_priority('__rdiv__')
     def __div__(self, other):
@@ -88,7 +72,7 @@ class DiffOperatorExpr(Expr):
 
 class DiffOperatorOne(DiffOperatorExpr):
     """
-    Represents the empty sequence.
+    Represents the identic operator ( DiffOperator**0).
     """
 
     __metaclass__ = Singleton
@@ -96,6 +80,31 @@ class DiffOperatorOne(DiffOperatorExpr):
     is_Identity = True
 
 class DiffOperator(DiffOperatorExpr):
+    """
+    >>> from sympy.abc import x, a
+    >>> from sympy.core.function import Function
+    >>> from sympy.tensor.diff_operator import DiffOperator
+    >>> f = Function("f")
+
+    >>> Dx = DiffOperator(x)
+
+
+    >>> Dx + Dx
+    DiffOperator(x) + DiffOperator(x)
+
+    >>> Dx(f(x))
+    Derivative(f(x), x)
+
+    >>> Dx + Dx**2
+    DiffOperator(x) + DiffOperator(x)**2
+
+    >>> (Dx + Dx**2)(f(x))
+    Derivative(f(x), x) + Derivative(f(x), x, x)
+
+    >>> (a*Dx + Dx**3)(x**4)
+    4*a*x**3 + 24*x
+
+    """
 
     def __new__(cls, variable):
         obj = DiffOperatorExpr.__new__(cls, variable)
@@ -157,6 +166,13 @@ class DOMul(DiffOperatorExpr, Mul):
         if any(arg.is_zero for arg in args):
             return S.Zero
 
+        l = list(args)        
+        for i in range(len(l)):
+            arg = l[i]
+            if isinstance(arg, DOAdd):
+                others = DOMul(*tuple(l[:i] + l[i+1:]))
+                return DOAdd(*(others*a for a in arg._args))
+
         expr = Mul.__new__(cls, *args)
         return expr
 
@@ -205,4 +221,3 @@ class DOPow(DiffOperatorExpr, Pow):
 
     def _latex(self, p):
         return "%s^{%s}" % (self.base._latex(p), self.exp)
-

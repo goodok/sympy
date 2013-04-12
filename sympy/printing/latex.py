@@ -1079,7 +1079,7 @@ class LatexPrinter(Printer):
     def _print_PolynomialRing(self, expr):
         domain = self._print(expr.dom)
         gens = ", ".join(map(self._print, expr.gens))
-        return r"%s\left\[%s\right\]" % (domain, gens)
+        return r"%s\left[%s\right]" % (domain, gens)
 
     def _print_FractionField(self, expr):
         domain = self._print(expr.dom)
