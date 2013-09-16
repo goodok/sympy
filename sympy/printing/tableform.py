@@ -192,6 +192,8 @@ class TableForm(object):
 
         if self._headings[0]:
             self._headings[0] = [str(x) for x in self._headings[0]]
+        if self._headings[1]:
+            self._headings[1] = [str(x) for x in self._headings[1]]
 
         align_char = {'left': 'l', 'right':'r', 'center':'c'}.get(self._alignment)
         align_list = [align_char] * len(self._lines[0])

@@ -1556,5 +1556,5 @@ class HS_Add(Expr):
         for h in self._args:
             res += h.det()
         return res
- 
+
 

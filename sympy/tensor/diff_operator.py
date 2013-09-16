@@ -18,6 +18,7 @@ class DiffOperatorExpr(Expr):
 
     is_DiffOperator = True
     is_Identity = False
+    is_commutative = True
 
     # The following is adapted from the core Expr object
 
@@ -74,6 +75,12 @@ class DiffOperatorOne(DiffOperatorExpr):
     """
     Represents the identic operator ( DiffOperator**0).
     """
+
+    def __call__(self, e):
+        return e
+
+    def _latex(self, p):
+        return "\partial^0"
 
     __metaclass__ = Singleton
 
@@ -166,7 +173,7 @@ class DOMul(DiffOperatorExpr, Mul):
         if any(arg.is_zero for arg in args):
             return S.Zero
 
-        l = list(args)        
+        l = list(args)
         for i in range(len(l)):
             arg = l[i]
             if isinstance(arg, DOAdd):
@@ -178,8 +185,19 @@ class DOMul(DiffOperatorExpr, Mul):
 
     # is it needed?
     @classmethod
-    def flatten(cls, args_seq):
-        return args_seq, [], None
+    def flatten(cls, args):
+        new_seq = []
+        i = 0
+        while args:
+            o = args.pop()
+            if o.__class__ is cls:
+                args.extend(o.args)
+            else:
+                new_seq.append(o)
+        new_seq.reverse()
+        return new_seq, [], None
+
+      
 
     def as_ordered_terms(self, order=None):
         return self.args
@@ -220,4 +238,36 @@ class DOPow(DiffOperatorExpr, Pow):
             return diff(e, self.base.variable, self.exp)
 
     def _latex(self, p):
-        return "%s^{%s}" % (self.base._latex(p), self.exp)
+        return "%s^{%s}j" % (self.base._latex(p), self.exp)
+
+
+def poly_as_expr_do(p):
+    """Convert a multinomial form into an expression.
+
+    >>> from sympy.tensor import DiffOperator as d, poly_as_expr_do
+        
+    """
+    rep = p.rep.to_sympy_dict()
+    gens = p.gens
+
+    result = []
+
+    for monom, coeff in rep.iteritems():
+        term = [coeff]
+
+        any_is_do = False
+        if isinstance(coeff, DiffOperatorExpr):
+            any_is_do = True
+
+        for g, m in zip(gens, monom):
+            if isinstance(g, DiffOperatorExpr):
+                term.append(DOPow(g, m))
+                any_is_do = True
+            else:
+                term.append(Pow(g, m))
+        if not any_is_do:
+            term.append(DiffOperatorOne())
+        result.append(DOMul(*term))
+
+    return DOAdd(*result)
+
