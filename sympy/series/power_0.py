@@ -16,6 +16,7 @@ from sympy.core.function import AppliedUndef
 from sympy.abc import k
 
 from sympy.functions.combinatorial.factorials import factorial
+from sympy.functions.elementary.trigonometric import sin, cos
 from sympy.core.sets import Interval
 from sympy.core.cache import cacheit
 
@@ -93,7 +94,7 @@ class PowerSeries0Expr(PowerSeries0ExprOp):
             c0 = self.coeff(0)
             if c0 is S.Zero:
                 seq = Sequence(periodical=(0, 1, 0, -1)).unfactorialize()
-                ps = SC(self.x, sequence=seq)
+                ps = self._from_sample(sequence=seq)
                 return ps.compose(self)
             else:
                 ps_zero_free = self[1:]
@@ -102,7 +103,7 @@ class PowerSeries0Expr(PowerSeries0ExprOp):
             c0 = self.coeff(0)
             if c0 is S.Zero:
                 seq = Sequence(periodical=(1, 0, -1, 0)).unfactorialize()
-                ps = SC(self.x, sequence=seq)
+                ps = self._from_sample(sequence=seq)
                 return ps.compose(self)
             else:
                 ps_zero_free = self[1:]
@@ -112,7 +113,7 @@ class PowerSeries0Expr(PowerSeries0ExprOp):
             c0 = self.coeff(0)
             if c0 is S.Zero:
                 seq = Sequence(periodical=(1,)).unfactorialize()
-                ps = SC(self.x, sequence=seq)
+                ps = self._from_sample(sequence=seq)
                 return ps.compose(self)
             else:
                 ps_zero_free = self[1:]
