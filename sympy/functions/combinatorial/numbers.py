@@ -375,6 +375,7 @@ class bell(Function):
         return expand_mul(_sym * s)
 
     @staticmethod
+    @cacheit
     def _bell_incomplete_poly(n, k, symbols):
         r"""
         The second kind of Bell polynomials (incomplete Bell polynomials).
